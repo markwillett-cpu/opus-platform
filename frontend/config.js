@@ -30,7 +30,7 @@ const OPUS_CONFIG = {
   SUPABASE_ANON_KEY: 'sb_publishable_Lvv-SG7eonq1OO3T5Y7ofg__aF4eDRQ',
   
 // Platform API Configuration
-   API_BASE_URL: 'http://opus-platform.onrender.com/v1',
+   API_BASE_URL: 'https://opus-platform.onrender.com/v1',
    API_KEY: 'opus_sandbox_6b3f9c2d0e7a4c1a9f8d2c7b1e0a4d3f',  // Match what you put in .env
   
   // ─────────────────────────────────────────────────────────
