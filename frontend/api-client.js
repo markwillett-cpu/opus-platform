@@ -7,6 +7,7 @@
  * Centralized API client for all backend communication
  */
 
+class OpusAPIClient {
 constructor(config) {
   const rawBase =
     config.baseUrl ||
