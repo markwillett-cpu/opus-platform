@@ -599,7 +599,25 @@ async function loadStyles() {
     styleListEl.innerHTML = `<div class="loading">Loading styles...</div>`;
 
   const styles = await window.api.getStyles();
-const list = (styles || []).filter(s => !CONFIG.STYLES_TO_EXCLUDE.includes(s.name));
+const exclude = Array.isArray(CONFIG.STYLES_TO_EXCLUDE) ? CONFIG.STYLES_TO_EXCLUDE : [];
+const list = (styles || []).filter(s => !exclude.includes(s.name));
+
+styleListEl.innerHTML = list.map(style => `
+  <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
+    <div class="style-name">${style.name}</div>
+    <div class="style-meta">
+      <span id="style-track-count-${style.id}">— tracks</span>
+      <span id="style-badge-${style.id}" class="badge">—% assigned</span>
+    </div>
+  </div>
+`).join('');
+
+styleListEl.querySelectorAll('.style-item').forEach(el => {
+  el.addEventListener('click', () => {
+    selectStyle(el.dataset.styleId, el.dataset.styleName);
+    updateURL(el.dataset.styleId);
+  });
+});
 
 
     await loadAllStyleStats(list);
