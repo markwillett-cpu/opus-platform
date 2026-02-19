@@ -9,7 +9,7 @@
 
 class OpusAPIClient {
   constructor(config) {
-    this.baseURL = config.API_BASE_URL || 'http://localhost:8787/v1';
+    this.baseURL = config.API_BASE_URL || 'https://opus-platform.onrender.com';
     this.apiKey = config.API_KEY || '';
   }
 
