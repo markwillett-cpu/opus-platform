@@ -242,24 +242,19 @@
       </div>
 
       <div class="footer">
-        <div class="footer-note">💡 Changes are saved automatically to Supabase</div>
+        <div class="footer-note">💡 Changes are saved automatically</div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="api-client.js"></script>
 <script src="db-helpers.js"></script>
 <script src="class-labels.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════
-// SUPABASE CONFIGURATION (from config.js)
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = OPUS_CONFIG.SUPABASE_URL;
-const SUPABASE_KEY = OPUS_CONFIG.SUPABASE_ANON_KEY;
-window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
 
 // ═══════════════════════════════════════════════════════════
 // STATE
@@ -317,19 +312,15 @@ function updateURL(styleId) {
 // ═══════════════════════════════════════════════════════════
 async function loadStyleStats(styleId) {
   try {
-    const { count: totalTracks, error: countErr } = await window.db
-      .from('sim_style_songs')
-      .select('library_song_id', { count: 'exact', head: true })
-      .eq('style_id', styleId);
+    const tracks = await window.api.getStyleTracks(styleId);
+    const assignments = await window.api.getStyleAssignments(styleId);
 
-    if (countErr) throw countErr;
+    const totalTracks = Array.isArray(tracks) ? tracks.length : 0;
 
-    const { count: assignedCount, error: assignedErr } = await window.db
-      .from('sim_style_song_classes')
-      .select('library_song_id', { count: 'exact', head: true })
-      .eq('style_id', styleId);
-
-    if (assignedErr) throw assignedErr;
+    // assignments might be an object map { [library_song_id]: class } OR an array
+    let assignedCount = 0;
+    if (Array.isArray(assignments)) assignedCount = assignments.length;
+    else if (assignments && typeof assignments === 'object') assignedCount = Object.keys(assignments).length;
 
     const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
 
@@ -346,6 +337,8 @@ async function loadStyleStats(styleId) {
   }
 }
 
+
+
 async function loadAllStyleStats(styles) {
   const results = await Promise.allSettled(
     styles.map(style => loadStyleStats(style.id))
@@ -360,20 +353,19 @@ async function loadAllStyleStats(styles) {
 
 async function loadStyles() {
   try {
-    const { data: styles, error } = await window.db
-      .from('sim_styles')
-      .select('id, name')
-      .order('name');
-
-    if (error) throw error;
+    const styles = await window.api.getStyles();
 
     if (!styles || styles.length === 0) {
       styleList.innerHTML = '<div class="info">No styles found</div>';
       return;
     }
 
-    const filteredStyles = styles.filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name));
-    
+    // keep same behavior as before
+    const filteredStyles = styles
+      .filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name))
+      .slice()
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
     styleList.innerHTML = filteredStyles.map(style => `
       <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
         <div class="style-name">${style.name}</div>

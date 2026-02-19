@@ -261,18 +261,12 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="api-client.js"></script>
 <script src="db-helpers.js"></script>
 <script src="class-labels.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════
-// SUPABASE CONFIGURATION (from config.js)
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = OPUS_CONFIG.SUPABASE_URL;
-const SUPABASE_KEY = OPUS_CONFIG.SUPABASE_ANON_KEY;
-window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 // ═══════════════════════════════════════════════════════════
 // CLASS MIX WEIGHTS (sim_style_class_weights)
@@ -280,12 +274,7 @@ window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY
 const DEFAULT_WEIGHTS = OPUS_CONFIG.DEFAULT_CLASS_MIX || { A: 30, B: 40, C: 30, REST: 0 };
 
 async function fetchWeights(styleId) {
-  const { data, error } = await window.db
-    .from('sim_style_class_weights')
-    .select('class_code, weight_pct')
-    .eq('style_id', styleId);
-
-  if (error) throw error;
+  const data = await window.api.getStyleWeights(styleId);
 
   const out = { ...DEFAULT_WEIGHTS };
   (data || []).forEach(r => {
@@ -296,17 +285,25 @@ async function fetchWeights(styleId) {
   return normalizeWeights(out);
 }
 
-async function upsertWeights(styleId, weights) {
-  const payload = ['A','B','C','REST'].map(code => ({
-    style_id: styleId,
-    class_code: code,
-    weight_pct: weights[code] ?? 0
-  }));
 
-  return await window.db
-    .from('sim_style_class_weights')
-    .upsert(payload, { onConflict: 'style_id,class_code' });
+async function fetchWeights(styleId) {
+  const data = await window.api.getStyleWeights(styleId);
+
+  const out = { ...DEFAULT_WEIGHTS };
+  (data || []).forEach(r => {
+    const code = (r.class_code || '').toUpperCase();
+    if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
+  });
+
+  return normalizeWeights(out);
 }
+
+
+async function upsertWeights(styleId, weights) {
+  return await window.api.updateStyleWeights(styleId, weights);
+}
+
+
 
 function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 
@@ -542,19 +539,11 @@ function renderStyleList(styles) {
 
 async function loadStyleStats(styleId) {
   try {
-    const { count: totalTracks, error: countErr } = await window.db
-      .from('sim_style_songs')
-      .select('library_song_id', { count: 'exact', head: true })
-      .eq('style_id', styleId);
+    const tracks = await window.api.getStyleTracks(styleId);
+    const totalTracks = (tracks || []).length;
 
-    if (countErr) throw countErr;
-
-    const { count: assignedCount, error: aErr } = await window.db
-      .from('sim_style_song_classes')
-      .select('library_song_id', { count: 'exact', head: true })
-      .eq('style_id', styleId);
-
-    if (aErr) throw aErr;
+    const assignments = await window.api.getStyleAssignments(styleId);
+    const assignedCount = (assignments || []).length;
 
     const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
 
@@ -570,6 +559,7 @@ async function loadStyleStats(styleId) {
     console.error('Error loading style stats:', err);
   }
 }
+
 
 async function loadAllStyleStats(styles) {
   const results = await Promise.allSettled(
@@ -609,15 +599,9 @@ async function loadStyles() {
 
     styleListEl.innerHTML = `<div class="loading">Loading styles...</div>`;
 
-    const { data: styles, error } = await window.db
-      .from('sim_styles')
-      .select('id, name')
-      .order('name');
+  const styles = await window.api.getStyles();
+const list = (styles || []).filter(s => !CONFIG.STYLES_TO_EXCLUDE.includes(s.name));
 
-    if (error) throw error;
-
-    const list = (styles || []).filter(s => !CONFIG.STYLES_TO_EXCLUDE.includes(s.name));
-    renderStyleList(list);
 
     await loadAllStyleStats(list);
 

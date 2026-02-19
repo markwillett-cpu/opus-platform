@@ -4,7 +4,7 @@
 
 /**
  * Client for Opus Platform API
- * Replace direct Supabase calls with this API client
+ * Centralized API client for all backend communication
  */
 
 class OpusAPIClient {

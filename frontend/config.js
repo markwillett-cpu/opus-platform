@@ -5,29 +5,12 @@
 /**
  * Central configuration file for Opus Playback Manager
  * 
- * Update these values with your Supabase project credentials
- * and customize application behavior as needed.
+ * Frontend configuration values
+ * Customize application behavior as needed.
  */
 
 const OPUS_CONFIG = {
   
-  // ─────────────────────────────────────────────────────────
-  // SUPABASE CONNECTION
-  // ─────────────────────────────────────────────────────────
-  
-  /**
-   * Supabase project URL
-   * Find this in your Supabase project settings
-   * Format: https://your-project-id.supabase.co
-   */
-  SUPABASE_URL: 'https://quuxtalnpdcommlylwlp.supabase.co',
-  
-  /**
-   * Supabase anonymous (public) API key
-   * Find this in: Project Settings → API → anon/public key
-   * This key is safe to expose in client-side code
-   */
-  SUPABASE_ANON_KEY: 'sb_publishable_Lvv-SG7eonq1OO3T5Y7ofg__aF4eDRQ',
   
 // Platform API Configuration
    API_BASE_URL: 'https://opus-platform.onrender.com/v1',
@@ -201,18 +184,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * Logs warnings for common issues
  */
 (function validateConfig() {
-  // Check if Supabase URL is set
-  if (OPUS_CONFIG.SUPABASE_URL.includes('your-project') || 
-      OPUS_CONFIG.SUPABASE_URL === 'https://quuxtalnpdcommlylwlp.supabase.co') {
-    console.warn('⚠️ OPUS CONFIG: Please update SUPABASE_URL with your project URL');
-  }
-  
-  // Check if Supabase key is set
-  if (OPUS_CONFIG.SUPABASE_ANON_KEY.includes('your-key') ||
-      OPUS_CONFIG.SUPABASE_ANON_KEY.startsWith('sb_publishable_Lvv')) {
-    console.warn('⚠️ OPUS CONFIG: Please update SUPABASE_ANON_KEY with your project key');
-  }
-  
+    
   // Validate default mix totals 100%
   const mixTotal = Object.values(OPUS_CONFIG.DEFAULT_CLASS_MIX)
     .reduce((sum, val) => sum + val, 0);

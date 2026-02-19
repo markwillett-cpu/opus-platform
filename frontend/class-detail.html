@@ -225,24 +225,18 @@
       </div>
 
       <div class="footer">
-        <div class="footer-note">💡 Changes save to Supabase</div>
+        <div class="footer-note">💡 Changes save automatically</div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="api-client.js"></script>
 <script src="db-helpers.js"></script>
 <script src="class-labels.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════
-// SUPABASE CONFIGURATION (from config.js)
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = OPUS_CONFIG.SUPABASE_URL;
-const SUPABASE_KEY = OPUS_CONFIG.SUPABASE_ANON_KEY;
-window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 // ═══════════════════════════════════════════════════════════
 // URL PARAMS
@@ -325,24 +319,13 @@ function updateURL(styleId) {
 // ═══════════════════════════════════════════════════════════
 async function loadStyleStats(styleId) {
   try {
-    const { count: totalTracks, error: countErr } = await window.db
-      .from('sim_style_songs')
-      .select('*', { count: 'exact', head: true })
-      .eq('style_id', styleId);
+    const tracks = await fetchStyleSongRows(styleId); // already API-backed in your stack
+    const totalTracks = tracks.length;
 
-    if (countErr) throw countErr;
+    const assignmentsMap = await fetchAssignments(styleId); // make sure this uses API endpoint
+    const assignedCount = Object.keys(assignmentsMap).length;
 
-    const { count: assignedCount, error: assignedErr } = await window.db
-      .from('sim_style_song_classes')
-      .select('*', { count: 'exact', head: true })
-      .eq('style_id', styleId);
-
-    if (assignedErr) throw assignedErr;
-
-    const pct =
-      (totalTracks || 0) > 0
-        ? Math.round(((assignedCount || 0) / (totalTracks || 0)) * 100)
-        : 0;
+    const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
 
     const countEl = document.getElementById(`style-track-count-${styleId}`);
     const badgeEl = document.getElementById(`style-badge-${styleId}`);
@@ -392,15 +375,9 @@ async function loadAllStyleStats(styles) {
 
 async function loadStyles() {
   try {
-    const { data: styles, error } = await window.db
-      .from('sim_styles')
-      .select('id, name')
-      .order('name');
+    const styles = await window.api.getStyles();
+const list = (styles || []).filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name));
 
-    if (error) throw error;
-
-    const list = (styles || []).filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name));
-    renderStyleList(list);
 
     if (initialStyleId) {
       const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
