@@ -145,7 +145,7 @@ if (cfg) {
   // Back-compat: most pages expect window.api
   window.api = window.opusAPI;
 }
-
+}
 
 // Also export for module systems
 if (typeof module !== 'undefined' && module.exports) {
