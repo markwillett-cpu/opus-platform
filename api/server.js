@@ -17,11 +17,14 @@ const app = Fastify({
 // CORS: only enable if you truly need browser calls from GH Pages.
 // For internal-only (server-to-server), you can leave CORS_ORIGIN empty.
 await app.register(cors, {
-  origin: ['http://localhost:3000'],
-  'https://markwillett-cpu.github.io'
+  origin: [
+    'http://localhost:3000',
+    'https://markwillett-cpu.github.io'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
- allowedHeaders: ['Content-Type', 'X-Internal-Key', 'X-API-Key', 'Authorization']
+  allowedHeaders: ['Content-Type', 'X-Internal-Key', 'X-API-Key', 'Authorization']
 });
+
 
 
 // Health check
