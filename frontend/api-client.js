@@ -150,10 +150,12 @@ if (typeof window !== 'undefined') {
 const cfg = window.OPUS_CONFIG || window.CONFIG;
 if (cfg) {
   // Normalize config into what OpusAPIClient expects
-  const normalized = {
-    baseUrl: cfg.API_BASE_URL || cfg.baseUrl || cfg.OPUS_API_BASE_URL,
-    apiKey: cfg.OPUS_INTERNAL_API_KEY || cfg.apiKey || cfg.OPUS_API_KEY
-  };
+ const normalized = {
+  API_BASE_URL: cfg.API_BASE_URL || cfg.baseUrl || cfg.OPUS_API_BASE_URL,
+  API_KEY: cfg.API_KEY || cfg.OPUS_INTERNAL_API_KEY || cfg.apiKey
+};
+
+
 
   window.opusAPI = new OpusAPIClient(normalized);
   // Back-compat: most pages expect window.api
