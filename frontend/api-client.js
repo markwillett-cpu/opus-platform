@@ -132,11 +132,20 @@ class OpusAPIClient {
 if (typeof window !== 'undefined') {
   window.OpusAPIClient = OpusAPIClient;
   
-  // Create default instance if config exists
-  if (window.OPUS_CONFIG) {
-    window.opusAPI = new OpusAPIClient(window.OPUS_CONFIG);
-  }
+ // Create default instance if config exists
+const cfg = window.OPUS_CONFIG || window.CONFIG;
+if (cfg) {
+  // Normalize config into what OpusAPIClient expects
+  const normalized = {
+    baseUrl: cfg.API_BASE_URL || cfg.baseUrl || cfg.OPUS_API_BASE_URL,
+    apiKey: cfg.OPUS_INTERNAL_API_KEY || cfg.apiKey || cfg.OPUS_API_KEY
+  };
+
+  window.opusAPI = new OpusAPIClient(normalized);
+  // Back-compat: most pages expect window.api
+  window.api = window.opusAPI;
 }
+
 
 // Also export for module systems
 if (typeof module !== 'undefined' && module.exports) {
