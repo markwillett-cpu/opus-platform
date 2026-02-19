@@ -33,11 +33,14 @@ constructor(config) {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': this.apiKey,
-      ...options.headers
-    };
+  const headers = {
+  ...(options.headers || {}),
+  'Content-Type': 'application/json'
+};
+
+// Force auth header last so it can't be overwritten
+if (this.apiKey) headers['x-api-key'] = this.apiKey;
+
 
     const config = {
       ...options,
@@ -45,7 +48,10 @@ constructor(config) {
     };
 
     const response = await fetch(url, config);
-    const data = await response.json();
+    const text = await response.text();
+let data;
+try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+
 
     if (!response.ok) {
       const error = new Error(data.error?.message || 'API request failed');
