@@ -7,11 +7,24 @@
  * Centralized API client for all backend communication
  */
 
-class OpusAPIClient {
-  constructor(config) {
-    this.baseURL = (config.baseUrl || config.API_BASE_URL || 'https://opus-platform.onrender.com').replace(/\/$/, '') + '/v1';
-    this.apiKey = config.apiKey || config.OPUS_INTERNAL_API_KEY || '';
-  }
+constructor(config) {
+  const rawBase =
+    config.baseUrl ||
+    config.API_BASE_URL ||
+    'https://opus-platform.onrender.com';
+
+  // Ensure base URL ends with exactly one "/v1"
+  const baseNoTrailingSlash = String(rawBase).replace(/\/$/, '');
+  this.baseURL = baseNoTrailingSlash.endsWith('/v1')
+    ? baseNoTrailingSlash
+    : `${baseNoTrailingSlash}/v1`;
+
+  this.apiKey =
+    config.apiKey ||
+    config.OPUS_INTERNAL_API_KEY ||
+    config.API_KEY ||
+    '';
+}
 
   /**
    * Make authenticated request to API
