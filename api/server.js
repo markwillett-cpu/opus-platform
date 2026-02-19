@@ -18,8 +18,9 @@ const app = Fastify({
 // For internal-only (server-to-server), you can leave CORS_ORIGIN empty.
 await app.register(cors, {
   origin: ['http://localhost:3000'],
+  'https://markwillett-cpu.github.io'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization']
+ allowedHeaders: ['Content-Type', 'X-Internal-Key', 'X-API-Key', 'Authorization']
 });
 
 
@@ -27,7 +28,11 @@ await app.register(cors, {
 app.get('/health', async () => ({ ok: true }));
 
 // Internal-only guard (simple and effective for now)
-app.addHook('onRequest', requireInternalKey);
+app.addHook('onRequest', async (req, reply) => {
+  if (req.url === '/health') return;
+  return requireInternalKey(req, reply);
+});
+
 
 // Routes
 await app.register(stylesRoutes, { prefix: '/v1' });
@@ -48,9 +53,12 @@ app.setErrorHandler((err, req, reply) => {
   });
 });
 
-app.listen({ port: config.PORT, host: '0.0.0.0' })
-  .then(() => app.log.info(`Opus API listening on :${config.PORT}`))
+const port = process.env.PORT || config.PORT || 8787;
+
+app.listen({ port, host: '0.0.0.0' })
+  .then(() => app.log.info(`Opus API listening on :${port}`))
   .catch((e) => {
     app.log.error(e);
     process.exit(1);
   });
+
