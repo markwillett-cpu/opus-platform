@@ -621,6 +621,7 @@ function debounce(fn, delay) {
     timer = setTimeout(() => fn.apply(this, args), delay);
   };
 }
+const CONFIG = window.OPUS_CONFIG || window.CONFIG || {};
 
 if (styleSearchEl) {
   styleSearchEl.addEventListener('input', debounce(() => {
@@ -629,7 +630,8 @@ if (styleSearchEl) {
       const name = (el.dataset.styleName || '').toLowerCase();
       el.style.display = (!q || name.includes(q)) ? '' : 'none';
     });
-  }, CONFIG.SEARCH_DEBOUNCE));
+  }, CONFIG.SEARCH_DEBOUNCE ?? 200));
+
 }
 
 // ═══════════════════════════════════════════════════════════
