@@ -9,8 +9,8 @@
 
 class OpusAPIClient {
   constructor(config) {
-    this.baseURL = config.API_BASE_URL || 'https://opus-platform.onrender.com';
-    this.apiKey = config.API_KEY || '';
+    this.baseURL = (config.baseUrl || config.API_BASE_URL || 'https://opus-platform.onrender.com').replace(/\/$/, '') + '/v1';
+    this.apiKey = config.apiKey || config.OPUS_INTERNAL_API_KEY || '';
   }
 
   /**
@@ -21,7 +21,7 @@ class OpusAPIClient {
     
     const headers = {
       'Content-Type': 'application/json',
-      'X-API-Key': this.apiKey,
+      'x-api-key': this.apiKey,
       ...options.headers
     };
 
