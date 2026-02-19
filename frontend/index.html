@@ -614,6 +614,13 @@ const list = (styles || []).filter(s => !CONFIG.STYLES_TO_EXCLUDE.includes(s.nam
     if (styleListEl) styleListEl.innerHTML = `<div class="error">Error loading styles: ${err.message}</div>`;
   }
 }
+function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
 
 if (styleSearchEl) {
   styleSearchEl.addEventListener('input', debounce(() => {
