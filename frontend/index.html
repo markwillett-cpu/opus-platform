@@ -658,11 +658,24 @@ if (styleSearchEl) {
 async function loadClassStats(styleId) {
   if (!styleId) return;
 
-  const rows = await DB_HELPERS.fetchStyleSongRows(styleId);
-  const total = rows.length;
+  const rows = await window.api.getStyleTracks(styleId);
+const total = Array.isArray(rows) ? rows.length : 0;
 
-  const assignmentMap = await DB_HELPERS.fetchAssignments(styleId);
-  const assignedCount = Object.keys(assignmentMap).length;
+const assignments = await window.api.getStyleAssignments(styleId);
+
+// assignments might be an object map or an array; support both
+let assignmentMap = {};
+if (Array.isArray(assignments)) {
+  // if API returns array rows like [{library_song_id, class_code}, ...]
+  assignments.forEach(a => {
+    if (a && a.library_song_id) assignmentMap[a.library_song_id] = a;
+  });
+} else if (assignments && typeof assignments === 'object') {
+  assignmentMap = assignments;
+}
+
+const assignedCount = Object.keys(assignmentMap).length;
+
   const unassignedCount = Math.max(0, total - assignedCount);
   const assignedPct = total ? ((assignedCount / total) * 100).toFixed(1) : '0.0';
   const unassignedPct = total ? ((unassignedCount / total) * 100).toFixed(1) : '0.0';
