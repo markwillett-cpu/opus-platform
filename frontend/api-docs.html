@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Opus Platform API – Developer Documentation</title>
+<style>
+body {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  margin: 40px;
+  max-width: 1100px;
+  background: #ffffff;
+  color: #111;
+}
+h1, h2, h3 {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin-top: 40px;
+}
+pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.endpoint {
+  border-left: 4px solid #333;
+  padding-left: 16px;
+  margin-top: 30px;
+}
+.warning {
+  background: #fff3cd;
+  padding: 12px;
+  border-left: 4px solid #856404;
+}
+.section {
+  margin-bottom: 50px;
+}
+</style>
+</head>
+<body>
+
+<h1>Opus Platform API – Developer Documentation</h1>
+
+<div class="section">
+<h2>Purpose</h2>
+<p>
+Internal API layer for style class categorization and weight management.
+This API abstracts database access and enforces validation and authorization.
+</p>
+</div>
+
+<div class="section">
+<h2>Runtime Architecture</h2>
+<pre>
+Browser (Class Categorization UI)
+        ↓
+Laravel Route → Controller
+        ↓
+Service Layer (Validation + Business Logic)
+        ↓
+MySQL (Opus Database)
+</pre>
+<p>
+This API runs inside the Opus Laravel application. It is not publicly exposed.
+</p>
+</div>
+
+<div class="section">
+<h2>Authentication Model</h2>
+<ul>
+<li>Laravel session-based auth (Sanctum)</li>
+<li>Requires valid <code>opus3_session</code> cookie</li>
+<li>Write operations require CSRF token</li>
+<li>No API keys in production</li>
+</ul>
+
+<h3>Frontend Requirements (write requests)</h3>
+<pre>
+fetch(url, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+    "X-XSRF-TOKEN": csrfToken
+  }
+})
+</pre>
+</div>
+
+<div class="section">
+<h2>Authorization</h2>
+<p>Access controlled via Laravel middleware and policies.</p>
+
+<table border="1" cellpadding="8">
+<tr>
+<th>Operation</th>
+<th>Required Role</th>
+</tr>
+<tr>
+<td>Read styles/tracks</td>
+<td>Authenticated user</td>
+</tr>
+<tr>
+<td>Update assignments</td>
+<td>Music Admin / Curator</td>
+</tr>
+<tr>
+<td>Update weights</td>
+<td>Music Admin</td>
+</tr>
+</table>
+</div>
+
+<div class="section">
+<h2>Versioning</h2>
+<pre>/internal/api/v1</pre>
+
+<ul>
+<li>Breaking changes → new version path</li>
+<li>Additive changes allowed within same version</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>Database Schema (Relevant Tables)</h2>
+
+<h3>sim_styles</h3>
+<pre>
+id (UUID, PK)
+name (TEXT)
+</pre>
+
+<h3>library_songs</h3>
+<pre>
+id (UUID, PK)
+title (TEXT)
+artist (TEXT)
+album (TEXT)
+peak_year (INT)
+run_time_seconds (INT)
+styles (TEXT)
+</pre>
+
+<h3>sim_style_songs</h3>
+<pre>
+style_id (UUID, FK → sim_styles.id)
+library_song_id (UUID, FK → library_songs.id)
+sim_duration_seconds (INT)
+PRIMARY KEY (style_id, library_song_id)
+</pre>
+
+<h3>sim_style_song_classes</h3>
+<pre>
+style_id (UUID)
+library_song_id (UUID)
+class_code (TEXT)  // A | B | C | REST
+moved_at (TIMESTAMP)
+PRIMARY KEY (style_id, library_song_id)
+</pre>
+
+<h3>sim_style_class_weights</h3>
+<pre>
+style_id (UUID)
+class_code (TEXT)
+weight_pct (INT 0–100)
+PRIMARY KEY (style_id, class_code)
+</pre>
+</div>
+
+<div class="section">
+<h2>Class Code Rules</h2>
+<ul>
+<li>Valid: A, B, C, REST</li>
+<li>Stored uppercase</li>
+<li>Unassigned = no row in sim_style_song_classes</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>Endpoints</h2>
+
+<div class="endpoint">
+<h3>GET /internal/api/v1/styles</h3>
+<p>Returns all styles ordered by name.</p>
+</div>
+
+<div class="endpoint">
+<h3>GET /internal/api/v1/styles/{style_id}/tracks</h3>
+<p>Returns:</p>
+<ul>
+<li>Song metadata</li>
+<li>Duration override</li>
+<li>Class assignment (nullable)</li>
+</ul>
+</div>
+
+<div class="endpoint">
+<h3>POST /internal/api/v1/styles/{style_id}/assignments</h3>
+<pre>
+{
+  "assignments": [
+    {
+      "library_song_id": "uuid",
+      "class_code": "A"
+    }
+  ]
+}
+</pre>
+<p>Behavior:</p>
+<ul>
+<li>Bulk upsert</li>
+<li>Conflict target: (style_id, library_song_id)</li>
+<li>Class codes normalized</li>
+</ul>
+</div>
+
+<div class="endpoint">
+<h3>DELETE /internal/api/v1/styles/{style_id}/assignments</h3>
+<pre>
+{
+  "library_song_ids": ["uuid1", "uuid2"]
+}
+</pre>
+<p>Removes assignments (returns songs to Uncategorized).</p>
+</div>
+
+<div class="endpoint">
+<h3>POST /internal/api/v1/styles/{style_id}/weights</h3>
+<pre>
+{
+  "weights": [
+    { "class_code": "A", "weight_pct": 35 },
+    { "class_code": "B", "weight_pct": 35 },
+    { "class_code": "C", "weight_pct": 30 },
+    { "class_code": "REST", "weight_pct": 0 }
+  ]
+}
+</pre>
+<p>Validation:</p>
+<ul>
+<li>Each weight 0–100</li>
+<li>Total must equal 100</li>
+<li>All four classes must be present</li>
+</ul>
+</div>
+
+</div>
+
+<div class="section">
+<h2>Error Format</h2>
+<pre>
+{
+  "error": {
+    "message": "Validation fai

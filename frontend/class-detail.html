@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Class Detail</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+      --power:#e74c3c;--core:#3498db;--library:#27ae60;--rest:#95a5a6;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+    .hamburger{font-size:22px;opacity:.9}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+    .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
+    .toolbar-btn.primary{background:var(--accent)}
+    .container{max-width:1800px;margin:0 auto;padding:18px}
+    .main-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;height:calc(100vh - 160px)}
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .pane-toggle{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer}
+    .styles-wrap{display:grid;grid-template-columns: 40px 1fr;min-height:0}
+    .styles-rail{background: var(--secondary);border-radius:8px;display:flex;justify-content:center;padding-top:10px;align-self: stretch}
+    .styles-rail .pane-toggle{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;width:30px;height:30px;border-radius:6px;font-weight:900;cursor:pointer}
+    .styles-collapsed .main-layout{grid-template-columns: 40px 1fr}
+    .styles-collapsed .styles-panel{display:none}
+    .styles-collapsed .styles-wrap{grid-template-columns: 40px}
+    .panel-subheader{padding:12px 14px;border-bottom:1px solid var(--light)}
+    .search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .style-list{overflow:auto;padding:10px}
+    .style-item{background:var(--light);padding:12px;border-radius:6px;cursor:pointer;margin-bottom:8px;border-left:3px solid transparent;transition:.2s}
+    .style-item:hover{background:#e8f4f8;border-left-color:var(--accent)}
+    .style-item.active{background:#e8f4f8;border-left-color:var(--accent);box-shadow:0 2px 4px rgba(0,0,0,.08)}
+    .style-name{font-weight:900;font-size:14px;margin-bottom:4px}
+    .style-meta{display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900}
+    .b-ok{background:#d4edda;color:#155724}
+    .b-warn{background:#fff3cd;color:#856404}
+    .b-bad{background:#f8d7da;color:#721c24}
+    .category-header{background:var(--light);padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+    .category-header h2{font-size:18px;margin-bottom:4px}
+    .subtext{color:#7f8c8d;font-size:13px}
+    .content{padding:18px 22px;overflow:auto;flex:1;min-height:0}
+    .info{background:#e8f4f8;border-left:4px solid var(--accent);padding:12px 14px;border-radius:4px;color:var(--primary);font-size:13px;margin-bottom:14px}
+    .footer{border-top:1px solid var(--border);background:var(--light);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .footer-note{color:#7f8c8d;font-size:12px;font-weight:800}
+    @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}}
+    .back-link{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--accent);font-size:13px;font-weight:900;cursor:pointer;padding:0;margin-bottom:2px}
+    .back-link:hover{text-decoration:underline}
+    .detail-body{display:grid;grid-template-columns:1fr 260px;gap:18px;height:100%}
+    .track-panel{display:flex;flex-direction:column;min-height:0;border:1px solid var(--light);border-radius:8px;overflow:hidden}
+    .sel-bar{background:var(--secondary);color:#fff;padding:10px 12px;display:none;align-items:center;gap:10px;font-size:13px;font-weight:800}
+    .sel-bar.visible{display:flex}
+    .sel-bar .sel-n{font-size:16px;font-weight:1000}
+    .sel-bar .sel-clear{margin-left:auto;background:none;border:none;color:#bdc3c7;font-size:12px;font-weight:900;cursor:pointer}
+    .sel-bar .sel-clear:hover{color:#fff}
+    .track-toolbar{background:var(--light);border-bottom:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .track-toolbar input{flex:1;min-width:180px;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .track-toolbar select{padding:6px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px}
+    .track-scroll{overflow:auto;flex:1;min-height:0}
+    .track-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:13px}
+    .track-table thead{background:var(--secondary);color:#fff;position:sticky;top:0;z-index:1}
+    .track-table th,.track-table td{padding:10px 12px;font-size:13px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    .track-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .track-table tbody tr:hover{background:#f8f9fa;cursor:pointer}
+    .track-table tbody tr.checked{background:#eef6fc}
+    .track-table .art{width:36px;height:36px;border-radius:3px;object-fit:cover}
+    .sidebar{display:flex;flex-direction:column;gap:12px;overflow:auto}
+    .card{background:var(--light);border-radius:6px;padding:14px}
+    .card h3{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#7f8c8d;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+    .assign-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 12px;border-radius:6px;border:2px solid transparent;background:#fff;cursor:pointer;font-size:14px;font-weight:900;color:var(--primary);transition:.15s;text-align:left}
+    .assign-btn .ab-dot{width:14px;height:14px;border-radius:3px;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+    .assign-btn .ab-label{flex:1}
+    .assign-btn .ab-count{font-size:12px;font-weight:900;opacity:.45;font-variant-numeric:tabular-nums}
+    .assign-btn.cls-primary{color:var(--power)}
+    .assign-btn.cls-secondary{color:var(--core)}
+    .assign-btn.cls-tertiary{color:var(--library)}
+    .assign-btn.cls-rest{color:var(--rest)}
+    .assign-btn.cls-uncat{color:#7f8c8d}
+    .assign-btn:hover{border-color:currentColor}
+    .assign-btn:disabled{opacity:.3;cursor:not-allowed;border-color:transparent !important}
+    .assign-hint{font-size:12px;color:#7f8c8d;font-weight:800;margin-top:10px;text-align:center}
+    .loading{text-align:center;padding:40px;color:#7f8c8d}
+    .error{background:#f8d7da;border-left:4px solid var(--danger);padding:12px 14px;border-radius:4px;color:#721c24;font-size:13px;margin:14px}
+    .success-toast{position:fixed;top:20px;right:20px;background:var(--success);color:#fff;padding:12px 18px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:1000;animation:slideIn .3s}
+    @keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+    .class-dot{display:inline-block;width:16px;height:16px;border-radius:4px;margin-right:8px;vertical-align:middle}
+    .stats-banner{background:#2f3d4a;color:#fff;padding:14px 22px;display:grid !important;grid-template-columns:repeat(4,1fr) !important;gap:14px !important}
+    .stat-box{text-align:center}
+    .stat-label{font-size:11px;letter-spacing:.4px;opacity:.85;text-transform:uppercase}
+    .stat-value{font-size:22px;font-weight:1000;margin-top:4px}
+    .stat-sub{font-size:12px;opacity:.8;margin-top:2px}
+  </style>
+</head>
+<body>
+<div class="opus-header">
+  <div class="opus-title">Custom Channels Opus</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net">Tracks</a>
+    <a class="nav-item active" href="#">Playback Classes</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn primary" id="backToManagerBtn" type="button">
+    Manage Playback Classes
+  </button>
+</div>
+
+<div class="container">
+  <div class="main-layout">
+
+    <div class="styles-wrap">
+  <div class="styles-rail">
+    <button class="pane-toggle" id="toggleStyles" type="button" title="Show/Hide Styles">☰</button>
+  </div>
+
+  <div class="panel styles-panel">
+    <div class="panel-header">
+      <span>Styles (Playlists)</span>
+    </div>
+    <div class="panel-subheader">
+      <input class="search-input" id="styleSearch" placeholder="Search styles..." />
+    </div>
+    <div class="style-list" id="styleList">
+      <div class="loading">Loading styles...</div>
+    </div>
+  </div>
+</div>
+
+    <div class="panel">
+      <div class="category-header">
+        <div>
+          <button class="back-link" onclick="history.back()">← Back</button>
+          <h2>
+            <span class="class-dot" id="classDot" style="background:var(--power)"></span>
+            <span id="classTitle">A</span>
+          </h2>
+          <p class="subtext"><span id="styleName">Select a style</span> · <span id="classDescription">High-priority tracks</span></p>
+        </div>
+      </div>
+
+      <div class="stats-banner">
+        <div class="stat-box">
+          <div class="stat-label" id="statLabel">In A</div>
+          <div class="stat-value" id="statInClass">—</div>
+          <div class="stat-sub" id="statPct">—</div>
+        </div>
+        <div class="stat-box"><div class="stat-label">Total Tracks</div><div class="stat-value" id="statTotal">—</div></div>
+        <div class="stat-box"><div class="stat-label">Unassigned</div><div class="stat-value" id="statUnassigned">—</div></div>
+        <div class="stat-box"><div class="stat-label">Selected</div><div class="stat-value" id="statSelected">0</div></div>
+      </div>
+
+      <div class="content">
+        <div class="info">
+          Select tracks and use the right sidebar to move them to another class or back to Uncategorized.
+        </div>
+
+        <div class="detail-body">
+          <div class="track-panel">
+            <div class="sel-bar" id="selBar">
+              <span class="sel-n" id="selN">0</span>
+              <span class="sel-lbl">selected</span>
+              <button class="sel-clear" id="selClear">Clear selection</button>
+            </div>
+
+            <div class="track-toolbar">
+              <input type="text" id="trackSearch" placeholder="Search tracks..." />
+              <select id="sortBy">
+                <option value="title">Sort by Title</option>
+                <option value="artist">Sort by Artist</option>
+                <option value="album">Sort by Album</option>
+                <option value="year_desc">Sort by Peak Year (Newest)</option>
+                <option value="year_asc">Sort by Peak Year (Oldest)</option>
+                <option value="moved_desc">Sort by Move Date (Newest)</option>
+                <option value="moved_asc">Sort by Move Date (Oldest)</option>
+              </select>
+            </div>
+
+            <div class="track-scroll">
+              <table class="track-table">
+                <thead>
+                  <tr>
+                    <th style="width:40px"><input type="checkbox" id="selectAll" /></th>
+                    <th style="width:50px"></th>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Album</th>
+                    <th>Library Styles</th>
+                    <th style="width:80px">Year</th>
+                    <th style="width:80px">Time</th>
+                    <th style="width:140px">Move Date</th>
+                  </tr>
+                </thead>
+                <tbody id="trackBody">
+                  <tr><td colspan="9" class="loading">Select a style...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="sidebar">
+            <div class="card">
+              <h3>Move to Class</h3>
+              <button class="assign-btn cls-primary" data-class="A"><div class="ab-dot" style="background:var(--power)"></div><div class="ab-label">A</div><div class="ab-count">0</div></button>
+              <button class="assign-btn cls-secondary" data-class="B"><div class="ab-dot" style="background:var(--core)"></div><div class="ab-label">B</div><div class="ab-count">0</div></button>
+              <button class="assign-btn cls-tertiary" data-class="C"><div class="ab-dot" style="background:var(--library)"></div><div class="ab-label">C</div><div class="ab-count">0</div></button>
+              <button class="assign-btn cls-rest" data-class="REST"><div class="ab-dot" style="background:var(--rest)"></div><div class="ab-label">Rest</div><div class="ab-count">0</div></button>
+              <button class="assign-btn cls-uncat" data-class="Uncategorized"><div class="ab-dot" style="background:#95a5a6"></div><div class="ab-label">Uncategorized</div><div class="ab-count">0</div></button>
+              <div class="assign-hint" id="assignHint">Select tracks to move</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="footer-note">💡 Changes save to Supabase</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script src="db-helpers.js"></script>
+<script src="class-labels.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// SUPABASE CONFIGURATION (from config.js)
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = OPUS_CONFIG.SUPABASE_URL;
+const SUPABASE_KEY = OPUS_CONFIG.SUPABASE_ANON_KEY;
+window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════════════════
+// URL PARAMS
+// ═══════════════════════════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const currentClassCode = urlParams.get('class') || 'A';
+const initialStyleId = urlParams.get('style_id') || null;
+
+// ═══════════════════════════════════════════════════════════
+// CLASS UI CONFIG
+// ═══════════════════════════════════════════════════════════
+const CLASS_CONFIG = {
+  A: { color: 'var(--power)', label: 'A', description: 'High-priority tracks' },
+  B: { color: 'var(--core)', label: 'B', description: 'Core rotation tracks' },
+  C: { color: 'var(--library)', label: 'C', description: 'Library tracks' },
+  REST: { color: 'var(--rest)', label: 'Rest', description: 'Rest period tracks' }
+};
+
+const config = CLASS_CONFIG[currentClassCode] || CLASS_CONFIG.A;
+document.getElementById('classDot').style.background = config.color;
+document.getElementById('classTitle').textContent = config.label;
+document.getElementById('classDescription').textContent = config.description;
+document.getElementById('statLabel').textContent = `In ${config.label}`;
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentStyleId = null;
+let currentStyleName = '';
+let allTracks = [];
+let classCounts = { A: 0, B: 0, C: 0, REST: 0, Uncategorized: 0 };
+
+// ═══════════════════════════════════════════════════════════
+// DOM REFS
+// ═══════════════════════════════════════════════════════════
+const tbody = document.getElementById('trackBody');
+const selectAll = document.getElementById('selectAll');
+const selBar = document.getElementById('selBar');
+const selN = document.getElementById('selN');
+const selClear = document.getElementById('selClear');
+const statInClass = document.getElementById('statInClass');
+const statPct = document.getElementById('statPct');
+const statTotal = document.getElementById('statTotal');
+const statUnassigned = document.getElementById('statUnassigned');
+const statSel = document.getElementById('statSelected');
+const styleNameEl = document.getElementById('styleName');
+const assignHint = document.getElementById('assignHint');
+const moveBtns = document.querySelectorAll('.assign-btn');
+const styleList = document.getElementById('styleList');
+const trackSearch = document.getElementById('trackSearch');
+const sortBy = document.getElementById('sortBy');
+const styleSearch = document.getElementById('styleSearch');
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+function formatStyles(stylesStr) {
+  const toks = (stylesStr || '').split('|').map(s => s.trim()).filter(Boolean);
+  const visible = toks.slice(0, 2).join(' | ');
+  return toks.length > 2 ? (visible + ' …') : visible;
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'success-toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), CONFIG.TOAST_DURATION);
+}
+
+function updateURL(styleId) {
+  const url = new URL(window.location);
+  url.searchParams.set('style_id', styleId);
+  url.searchParams.set('class', currentClassCode);
+  window.history.pushState({}, '', url);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD STYLES
+// ═══════════════════════════════════════════════════════════
+async function loadStyleStats(styleId) {
+  try {
+    const { count: totalTracks, error: countErr } = await window.db
+      .from('sim_style_songs')
+      .select('*', { count: 'exact', head: true })
+      .eq('style_id', styleId);
+
+    if (countErr) throw countErr;
+
+    const { count: assignedCount, error: assignedErr } = await window.db
+      .from('sim_style_song_classes')
+      .select('*', { count: 'exact', head: true })
+      .eq('style_id', styleId);
+
+    if (assignedErr) throw assignedErr;
+
+    const pct =
+      (totalTracks || 0) > 0
+        ? Math.round(((assignedCount || 0) / (totalTracks || 0)) * 100)
+        : 0;
+
+    const countEl = document.getElementById(`style-track-count-${styleId}`);
+    const badgeEl = document.getElementById(`style-badge-${styleId}`);
+
+    if (countEl) countEl.textContent = `${(totalTracks || 0)} tracks`;
+    if (badgeEl) {
+      badgeEl.textContent = `${pct}% assigned`;
+      badgeEl.className =
+        'badge ' + (pct === 100 ? 'b-ok' : pct >= 50 ? 'b-warn' : 'b-bad');
+    }
+  } catch (err) {
+    console.error('Error loading style stats:', err);
+  }
+}
+
+function renderStyleList(styles) {
+  styleList.innerHTML = styles.map(style => `
+    <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
+      <div class="style-name">${style.name}</div>
+      <div class="style-meta">
+        <span id="style-track-count-${style.id}">— tracks</span>
+        <span class="badge b-warn" id="style-badge-${style.id}">—</span>
+      </div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.style-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.style-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      loadTracksForStyle(item.dataset.styleId, item.dataset.styleName);
+    });
+  });
+}
+
+async function loadAllStyleStats(styles) {
+  const results = await Promise.allSettled(
+    styles.map(style => loadStyleStats(style.id))
+  );
+  
+  results.forEach((result, idx) => {
+    if (result.status === 'rejected') {
+      console.error(`Failed to load stats for ${styles[idx].name}:`, result.reason);
+    }
+  });
+}
+
+async function loadStyles() {
+  try {
+    const { data: styles, error } = await window.db
+      .from('sim_styles')
+      .select('id, name')
+      .order('name');
+
+    if (error) throw error;
+
+    const list = (styles || []).filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name));
+    renderStyleList(list);
+
+    if (initialStyleId) {
+      const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
+      if (el) el.click();
+    }
+
+    await loadAllStyleStats(list);
+
+  } catch (err) {
+    console.error('Error loading styles:', err);
+    styleList.innerHTML = `<div class="error">Error loading styles: ${err.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOAD TRACKS FOR STYLE
+// ═══════════════════════════════════════════════════════════
+async function loadTracksForStyle(styleId, styleNameText) {
+  currentStyleId = styleId;
+  currentStyleName = styleNameText || '';
+  window.selectedStyleId = styleId;
+  window.currentStyleName = styleNameText;
+  
+  styleNameEl.textContent = styleNameText || 'Selected style';
+  tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading tracks...</td></tr>';
+
+  updateURL(styleId);
+
+  try {
+    const rows = await DB_HELPERS.fetchStyleSongRows(styleId);
+    const assignmentMap = await DB_HELPERS.fetchAssignments(styleId);
+
+    if (!rows || rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="loading">No rows returned from sim_style_songs for this style_id.</td></tr>`;
+      return;
+    }
+
+    const limitedRows = rows.slice(0, CONFIG.MAX_TRACKS_DISPLAY);
+    const showingCapped = rows.length > CONFIG.MAX_TRACKS_DISPLAY;
+
+    allTracks = limitedRows
+      .filter(r => r.song_id && r.song)
+      .map(r => {
+        const s = r.song;
+        const a = assignmentMap[r.song_id] || null;
+        const normClass = DB_HELPERS.normalizeClassCode(a?.class_code);
+        const movedAt = a?.moved_at || null;
+
+        return {
+          id: r.song_id,
+          title: s.title || 'Unknown Title',
+          artist: s.artist || 'Unknown Artist',
+          album: s.album || '',
+          year: s.year || '',
+          duration: (r.sim_duration_seconds ?? s.run_time_seconds ?? 0),
+          styles: s.styles || '',
+          class_code: normClass,
+          moved_at: movedAt
+        };
+      });
+
+    if (showingCapped) {
+      const infoDiv = document.querySelector('.info');
+      if (infoDiv) {
+        infoDiv.innerHTML = `⚠️ This style has ${rows.length.toLocaleString()} tracks. Showing first ${CONFIG.MAX_TRACKS_DISPLAY.toLocaleString()} for performance. 
+        Select tracks and use the right sidebar to move them to another class or back to Uncategorized.`;
+        infoDiv.style.background = '#fff3cd';
+        infoDiv.style.borderLeftColor = '#f39c12';
+      }
+    } else {
+      const infoDiv = document.querySelector('.info');
+      if (infoDiv) {
+        infoDiv.innerHTML = `Select tracks and use the right sidebar to move them to another class or back to Uncategorized.`;
+        infoDiv.style.background = '#e8f4f8';
+        infoDiv.style.borderLeftColor = '#3498db';
+      }
+    }
+
+    updateStats();
+    renderTable();
+
+    window.dispatchEvent(new Event('styleChanged'));
+  } catch (err) {
+    console.error('Error loading tracks:', err);
+    tbody.innerHTML = `<tr><td colspan="9" class="error">Error loading tracks: ${err.message}</td></tr>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UPDATE STATS
+// ═══════════════════════════════════════════════════════════
+function updateStats() {
+  const totalCount = allTracks.length;
+  const inClassCount = allTracks.filter(t => t.class_code === currentClassCode).length;
+  const unassignedCount = allTracks.filter(t => !t.class_code).length;
+  const pct = totalCount > 0 ? ((inClassCount / totalCount) * 100).toFixed(1) : '0.0';
+
+  statTotal.textContent = totalCount;
+  statInClass.textContent = inClassCount;
+  statPct.textContent = pct + '%';
+  statUnassigned.textContent = unassignedCount;
+
+  classCounts = { A: 0, B: 0, C: 0, REST: 0, Uncategorized: 0 };
+
+  allTracks.forEach(t => {
+    if (!t.class_code) {
+      classCounts.Uncategorized++;
+    } else {
+      const code = String(t.class_code).toUpperCase();
+      if (classCounts[code] !== undefined) classCounts[code] += 1;
+    }
+  });
+
+  moveBtns.forEach(btn => {
+    const cls = btn.dataset.class;
+    const code = cls === 'Uncategorized' ? 'Uncategorized' : String(cls).toUpperCase();
+    btn.querySelector('.ab-count').textContent = classCounts[code] || 0;
+    
+    if (code === currentClassCode.toUpperCase()) {
+      btn.disabled = true;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER TABLE
+// ═══════════════════════════════════════════════════════════
+function renderTable() {
+  let visible = allTracks.filter(t => t.class_code === currentClassCode);
+
+  const q = trackSearch.value.trim().toLowerCase();
+  if (q) {
+    visible = visible.filter(t =>
+      (t.title || '').toLowerCase().includes(q) ||
+      (t.artist || '').toLowerCase().includes(q) ||
+      (t.album || '').toLowerCase().includes(q)
+    );
+  }
+
+  const sortField = sortBy.value;
+  const normStr = (v) => (v ?? '').toString().toLowerCase().trim();
+  const normYear = (v) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : null;
+  };
+  const normDate = (v) => {
+    const t = v ? Date.parse(v) : NaN;
+    return Number.isFinite(t) ? t : null;
+  };
+
+  visible.sort((a, b) => {
+    if (sortField === 'year_desc' || sortField === 'year_asc') {
+      const ay = normYear(a.year);
+      const by = normYear(b.year);
+      if (ay === null && by === null) return 0;
+      if (ay === null) return 1;
+      if (by === null) return -1;
+      return sortField === 'year_desc' ? (by - ay) : (ay - by);
+    }
+    if (sortField === 'moved_desc' || sortField === 'moved_asc') {
+      const ad = normDate(a.moved_at);
+      const bd = normDate(b.moved_at);
+      if (ad === null && bd === null) return 0;
+      if (ad === null) return 1;
+      if (bd === null) return -1;
+      return sortField === 'moved_desc' ? (bd - ad) : (ad - bd);
+    }
+    const aVal = normStr(a[sortField]);
+    const bVal = normStr(b[sortField]);
+    return aVal.localeCompare(bVal);
+  });
+
+  if (visible.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">No tracks in this class</td></tr>';
+    selectAll.checked = false;
+    updateUI();
+    return;
+  }
+
+  tbody.innerHTML = visible.map(t => {
+    const mins = Math.floor((t.duration || 0) / 60);
+    const secs = ((t.duration || 0) % 60).toString().padStart(2, '0');
+    const timeStr = `${mins}:${secs}`;
+    const movedStr = t.moved_at ? new Date(t.moved_at).toLocaleString() : '';
+    
+    return `
+      <tr data-track-id="${t.id}">
+        <td><input type="checkbox" class="rowCheck" /></td>
+        <td><img class="art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%233498db' width='40' height='40'/%3E%3C/svg%3E" /></td>
+        <td><strong>${t.title}</strong></td>
+        <td>${t.artist}</td>
+        <td>${t.album}</td>
+        <td style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#7f8c8d;" title="${(t.styles||'').replace(/"/g,'&quot;')}">${formatStyles(t.styles||'')}</td>
+        <td>${t.year}</td>
+        <td class="num">${timeStr}</td>
+        <td style="color:#7f8c8d">${movedStr}</td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('.rowCheck').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('tr').classList.toggle('checked', cb.checked);
+      syncSelectAll();
+      updateUI();
+    });
+  });
+
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC SELECT ALL
+// ═══════════════════════════════════════════════════════════
+function syncSelectAll() {
+  const checks = [...tbody.querySelectorAll('.rowCheck')];
+  selectAll.checked = checks.length > 0 && checks.every(c => c.checked);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UPDATE UI
+// ═══════════════════════════════════════════════════════════
+function updateUI() {
+  const sel = [...tbody.querySelectorAll('.rowCheck:checked')].length;
+  statSel.textContent = sel;
+  selBar.classList.toggle('visible', sel > 0);
+  selN.textContent = sel;
+  
+  moveBtns.forEach(b => {
+    const code = b.dataset.class === 'Uncategorized' ? 'Uncategorized' : String(b.dataset.class).toUpperCase();
+    if (code === currentClassCode.toUpperCase()) return;
+    b.disabled = sel === 0;
+  });
+  
+  assignHint.style.display = sel ? 'none' : 'block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SELECT ALL
+// ═══════════════════════════════════════════════════════════
+selectAll.addEventListener('change', () => {
+  tbody.querySelectorAll('.rowCheck').forEach(cb => {
+    cb.checked = selectAll.checked;
+    cb.closest('tr').classList.toggle('checked', cb.checked);
+  });
+  updateUI();
+});
+
+// ═══════════════════════════════════════════════════════════
+// CLEAR SELECTION
+// ═══════════════════════════════════════════════════════════
+selClear.addEventListener('click', () => {
+  tbody.querySelectorAll('.rowCheck').forEach(cb => {
+    cb.checked = false;
+    cb.closest('tr').classList.remove('checked');
+  });
+  selectAll.checked = false;
+  updateUI();
+});
+
+// ═══════════════════════════════════════════════════════════
+// MOVE TO CLASS
+// ═══════════════════════════════════════════════════════════
+moveBtns.forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!currentStyleId) return;
+
+    const targetClass = btn.dataset.class;
+    const checked = [...tbody.querySelectorAll('tr.checked')];
+    const songIds = checked.map(tr => tr.getAttribute('data-track-id')).filter(Boolean);
+    
+    if (songIds.length === 0) return;
+
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    btn.style.opacity = '0.5';
+
+    try {
+      if (targetClass === 'Uncategorized') {
+        const { error } = await DB_HELPERS.deleteAssignments(currentStyleId, songIds);
+        if (error) throw error;
+        
+        songIds.forEach(id => {
+          const t = allTracks.find(x => x.id === id);
+          if (t) {
+            t.class_code = null;
+            t.moved_at = null;
+          }
+        });
+        
+        showToast(`✓ Moved ${songIds.length} track${songIds.length > 1 ? 's' : ''} to Uncategorized`);
+      } else {
+        const assignments = songIds.map(songId => ({
+          song_id: songId,
+          style_id: currentStyleId,
+          class_code: targetClass
+        }));
+        
+        const { error } = await DB_HELPERS.upsertAssignments(assignments);
+        if (error) throw error;
+        
+        const nowIso = new Date().toISOString();
+        songIds.forEach(id => {
+          const t = allTracks.find(x => x.id === id);
+          if (!t) return;
+          t.class_code = targetClass;
+          t.moved_at = nowIso;
+        });
+        
+        showToast(`✓ Moved ${songIds.length} track${songIds.length > 1 ? 's' : ''} to ${targetClass}`);
+      }
+
+      updateStats();
+      renderTable();
+      selectAll.checked = false;
+
+      await loadStyleStats(currentStyleId);
+    } catch (err) {
+      console.error('Error moving tracks:', err);
+      alert('Error moving tracks: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      btn.style.opacity = '1';
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH & SORT
+// ═══════════════════════════════════════════════════════════
+trackSearch.addEventListener('input', debounce(renderTable, CONFIG.SEARCH_DEBOUNCE));
+sortBy.addEventListener('change', renderTable);
+
+styleSearch.addEventListener('input', debounce(() => {
+  const q = styleSearch.value.trim().toLowerCase();
+  document.querySelectorAll('.style-item').forEach(el => {
+    const name = (el.dataset.styleName || '').toLowerCase();
+    el.style.display = !q || name.includes(q) ? '' : 'none';
+  });
+}, CONFIG.SEARCH_DEBOUNCE));
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    selectAll.checked = true;
+    selectAll.dispatchEvent(new Event('change'));
+  }
+  
+  if (e.key === 'Escape') {
+    selClear?.click();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// BACK BUTTON
+// ═══════════════════════════════════════════════════════════
+document.getElementById('backToManagerBtn')?.addEventListener('click', () => {
+  const base = 'index.html';
+  const url = currentStyleId
+    ? `${base}?style_id=${encodeURIComponent(currentStyleId)}`
+    : base;
+
+  window.location.href = url;
+});
+
+// Styles pane collapse toggle
+document.getElementById('toggleStyles')?.addEventListener('click', () => {
+  document.body.classList.toggle('styles-collapsed');
+  const btn = document.getElementById('toggleStyles');
+  if (!btn) return;
+  btn.textContent = document.body.classList.contains('styles-collapsed') ? '▶' : '☰';
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+ClassLabels.init();
+loadStyles();
+</script>
+</body>
+</html>

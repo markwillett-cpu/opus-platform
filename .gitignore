@@ -1,0 +1,22 @@
+# Environment files (NEVER commit these!)
+.env
+.env.*
+!.env.example
+
+# API
+api/node_modules/
+api/package-lock.json
+api/.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

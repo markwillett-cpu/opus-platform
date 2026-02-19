@@ -1,0 +1,188 @@
+# Opus Platform API - Complete Project Structure
+
+This is the recommended folder structure for your Opus Platform API.
+
+## Directory Layout
+
+```
+opus-api/
+├── .env.example              # Environment template (commit this)
+├── .env                      # Actual secrets (DO NOT COMMIT)
+├── .gitignore               # Git ignore rules
+├── Dockerfile               # Docker container definition
+├── docker-compose.yml       # Docker Compose configuration  
+├── package.json             # Node.js dependencies
+├── package-lock.json        # Locked dependency versions
+├── README.md                # Main documentation
+├── server.js                # Application entry point
+│
+└── src/                     # Source code
+    ├── config.js            # Environment configuration
+    ├── auth.js              # Authentication middleware
+    ├── supabase.js          # Supabase client setup
+    ├── normalize.js         # Data normalization utilities
+    │
+    └── routes/              # API route handlers
+        ├── styles.js              # GET /v1/styles
+        ├── styleTracks.js         # GET /v1/styles/:id/tracks
+        ├── styleAssignments.js    # GET/PUT /v1/styles/:id/assignments
+        └── styleWeights.js        # GET/PUT /v1/styles/:id/weights
+```
+
+## File Purposes
+
+### Root Level
+
+**`.env.example`**
+- Template for environment variables
+- Commit to version control
+- Copy to `.env` and fill in real values
+
+**`.env`**
+- Actual environment variables and secrets
+- NEVER commit to git
+- Contains API keys, database credentials
+
+**`.gitignore`**
+- Files/folders to exclude from git
+- Prevents committing secrets
+
+**`Dockerfile`**
+- Container image definition
+- For deploying to Docker/Kubernetes
+
+**`docker-compose.yml`**
+- Local development Docker setup
+- One-command start: `docker-compose up`
+
+**`package.json`**
+- Project metadata
+- Dependencies list
+- npm scripts (dev, start)
+
+**`server.js`**
+- Application entry point
+- Fastify app setup
+- Route registration
+- Error handling
+
+**`README.md`**
+- Project documentation
+- API reference
+- Setup instructions
+
+### src/ Directory
+
+**`config.js`**
+- Loads environment variables
+- Validates required config
+- Exports typed config object
+
+**`auth.js`**  
+- API key validation middleware
+- Protects routes from unauthorized access
+
+**`supabase.js`**
+- Creates Supabase client
+- Uses service role key
+- Helper for error assertions
+
+**`normalize.js`**
+- Data normalization functions
+- Ensures consistent class codes (A/B/C/REST)
+- Validates and cleans input
+
+### src/routes/ Directory
+
+All route handlers follow similar patterns:
+1. Parse and validate request
+2. Query/update Supabase  
+3. Return consistent JSON response
+4. Handle errors gracefully
+
+**`styles.js`**
+- Lists all available styles/playlists
+
+**`styleTracks.js`**
+- Returns all tracks for a style with metadata
+
+**`styleAssignments.js`**
+- GET: Fetch current class assignments
+- PUT: Bulk update class assignments
+
+**`styleWeights.js`**
+- GET: Fetch class distribution weights
+- PUT: Update class distribution (must sum to 100%)
+
+## Setup Steps
+
+1. **Copy files to this structure**
+   ```bash
+   mkdir -p opus-api/src/routes
+   # Copy files to appropriate locations
+   ```
+
+2. **Install dependencies**
+   ```bash
+   cd opus-api
+   npm install
+   ```
+
+3. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with real values
+   ```
+
+4. **Run locally**
+   ```bash
+   npm run dev
+   ```
+
+5. **Or run with Docker**
+   ```bash
+   docker-compose up
+   ```
+
+## Integration with Frontend
+
+The frontend HTML/JS files will call this API instead of Supabase directly.
+
+Update frontend `config.js`:
+```javascript
+const OPUS_CONFIG = {
+  // Platform API settings
+  API_BASE_URL: 'http://localhost:8787/v1',
+  API_KEY: 'same-key-as-OPUS_INTERNAL_API_KEY',
+  
+  // Remove direct Supabase config
+  // These are no longer needed in frontend:
+  // SUPABASE_URL: '...',
+  // SUPABASE_ANON_KEY: '...',
+};
+```
+
+## Security Notes
+
+✅ **API protects Supabase service key** - Never exposed to frontend
+✅ **All requests authenticated** - Requires X-API-Key header  
+✅ **Input validation** - Zod schemas validate all inputs
+✅ **Consistent errors** - Standard JSON error format
+✅ **Environment isolation** - Secrets in .env, never in code
+
+## Next Steps
+
+1. Copy all files to the structure above
+2. Test locally with `npm run dev`
+3. Update frontend to call API instead of Supabase
+4. Deploy to production (Docker, Cloud Run, etc.)
+5. Set up monitoring and logging
+6. Consider adding rate limiting and caching
+
+---
+
+This structure follows Node.js best practices and makes the project easy to:
+- Deploy (Docker ready)
+- Scale (stateless, horizontal scaling)
+- Maintain (organized, separation of concerns)
+- Secure (environment-based config, API authentication)

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus Playback Class Manager</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c; 
+      --light:#ecf0f1;--border:#bdc3c7;
+      --power:#e74c3c;--core:#3498db;--library:#27ae60;--rest:#95a5a6;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+    .hamburger{font-size:22px;opacity:.9}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+    .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
+    .toolbar-btn:hover{background:#5a7288}
+    .toolbar-btn.primary{background:var(--accent)}
+    .toolbar-btn.primary:hover{background:#2980b9}
+    .toolbar-sep{width:1px;height:22px;background:#5a7288;margin:0 4px}
+    .container{max-width:1800px;margin:0 auto;padding:18px}
+    .main-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;height:calc(100vh - 160px)}
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px}
+    .panel-subheader{padding:12px 14px;border-bottom:1px solid var(--light)}
+    .search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .style-list{overflow:auto;padding:10px}
+    .style-item{background:var(--light);padding:12px;border-radius:6px;cursor:pointer;margin-bottom:8px;border-left:3px solid transparent;transition:.2s}
+    .style-item:hover{background:#e8f4f8;border-left-color:var(--accent)}
+    .style-item.active{background:#e8f4f8;border-left-color:var(--accent);box-shadow:0 2px 4px rgba(0,0,0,.08)}
+    .style-name{font-weight:900;font-size:14px;margin-bottom:4px}
+    .style-meta{display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900}
+    .b-ok{background:#d4edda;color:#155724}
+    .b-warn{background:#fff3cd;color:#856404}
+    .b-bad{background:#f8d7da;color:#721c24}
+    .category-header{background:var(--light);padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+    .category-header h2{font-size:18px;margin-bottom:4px}
+    .subtext{color:#7f8c8d;font-size:13px}
+    .header-actions{display:flex;gap:10px}
+    .btn{padding:10px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+    .btn:hover{background:#f8f9fa}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:#2980b9;border-color:#2980b9}
+    .stats-banner{background:#2f3d4a;color:#fff;padding:14px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .stat-box{text-align:center}
+    .stat-label{font-size:11px;letter-spacing:.4px;opacity:.85;text-transform:uppercase}
+    .stat-value{font-size:22px;font-weight:1000;margin-top:4px}
+    .stat-sub{font-size:12px;opacity:.8;margin-top:2px}
+    .content{padding:18px 22px;overflow:auto}
+    .info{background:#e8f4f8;border-left:4px solid var(--accent);padding:12px 14px;border-radius:4px;color:var(--primary);font-size:13px;margin-bottom:14px}
+    .category-table{width:100%;border-collapse:collapse;border:1px solid var(--light);border-radius:8px;overflow:hidden}
+    .category-table thead{background:var(--secondary);color:#fff}
+    .category-table th,.category-table td{padding:12px;font-size:13px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    .category-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .category-table tbody tr:hover{background:#f8f9fa;cursor:pointer}
+    .category-table .col-action{text-align:right;width:160px}
+    .category-table .col-action .link-btn{margin-right:2px}
+    .category-table .col-tracks{text-align:center;width:120px}
+    .cat-name{display:flex;align-items:center;gap:10px;font-weight:1000}
+    .dot{width:12px;height:12px;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+    .link-btn{background:transparent;border:1px solid var(--border);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:900;color:var(--primary);transition:.2s}
+    .link-btn:hover{border-color:var(--accent);color:var(--accent);background:#e8f4f8}
+    .footer{border-top:1px solid var(--border);background:var(--light);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .footer-note{color:#7f8c8d;font-size:12px;font-weight:800}
+    .footer-actions{display:flex;gap:10px}
+    .mix-widget{background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:14px;padding:14px 18px}
+    .mix-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .mix-title{font-weight:900;font-size:14px;margin-bottom:4px}
+    .mix-summary{font-size:12px;color:#7f8c8d;font-weight:800}
+    .mix-bar{position:relative;height:18px;border-radius:10px;overflow:hidden;background:var(--light);border:1px solid var(--border);display:flex}
+    .mix-seg{height:100%}
+    .mix-seg.seg-a{background:var(--power)}
+    .mix-seg.seg-b{background:var(--core)}
+    .mix-seg.seg-c{background:var(--library)}
+    .mix-seg.seg-r{background:var(--rest)}
+    .mix-handle{position:absolute;top:-3px;width:10px;height:24px;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.15);transform:translateX(-50%);cursor:ew-resize}
+    .mix-inputs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+    .mix-in{display:flex;align-items:center;gap:8px;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+    .mix-dot{width:10px;height:10px;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+    .mix-lbl{font-size:12px;font-weight:1000;min-width:40px}
+    .mix-in input{margin-left:auto;width:64px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:900;text-align:right;background:#fff}
+    .mix-note{margin-top:10px;font-size:12px;color:#7f8c8d;font-weight:800;line-height:1.35}
+    @media (max-width:1100px){.mix-inputs{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}.stats-banner{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <div class="opus-header">
+    <div class="opus-title"><span class="hamburger">☰</span>Opus4</div>
+    <nav class="opus-nav">
+      <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+      <a class="nav-item" href="./api-docs.html">API Docs</a>
+      <a class="nav-item active" href="#">Playback Classes</a>
+    </nav>
+  </div>
+
+  <div class="opus-toolbar">
+    <button class="toolbar-btn primary">Manage Playback Classes</button>
+  </div>
+
+  <div class="container">
+    <div class="main-layout">
+      <div class="panel">
+        <div class="panel-header">Styles (Playlists)</div>
+        <div class="panel-subheader"><input class="search-input" id="styleSearch" placeholder="Search styles..." /></div>
+        <div class="style-list" id="styleList">
+          <div class="loading">Loading styles...</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="category-header">
+          <div>
+            <h2>Playback Classes for "Today's Pop"</h2>
+<div class="subtext">Classes are labeled A, B, C, and Rest. Labels can be customized per style. The class mix sets target class distribution for the playback algorithm.</div>
+          </div>
+          <div class="header-actions">
+        <button class="btn" id="editLabelsBtn">Edit class labels</button>
+            <button class="btn">Export Summary</button>
+            <button class="btn primary" id="viewUncatBtn">View Uncategorized</button>
+          </div>
+        </div>
+
+        <div class="stats-banner">
+          <div class="stat-box"><div class="stat-label">Total Tracks</div><div class="stat-value" id="statTotal">—</div></div>
+          <div class="stat-box"><div class="stat-label">Assigned</div><div class="stat-value" id="statAssigned">—</div><div class="stat-sub" id="statAssignedPct">—</div></div>
+          <div class="stat-box"><div class="stat-label">Unassigned</div><div class="stat-value" id="statUnassigned">—</div><div class="stat-sub" id="statUnassignedPct">—</div></div>
+          <div class="stat-box"><div class="stat-label">Classes</div><div class="stat-value">4</div></div>
+        </div>
+
+        <div class="content">
+          <div class="info">
+            <strong>How it works:</strong> The class mix below defines target class distribution for the playback algorithm. Each listener gets a unique stream weighted toward these proportions while maintaining artist/song separation rules. Review Uncategorized tracks first, assign them to classes (A, B, C, or Rest), then set the mix. <strong>Optional:</strong> Classes are not required. If none are assigned, playback uses standard artist and title separation rules only.
+          </div>
+
+          <div class="mix-widget" id="mixWidget">
+            <div class="mix-head">
+              <div>
+                <div class="mix-title">Class Mix (Playback Intent)</div>
+                <div class="mix-summary" id="mixSummary">Select a style to configure class mix.</div>
+              </div>
+              <button class="link-btn" id="resetMixBtn" type="button">Reset</button>
+            </div>
+
+            <div class="mix-bar" id="mixBar" aria-label="Class mix slider">
+              <div class="mix-seg seg-a" data-code="A" title="A"></div>
+              <div class="mix-handle" data-boundary="A|B" title="Drag to adjust A/B"></div>
+              <div class="mix-seg seg-b" data-code="B" title="B"></div>
+              <div class="mix-handle" data-boundary="B|C" title="Drag to adjust B/C"></div>
+              <div class="mix-seg seg-c" data-code="C" title="C"></div>
+              <div class="mix-handle" data-boundary="C|REST" title="Drag to adjust C/Rest"></div>
+              <div class="mix-seg seg-r" data-code="REST" title="Rest"></div>
+            </div>
+
+            <div class="mix-inputs">
+              <div class="mix-in"><span class="mix-dot" style="background:var(--power)"></span><span class="mix-lbl" data-code="A">A</span><input id="mixA" type="number" min="0" max="100" step="1" /></div>
+              <div class="mix-in"><span class="mix-dot" style="background:var(--core)"></span><span class="mix-lbl" data-code="B">B</span><input id="mixB" type="number" min="0" max="100" step="1" /></div>
+              <div class="mix-in"><span class="mix-dot" style="background:var(--library)"></span><span class="mix-lbl" data-code="C">C</span><input id="mixC" type="number" min="0" max="100" step="1" /></div>
+              <div class="mix-in"><span class="mix-dot" style="background:var(--rest)"></span><span class="mix-lbl" data-code="REST">Rest</span><input id="mixR" type="number" min="0" max="100" step="1" /></div>
+            </div>
+          </div>
+
+          <table class="category-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th class="col-tracks">Tracks</th>
+                <th class="num">Actual %</th>
+                <th class="col-action">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-class="A">
+                <td><div class="cat-name"><span class="dot" style="background:var(--power)"></span> <span class="class-code" data-class-code="A">A</span> <span class="class-alias" data-class-code="A"></span></div></td>
+                <td class="col-tracks" id="count-A">—</td><td class="num" id="pct-A">—</td>
+<td class="col-action">
+  <button class="link-btn view-class">View songs</button>
+</td>
+              </tr>
+              <tr data-class="B">
+                <td><div class="cat-name"><span class="dot" style="background:var(--core)"></span> <span class="class-code" data-class-code="B">B</span> <span class="class-alias" data-class-code="B"></span></div></td>
+                <td class="col-tracks" id="count-B">—</td><td class="num" id="pct-B">—</td>
+<td class="col-action">
+  <button class="link-btn view-class">View songs</button>
+</td>
+              </tr>
+              <tr data-class="C">
+                <td><div class="cat-name"><span class="dot" style="background:var(--library)"></span> <span class="class-code" data-class-code="C">C</span> <span class="class-alias" data-class-code="C"></span></div></td>
+                <td class="col-tracks" id="count-C">—</td><td class="num" id="pct-C">—</td>
+<td class="col-action">
+  <button class="link-btn view-class">View songs</button>
+</td>
+              </tr>
+              <tr data-class="Rest">
+                <td><div class="cat-name"><span class="dot" style="background:var(--rest)"></span> <span class="class-code" data-class-code="REST">Rest</span> <span class="class-alias" data-class-code="REST"></span></div></td>
+                <td class="col-tracks" id="count-REST">—</td><td class="num" id="pct-REST">—</td>
+<td class="col-action">
+  <button class="link-btn view-class">View songs</button>
+</td>
+              </tr>
+              <tr data-class="Uncategorized">
+                <td><div class="cat-name"><span class="dot" style="background: #ffffff; border: 1px solid var(--border)"></span> Uncategorized</div></td>
+                <td class="num" id="count-Uncategorized">—</td>
+                <td class="num" id="pct-Uncategorized">—</td>
+<td class="col-action">
+  <button class="link-btn view-class">View songs</button>
+</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          <div class="footer-note">Tip: The class mix defines target distribution. The algorithm maintains these proportions while applying separation rules.</div>
+          
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="labelsModal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
+  <div class="modal" style="max-width:520px; margin:7vh auto; background:#fff; border-radius:10px; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:1000; font-size:16px;">Edit class labels</div>
+        <div style="font-size:12px; color:#7f8c8d; font-weight:700; margin-top:4px;">Labels are style-specific. Classes remain A, B, C, and Rest.</div>
+      </div>
+      <button class="btn" id="closeLabelsModal" style="padding:8px 10px;">Close</button>
+    </div>
+    <div style="padding:18px; display:grid; gap:12px;">
+      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+        <div style="font-weight:1000;">A</div>
+        <input id="labelA" type="text" placeholder="Optional label (e.g., Power)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      </div>
+      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+        <div style="font-weight:1000;">B</div>
+        <input id="labelB" type="text" placeholder="Optional label (e.g., Core)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      </div>
+      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+        <div style="font-weight:1000;">C</div>
+        <input id="labelC" type="text" placeholder="Optional label (e.g., Library)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      </div>
+      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+        <div style="font-weight:1000;">Rest</div>
+        <input id="labelR" type="text" placeholder="Optional label (e.g., Hold)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
+        <button class="btn" id="resetLabels">Reset</button>
+        <button class="btn primary" id="saveLabels">Save labels</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script src="db-helpers.js"></script>
+<script src="class-labels.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// SUPABASE CONFIGURATION (from config.js)
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = OPUS_CONFIG.SUPABASE_URL;
+const SUPABASE_KEY = OPUS_CONFIG.SUPABASE_ANON_KEY;
+window.db = window.db || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════════════════
+// CLASS MIX WEIGHTS (sim_style_class_weights)
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_WEIGHTS = OPUS_CONFIG.DEFAULT_CLASS_MIX || { A: 30, B: 40, C: 30, REST: 0 };
+
+async function fetchWeights(styleId) {
+  const { data, error } = await window.db
+    .from('sim_style_class_weights')
+    .select('class_code, weight_pct')
+    .eq('style_id', styleId);
+
+  if (error) throw error;
+
+  const out = { ...DEFAULT_WEIGHTS };
+  (data || []).forEach(r => {
+    const code = (r.class_code || '').toUpperCase();
+    if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
+  });
+
+  return normalizeWeights(out);
+}
+
+async function upsertWeights(styleId, weights) {
+  const payload = ['A','B','C','REST'].map(code => ({
+    style_id: styleId,
+    class_code: code,
+    weight_pct: weights[code] ?? 0
+  }));
+
+  return await window.db
+    .from('sim_style_class_weights')
+    .upsert(payload, { onConflict: 'style_id,class_code' });
+}
+
+function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
+
+function normalizeWeights(w) {
+  const codes = ['A','B','C','REST'];
+  const raw = codes.map(c => clamp(Math.round(Number(w[c]||0)), 0, 100));
+  let sum = raw.reduce((a,b)=>a+b,0);
+
+  if (sum === 100) return { A: raw[0], B: raw[1], C: raw[2], REST: raw[3] };
+  if (sum === 0) return { ...DEFAULT_WEIGHTS };
+
+  const scaled = raw.map(v => (v / sum) * 100);
+  const ints = scaled.map(v => Math.floor(v));
+  let remain = 100 - ints.reduce((a,b)=>a+b,0);
+
+  const fracs = scaled.map((v,i)=>({i, frac: v - Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
+  for (let k=0; k<remain; k++) ints[fracs[k % fracs.length].i] += 1;
+
+  return { A: ints[0], B: ints[1], C: ints[2], REST: ints[3] };
+}
+
+// ═══════════════════════════════════════════════════════════
+// MIX UI WIRING
+// ═══════════════════════════════════════════════════════════
+let currentWeights = { ...DEFAULT_WEIGHTS };
+let mixDirty = false;
+let mixSaveT = null;
+
+const mixSummaryEl = document.getElementById('mixSummary');
+const mixBarEl = document.getElementById('mixBar');
+const resetMixBtn = document.getElementById('resetMixBtn');
+
+const inA = document.getElementById('mixA');
+const inB = document.getElementById('mixB');
+const inC = document.getElementById('mixC');
+const inR = document.getElementById('mixR');
+
+function labelFor(code){
+  const labels = window.currentClassLabels || {A:'',B:'',C:'',REST:''};
+  const v = labels[code] || '';
+  if (code === 'REST') return v ? `Rest — ${v}` : 'Rest';
+  return v ? `${code} — ${v}` : code;
+}
+
+function renderMix() {
+  if (!mixBarEl) return;
+
+  const a = currentWeights.A, b = currentWeights.B, c = currentWeights.C, r = currentWeights.REST;
+
+  const segA = mixBarEl.querySelector('.mix-seg.seg-a');
+  const segB = mixBarEl.querySelector('.mix-seg.seg-b');
+  const segC = mixBarEl.querySelector('.mix-seg.seg-c');
+  const segR = mixBarEl.querySelector('.mix-seg.seg-r');
+
+  if (segA) segA.style.width = `${a}%`;
+  if (segB) segB.style.width = `${b}%`;
+  if (segC) segC.style.width = `${c}%`;
+  if (segR) segR.style.width = `${r}%`;
+
+  const handles = [...mixBarEl.querySelectorAll('.mix-handle')];
+  const cumA = a;
+  const cumAB = a + b;
+  const cumABC = a + b + c;
+
+  handles.forEach(h => {
+    const key = h.dataset.boundary || '';
+    let pct = 0;
+    if (key === 'A|B') pct = cumA;
+    if (key === 'B|C') pct = cumAB;
+    if (key === 'C|REST') pct = cumABC;
+    h.style.left = `${pct}%`;
+  });
+
+  if (inA) inA.value = a;
+  if (inB) inB.value = b;
+  if (inC) inC.value = c;
+  if (inR) inR.value = r;
+
+  document.querySelectorAll('.mix-lbl[data-code]').forEach(el=>{
+    const code = el.getAttribute('data-code');
+    el.textContent = labelFor(code);
+  });
+
+  if (mixSummaryEl) {
+    mixSummaryEl.textContent =
+      `${labelFor('A')}: ${a}% • ${labelFor('B')}: ${b}% • ${labelFor('C')}: ${c}% • ${labelFor('REST')}: ${r}%`;
+  }
+}
+
+function scheduleSave() {
+  const styleId = window.selectedStyleId;
+  if (!styleId) return;
+
+  mixDirty = true;
+  if (mixSaveT) clearTimeout(mixSaveT);
+  mixSaveT = setTimeout(async () => {
+    try {
+      const { error } = await upsertWeights(styleId, currentWeights);
+      if (error) throw error;
+      mixDirty = false;
+    } catch (e) {
+      console.error('Failed to save class weights:', e);
+    }
+  }, CONFIG.AUTO_SAVE_DELAY);
+}
+
+function setPair(boundary, newLeftVal) {
+  const [left, right] = boundary.split('|');
+  const sum = (currentWeights[left] ?? 0) + (currentWeights[right] ?? 0);
+  const clampedLeft = clamp(newLeftVal, 0, sum);
+  currentWeights[left] = clampedLeft;
+  currentWeights[right] = sum - clampedLeft;
+  currentWeights = normalizeWeights(currentWeights);
+  renderMix();
+  scheduleSave();
+}
+
+function setSingle(code, val) {
+  const v = clamp(val, 0, 100);
+  const other = ['A','B','C','REST'].filter(c=>c!==code);
+  let remaining = 100 - v;
+
+  const curSum = other.reduce((s,c)=>s + (currentWeights[c] ?? 0), 0);
+  const next = { ...currentWeights, [code]: v };
+  if (curSum <= 0) {
+    const each = Math.floor(remaining / other.length);
+    other.forEach(c => next[c] = each);
+    next[other[other.length-1]] += remaining - each*other.length;
+  } else {
+    other.forEach(c => next[c] = Math.round(((currentWeights[c] ?? 0) / curSum) * remaining));
+  }
+
+  currentWeights = normalizeWeights(next);
+  renderMix();
+  scheduleSave();
+}
+
+async function loadWeights(styleId) {
+  if (!styleId) return;
+  try {
+    currentWeights = await fetchWeights(styleId);
+    renderMix();
+  } catch (e) {
+    console.error('Failed to load class weights:', e);
+    currentWeights = { ...DEFAULT_WEIGHTS };
+    renderMix();
+  }
+}
+
+function wireInput(el, code){
+  if (!el) return;
+  el.addEventListener('change', () => setSingle(code, Number(el.value)));
+  el.addEventListener('blur', () => setSingle(code, Number(el.value)));
+}
+wireInput(inA,'A'); wireInput(inB,'B'); wireInput(inC,'C'); wireInput(inR,'REST');
+
+if (resetMixBtn) {
+  resetMixBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    currentWeights = { ...DEFAULT_WEIGHTS };
+    renderMix();
+    scheduleSave();
+  });
+}
+
+function wireHandle(handle){
+  if (!handle) return;
+  handle.addEventListener('pointerdown', (ev) => {
+    if (!window.selectedStyleId) return;
+    ev.preventDefault();
+    handle.setPointerCapture(ev.pointerId);
+
+    const boundary = handle.dataset.boundary;
+    const [left, right] = boundary.split('|');
+
+    const barRect = mixBarEl.getBoundingClientRect();
+    const startX = ev.clientX;
+    const startLeft = currentWeights[left] ?? 0;
+    const startRight = currentWeights[right] ?? 0;
+    const pairSum = startLeft + startRight;
+
+    const onMove = (mv) => {
+      const dx = mv.clientX - startX;
+      const pctDelta = Math.round((dx / barRect.width) * 100);
+      const nextLeft = clamp(startLeft + pctDelta, 0, pairSum);
+      setPair(boundary, nextLeft);
+    };
+
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+}
+
+if (mixBarEl) {
+  [...mixBarEl.querySelectorAll('.mix-handle')].forEach(wireHandle);
+}
+
+window.refreshMixUI = function() { renderMix(); };
+
+// ═══════════════════════════════════════════════════════════
+// STYLES LIST
+// ═══════════════════════════════════════════════════════════
+const styleListEl = document.getElementById('styleList');
+const styleSearchEl = document.getElementById('styleSearch');
+
+const urlParams = new URLSearchParams(window.location.search);
+const initialStyleId = urlParams.get('style_id') || null;
+
+function renderStyleList(styles) {
+  if (!styleListEl) return;
+
+  styleListEl.innerHTML = (styles || []).map(style => `
+    <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
+      <div class="style-name">${style.name}</div>
+      <div class="style-meta">
+        <span id="style-track-count-${style.id}">— tracks</span>
+        <span class="badge b-warn" id="style-badge-${style.id}">—</span>
+      </div>
+    </div>
+  `).join('');
+
+  styleListEl.querySelectorAll('.style-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectStyle(item.dataset.styleId, item.dataset.styleName);
+    });
+  });
+}
+
+async function loadStyleStats(styleId) {
+  try {
+    const { count: totalTracks, error: countErr } = await window.db
+      .from('sim_style_songs')
+      .select('library_song_id', { count: 'exact', head: true })
+      .eq('style_id', styleId);
+
+    if (countErr) throw countErr;
+
+    const { count: assignedCount, error: aErr } = await window.db
+      .from('sim_style_song_classes')
+      .select('library_song_id', { count: 'exact', head: true })
+      .eq('style_id', styleId);
+
+    if (aErr) throw aErr;
+
+    const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
+
+    const countEl = document.getElementById(`style-track-count-${styleId}`);
+    const badgeEl = document.getElementById(`style-badge-${styleId}`);
+
+    if (countEl) countEl.textContent = `${totalTracks} tracks`;
+    if (badgeEl) {
+      badgeEl.textContent = `${pct}% assigned`;
+      badgeEl.className = 'badge ' + (pct === 100 ? 'b-ok' : pct >= 50 ? 'b-warn' : 'b-bad');
+    }
+  } catch (err) {
+    console.error('Error loading style stats:', err);
+  }
+}
+
+async function loadAllStyleStats(styles) {
+  const results = await Promise.allSettled(
+    styles.map(style => loadStyleStats(style.id))
+  );
+  
+  results.forEach((result, idx) => {
+    if (result.status === 'rejected') {
+      console.error(`Failed to load stats for ${styles[idx].name}:`, result.reason);
+    }
+  });
+}
+
+async function selectStyle(styleId, styleName) {
+  if (!styleId) return;
+
+  document.querySelectorAll('.style-item').forEach(i => i.classList.remove('active'));
+  const active = document.querySelector(`.style-item[data-style-id="${styleId}"]`);
+  if (active) active.classList.add('active');
+
+  window.selectedStyleId = styleId;
+
+  const h2 = document.querySelector('.category-header h2');
+  if (h2 && styleName) h2.textContent = `Playback Classes for "${styleName}"`;
+
+  if (typeof window.reloadClassLabelsForCurrentStyle === 'function') {
+    window.reloadClassLabelsForCurrentStyle();
+  }
+
+  await loadWeights(styleId);
+  await loadClassStats(styleId);
+}
+
+async function loadStyles() {
+  try {
+    if (!styleListEl) return;
+
+    styleListEl.innerHTML = `<div class="loading">Loading styles...</div>`;
+
+    const { data: styles, error } = await window.db
+      .from('sim_styles')
+      .select('id, name')
+      .order('name');
+
+    if (error) throw error;
+
+    const list = (styles || []).filter(s => !CONFIG.STYLES_TO_EXCLUDE.includes(s.name));
+    renderStyleList(list);
+
+    await loadAllStyleStats(list);
+
+    if (initialStyleId) {
+      const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
+      if (el) el.click();
+    }
+
+  } catch (err) {
+    console.error('Error loading styles:', err);
+    if (styleListEl) styleListEl.innerHTML = `<div class="error">Error loading styles: ${err.message}</div>`;
+  }
+}
+
+if (styleSearchEl) {
+  styleSearchEl.addEventListener('input', debounce(() => {
+    const q = styleSearchEl.value.trim().toLowerCase();
+    document.querySelectorAll('.style-item').forEach(el => {
+      const name = (el.dataset.styleName || '').toLowerCase();
+      el.style.display = (!q || name.includes(q)) ? '' : 'none';
+    });
+  }, CONFIG.SEARCH_DEBOUNCE));
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLASS STATS + NAVIGATION
+// ═══════════════════════════════════════════════════════════
+async function loadClassStats(styleId) {
+  if (!styleId) return;
+
+  const rows = await DB_HELPERS.fetchStyleSongRows(styleId);
+  const total = rows.length;
+
+  const assignmentMap = await DB_HELPERS.fetchAssignments(styleId);
+  const assignedCount = Object.keys(assignmentMap).length;
+  const unassignedCount = Math.max(0, total - assignedCount);
+  const assignedPct = total ? ((assignedCount / total) * 100).toFixed(1) : '0.0';
+  const unassignedPct = total ? ((unassignedCount / total) * 100).toFixed(1) : '0.0';
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statAssigned').textContent = assignedCount;
+  document.getElementById('statAssignedPct').textContent = `${assignedPct}%`;
+  document.getElementById('statUnassigned').textContent = unassignedCount;
+  document.getElementById('statUnassignedPct').textContent = `${unassignedPct}%`;
+
+  const counts = { A: 0, B: 0, C: 0, REST: 0 };
+  Object.entries(assignmentMap).forEach(([songId, a]) => {
+    const cls = a.class_code;
+    const code = (cls === 'Rest') ? 'REST' : cls;
+    if (counts[code] !== undefined) counts[code] += 1;
+  });
+
+  function setRow(codeKey, n) {
+    const countEl = document.getElementById(`count-${codeKey}`);
+    const pctEl = document.getElementById(`pct-${codeKey}`);
+    if (countEl) countEl.textContent = n;
+    if (pctEl) {
+      const pct = total ? ((n / total) * 100).toFixed(1) : '0.0';
+      pctEl.textContent = `${pct}%`;
+    }
+  }
+  setRow('A', counts.A);
+  setRow('B', counts.B);
+  setRow('C', counts.C);
+  setRow('REST', counts.REST);
+
+  const uncatEl = document.getElementById('count-Uncategorized');
+  const uncatPctEl = document.getElementById('pct-Uncategorized');
+  if (uncatEl) uncatEl.textContent = unassignedCount;
+  if (uncatPctEl) uncatPctEl.textContent = `${unassignedPct}%`;
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.view-class');
+  if (!btn) return;
+
+  const row = btn.closest('tr[data-class]');
+  if (!row) return;
+
+  if (!window.selectedStyleId) {
+    console.warn('Select a style first');
+    return;
+  }
+
+  const cls = row.dataset.class;
+  if (cls === 'Uncategorized') {
+    window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(window.selectedStyleId)}`;
+  } else {
+    window.location.href = `class-detail.html?style_id=${encodeURIComponent(window.selectedStyleId)}&class=${encodeURIComponent(cls)}`;
+  }
+});
+
+document.getElementById('viewUncatBtn')?.addEventListener('click', () => {
+  const styleId = window.selectedStyleId;
+  window.location.href = styleId
+    ? `uncategorized-detail.html?style_id=${encodeURIComponent(styleId)}`
+    : 'uncategorized-detail.html';
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT - This must come after ClassLabels definition
+// ═══════════════════════════════════════════════════════════
+// Expose for legacy compatibility
+window.reloadClassLabelsForCurrentStyle = function () {
+  ClassLabels.apply(ClassLabels.load());
+};
+
+ClassLabels.init();
+loadStyles();
+</script>
+</body>
+</html>
