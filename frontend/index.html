@@ -615,7 +615,7 @@ styleListEl.innerHTML = list.map(style => `
 styleListEl.querySelectorAll('.style-item').forEach(el => {
   el.addEventListener('click', () => {
     selectStyle(el.dataset.styleId, el.dataset.styleName);
-    updateURL(el.dataset.styleId);
+    if (typeof updateURL === 'function') updateURL(el.dataset.styleId);
   });
 });
 
