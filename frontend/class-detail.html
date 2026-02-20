@@ -443,6 +443,7 @@ function normalizeClassCode(code) {
     allTracks = limitedRows
       .filter(r => (r.song_id || r.library_song_id) && r.song)
 
+
       .map(r => {
         const s = r.song;
         const id = r.song_id || r.library_song_id;
