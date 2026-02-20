@@ -380,6 +380,7 @@ async function loadStyles() {
   try {
     const styles = await window.api.getStyles();
 const list = (styles || []).filter(style => !CONFIG.STYLES_TO_EXCLUDE.includes(style.name));
+renderStyleList(list);
 
 
     if (initialStyleId) {
