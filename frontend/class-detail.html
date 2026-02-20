@@ -441,7 +441,8 @@ function normalizeClassCode(code) {
     const showingCapped = rows.length > CONFIG.MAX_TRACKS_DISPLAY;
 
     allTracks = limitedRows
-      .filter(r => (r.song_id || r.library_song_id) .filter(r => r.song_id && r.song).filter(r => r.song_id && r.song) r.song)
+      .filter(r => (r.song_id || r.library_song_id) && r.song)
+
       .map(r => {
         const s = r.song;
         const id = r.song_id || r.library_song_id;
