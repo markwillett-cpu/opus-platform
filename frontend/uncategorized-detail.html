@@ -438,15 +438,16 @@ function normalizeClassCode(code) {
     const showingCapped = rows.length > CONFIG.MAX_TRACKS_DISPLAY;
 
     allTracks = limitedRows
-      .filter(r => r.song_id && r.song)
+   .filter(r => (r.song_id || r.library_song_id) && r.song)
       .map(r => {
         const s = r.song;
-        const a = assignmentMap[r.song_id] || null;
+        const id = r.song_id || r.library_song_id;
+        const a = assignmentMap[id] || null;
         const normClass = normalizeClassCode(a?.class_code);
         const movedAt = a?.moved_at || null;
 
         return {
-          id: r.song_id,
+          id,
           title: s.title || 'Unknown Title',
           artist: s.artist || 'Unknown Artist',
           album: s.album || '',
