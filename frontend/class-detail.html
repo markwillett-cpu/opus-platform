@@ -366,9 +366,13 @@ function renderStyleList(styles) {
 }
 
 async function loadAllStyleStats(styles) {
-  const results = await Promise.allSettled(
-    styles.map(style => loadStyleStats(style.id))
-  );
+  for (const style of styles) {
+    try {
+      await loadStyleStats(style.id);
+    } catch (err) {
+      console.error(`Failed to load stats for ${style.name}:`, err);
+    }
+  }
   
   results.forEach((result, idx) => {
     if (result.status === 'rejected') {
