@@ -250,7 +250,6 @@
 
 <script src="config.js"></script>
 <script src="api-client.js"></script>
-<script src="db-helpers.js"></script>
 <script src="class-labels.js"></script>
 <script>
 
@@ -408,8 +407,25 @@ async function loadTracksForStyle(styleId, styleNameText) {
   updateURL(styleId);
 
   try {
-    const rows = await DB_HELPERS.fetchStyleSongRows(styleId);
-    const assignmentMap = await DB_HELPERS.fetchAssignments(styleId);
+   const rows = await window.api.getStyleTracks(styleId);
+const assignments = await window.api.getStyleAssignments(styleId);
+
+// normalize assignments to a map keyed by library_song_id
+let assignmentMap = {};
+if (Array.isArray(assignments)) {
+  assignments.forEach(a => {
+    if (a?.library_song_id) assignmentMap[a.library_song_id] = a;
+  });
+} else if (assignments && typeof assignments === 'object') {
+  assignmentMap = assignments;
+}
+
+function normalizeClassCode(code) {
+  if (!code) return null;
+  const c = String(code).trim();
+  if (c.toLowerCase() === 'rest') return 'REST';
+  return c.toUpperCase();
+}
 
     if (!rows || rows.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" class="loading">No rows returned from sim_style_songs for this style_id.</td></tr>`;
@@ -424,7 +440,7 @@ async function loadTracksForStyle(styleId, styleNameText) {
       .map(r => {
         const s = r.song;
         const a = assignmentMap[r.song_id] || null;
-        const normClass = DB_HELPERS.normalizeClassCode(a?.class_code);
+        const normClass = normalizeClassCode(a?.class_code);
         const movedAt = a?.moved_at || null;
 
         return {
@@ -650,14 +666,16 @@ assignBtns.forEach(btn => {
     btn.style.opacity = '0.5';
 
     try {
-      const assignments = trackIds.map(songId => ({
-        song_id: songId,
-        style_id: currentStyleId,
-        class_code: classCode
-      }));
+    const apiAssignments = trackIds.map(library_song_id => ({
+  library_song_id,
+  class_code: classCode
+}));
 
-      const { error } = await DB_HELPERS.upsertAssignments(assignments);
-      if (error) throw error;
+await window.api.request(`/styles/${currentStyleId}/assignments`, {
+  method: 'PUT',
+  body: JSON.stringify({ assignments: apiAssignments })
+});
+
 
       const nowIso = new Date().toISOString();
       trackIds.forEach(trackId => {
