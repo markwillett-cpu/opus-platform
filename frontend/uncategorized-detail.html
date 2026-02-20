@@ -773,6 +773,7 @@ loadStyles();
 
 const urlParams = new URLSearchParams(window.location.search);
 const initialStyleId = urlParams.get('style_id');
+const CONFIG = window.OPUS_CONFIG || window.CONFIG || {};
 if (initialStyleId) {
   const trySelect = () => {
     const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
