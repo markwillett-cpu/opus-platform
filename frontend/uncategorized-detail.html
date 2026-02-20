@@ -149,7 +149,7 @@
     <div class="panel">
       <div class="category-header">
         <div>
-          <button class="back-link" onclick="history.back()">← Back to all classes</button>
+          <button class="back-link" id="backToClassesBtn">← Back to all classes</button>
           <h2>Uncategorized</h2>
           <p class="subtext"><span id="styleName">Select a style</span> · Tracks not yet assigned to a playback class</p>
         </div>
@@ -386,7 +386,7 @@ async function loadStyles() {
         loadTracksForStyle(styleId, styleName);
       });
     });
-    
+
 // Auto-select style so tracks load
 if (initialStyleId) {
   const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
@@ -795,6 +795,12 @@ if (initialStyleId) {
   };
   const iv = setInterval(() => { if (trySelect()) clearInterval(iv); }, 200);
   setTimeout(() => clearInterval(iv), 5000);
+}
+const backBtn = document.getElementById('backToClassesBtn');
+if (backBtn && styleId) {
+  backBtn.addEventListener('click', () => {
+    window.location.href = `index.html?style_id=${styleId}`;
+  });
 }
 </script>
 </body>
