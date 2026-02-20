@@ -492,7 +492,8 @@ function updateStats() {
 
   assignBtns.forEach(btn => {
     const code = String(btn.dataset.class || '').toUpperCase();
-    btn.querySelector('.ab-count').textContent = classCounts[code] || 0;
+    const countEl = btn.querySelector('.ab-count');
+if (countEl) countEl.textContent = classCounts[code] || 0;
   });
 }
 
