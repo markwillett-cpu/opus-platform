@@ -696,14 +696,16 @@ moveBtns.forEach(btn => {
         
         showToast(`✓ Moved ${songIds.length} track${songIds.length > 1 ? 's' : ''} to Uncategorized`);
       } else {
-        const assignments = songIds.map(songId => ({
-          song_id: songId,
-          style_id: currentStyleId,
-          class_code: targetClass
-        }));
-        
-        const { error } = await DB_HELPERS.upsertAssignments(assignments);
-        if (error) throw error;
+        const apiAssignments = songIds.map(library_song_id => ({
+  library_song_id,
+  class_code: targetClass
+}));
+
+await window.api.request(`/styles/${currentStyleId}/assignments`, {
+  method: 'PUT',
+  body: JSON.stringify({ assignments: apiAssignments })
+});
+
         
         const nowIso = new Date().toISOString();
         songIds.forEach(id => {
