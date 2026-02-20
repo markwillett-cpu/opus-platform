@@ -319,27 +319,30 @@ function updateURL(styleId) {
 // ═══════════════════════════════════════════════════════════
 async function loadStyleStats(styleId) {
   try {
-    const tracks = await fetchStyleSongRows(styleId); // already API-backed in your stack
-    const totalTracks = tracks.length;
+    const tracks = await window.api.getStyleTracks(styleId);
+    const assignments = await window.api.getStyleAssignments(styleId);
 
-    const assignmentsMap = await fetchAssignments(styleId); // make sure this uses API endpoint
-    const assignedCount = Object.keys(assignmentsMap).length;
+    const totalTracks = Array.isArray(tracks) ? tracks.length : 0;
+
+    let assignedCount = 0;
+    if (Array.isArray(assignments)) assignedCount = assignments.length;
+    else if (assignments && typeof assignments === 'object') assignedCount = Object.keys(assignments).length;
 
     const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
 
     const countEl = document.getElementById(`style-track-count-${styleId}`);
     const badgeEl = document.getElementById(`style-badge-${styleId}`);
 
-    if (countEl) countEl.textContent = `${(totalTracks || 0)} tracks`;
+    if (countEl) countEl.textContent = `${totalTracks} tracks`;
     if (badgeEl) {
       badgeEl.textContent = `${pct}% assigned`;
-      badgeEl.className =
-        'badge ' + (pct === 100 ? 'b-ok' : pct >= 50 ? 'b-warn' : 'b-bad');
+      badgeEl.className = 'badge ' + (pct === 100 ? 'b-ok' : pct >= 50 ? 'b-warn' : 'b-bad');
     }
   } catch (err) {
     console.error('Error loading style stats:', err);
   }
 }
+
 
 function renderStyleList(styles) {
   styleList.innerHTML = styles.map(style => `
@@ -407,8 +410,25 @@ async function loadTracksForStyle(styleId, styleNameText) {
   updateURL(styleId);
 
   try {
-    const rows = await DB_HELPERS.fetchStyleSongRows(styleId);
-    const assignmentMap = await DB_HELPERS.fetchAssignments(styleId);
+    const rows = await window.api.getStyleTracks(styleId);
+const assignments = await window.api.getStyleAssignments(styleId);
+
+// assignments may be either an array or an object map; normalize to a map
+let assignmentMap = {};
+if (Array.isArray(assignments)) {
+  assignments.forEach(a => {
+    if (a?.library_song_id) assignmentMap[a.library_song_id] = a;
+  });
+} else if (assignments && typeof assignments === 'object') {
+  assignmentMap = assignments;
+}
+
+function normalizeClassCode(code) {
+  if (!code) return null;
+  const c = String(code).trim();
+  if (c.toLowerCase() === 'rest') return 'REST';
+  return c.toUpperCase();
+}
 
     if (!rows || rows.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" class="loading">No rows returned from sim_style_songs for this style_id.</td></tr>`;
@@ -423,7 +443,7 @@ async function loadTracksForStyle(styleId, styleNameText) {
       .map(r => {
         const s = r.song;
         const a = assignmentMap[r.song_id] || null;
-        const normClass = DB_HELPERS.normalizeClassCode(a?.class_code);
+        const normClass = normalizeClassCode(a?.class_code);
         const movedAt = a?.moved_at || null;
 
         return {
@@ -658,8 +678,12 @@ moveBtns.forEach(btn => {
 
     try {
       if (targetClass === 'Uncategorized') {
-        const { error } = await DB_HELPERS.deleteAssignments(currentStyleId, songIds);
-        if (error) throw error;
+        await window.api.request(`/styles/${currentStyleId}/assignments`, {
+  method: 'DELETE',
+  body: JSON.stringify({ songIds })
+});
+
+
         
         songIds.forEach(id => {
           const t = allTracks.find(x => x.id === id);
