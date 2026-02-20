@@ -144,6 +144,19 @@ try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
   }
 }
 
+// Simple debounce utility (formerly in db-helpers)
+function debounce(fn, delay = 300) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.debounce = debounce;
+}
+
 // ═══════════════════════════════════════════════════════════
 // EXPORT
 // ═══════════════════════════════════════════════════════════
