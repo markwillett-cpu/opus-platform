@@ -13,9 +13,9 @@ export default async function routes(app) {
         library_songs(
           id, artist, title, album, peak_year, run_time_seconds, styles
         )
-      `)
-      .eq('style_id', styleId);
-
+      `)      
+.eq('style_id', styleId)
+.limit(3000);  // Add this line
     assertNoError(error, 'Failed to fetch style tracks');
 
     // Normalize response shape a bit for client consumption
