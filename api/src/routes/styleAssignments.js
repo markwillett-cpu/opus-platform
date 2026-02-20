@@ -9,6 +9,11 @@ const PutBody = z.object({
   })).min(1)
 });
 
+const DeleteBody = z.object({
+  songIds: z.array(z.string().min(1)).min(1)
+});
+
+
 export default async function routes(app) {
   app.get('/styles/:styleId/assignments', async (req, reply) => {
     const styleId = normalizeStyleId(req.params.styleId);
@@ -50,8 +55,32 @@ export default async function routes(app) {
       .from('sim_style_song_classes')
       .upsert(rows, { onConflict: 'style_id,library_song_id' });
 
+
     assertNoError(error, 'Failed to upsert assignments');
 
     return reply.send({ ok: true, upserted: rows.length });
   });
+  app.delete('/styles/:styleId/assignments', async (req, reply) => {
+    const styleId = normalizeStyleId(req.params.styleId);
+
+    const parsed = DeleteBody.safeParse(req.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: { message: parsed.error.message, status: 400 } });
+      return;
+    }
+
+    const { songIds } = parsed.data;
+
+    const { data, error } = await supabase
+      .from('sim_style_song_classes')
+      .delete()
+      .eq('style_id', styleId)
+      .in('library_song_id', songIds)
+      .select('library_song_id');
+
+    assertNoError(error, 'Failed to delete assignments');
+
+    return reply.send({ ok: true, deleted: (data || []).length });
+  });
+
 }
