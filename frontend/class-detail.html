@@ -413,6 +413,7 @@ async function loadTracksForStyle(styleId, styleNameText) {
 
   try {
     const rows = await window.api.getStyleTracks(styleId);
+    console.log("[class-detail] rows len:", rows?.length, "first row keys:", (rows && rows[0]) ? Object.keys(rows[0]) : null, "has row.song:", !!(rows && rows[0] && rows[0].song), "row.song keys:", (rows && rows[0] && rows[0].song) ? Object.keys(rows[0].song) : null);
 const assignments = await window.api.getStyleAssignments(styleId);
 
 // assignments may be either an array or an object map; normalize to a map
