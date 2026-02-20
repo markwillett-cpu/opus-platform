@@ -796,12 +796,10 @@ if (initialStyleId) {
   const iv = setInterval(() => { if (trySelect()) clearInterval(iv); }, 200);
   setTimeout(() => clearInterval(iv), 5000);
 }
-const backBtn = document.getElementById('backToClassesBtn');
-if (backBtn && styleId) {
-  backBtn.addEventListener('click', () => {
-    window.location.href = `index.html?style_id=${styleId}`;
-  });
-}
+document.getElementById('backToClassesBtn')?.addEventListener('click', () => {
+  const styleId = new URLSearchParams(window.location.search).get('style_id');
+  window.location.href = styleId ? `index.html?style_id=${styleId}` : 'index.html';
+});
 </script>
 </body>
 </html>
