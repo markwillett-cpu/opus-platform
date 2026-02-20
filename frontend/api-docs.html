@@ -39,6 +39,13 @@ code {
 .section {
   margin-bottom: 50px;
 }
+table {
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
 </style>
 </head>
 <body>
@@ -48,44 +55,51 @@ code {
 <div class="section">
 <h2>Purpose</h2>
 <p>
-Internal API layer for style class categorization and weight management.
-This API abstracts database access and enforces validation and authorization.
+Internal API layer for style class categorization and weight management. This API:
 </p>
+<ul>
+  <li>Abstracts database access to Supabase Postgres</li>
+  <li>Enforces validation (class codes, weight totals, request shape)</li>
+  <li>Provides an integration-ready “playback profile” payload for Opus queue-building</li>
+</ul>
 </div>
 
 <div class="section">
 <h2>Runtime Architecture</h2>
 <pre>
-Browser (Class Categorization UI)
+Browser (Opus Platform UI)
         ↓
-Laravel Route → Controller
+Fastify API (Node) on Render
         ↓
-Service Layer (Validation + Business Logic)
-        ↓
-MySQL (Opus Database)
+Supabase Postgres (sandbox tables for POC)
 </pre>
 <p>
-This API runs inside the Opus Laravel application. It is not publicly exposed.
+This API is internal-use and protected by an internal header key. It is not intended to be publicly exposed.
 </p>
 </div>
 
 <div class="section">
 <h2>Authentication Model</h2>
-<ul>
-<li>Laravel session-based auth (Sanctum)</li>
-<li>Requires valid <code>opus3_session</code> cookie</li>
-<li>Write operations require CSRF token</li>
-<li>No API keys in production</li>
-</ul>
+<div class="warning">
+<p><strong>All non-health endpoints require an internal key header.</strong></p>
+</div>
 
-<h3>Frontend Requirements (write requests)</h3>
+<p>
+Requests must include the header <code>X-Internal-Key</code> matching the server environment variable <code>OPUS_INTERNAL_API_KEY</code>.
+</p>
+
+<h3>Example (curl)</h3>
+<pre>
+curl -H "X-Internal-Key: &lt;OPUS_INTERNAL_API_KEY&gt;" \
+  https://&lt;your-render-service&gt;/v1/styles
+</pre>
+
+<h3>Example (fetch)</h3>
 <pre>
 fetch(url, {
-  method: "POST",
-  credentials: "include",
+  method: "GET",
   headers: {
-    "Content-Type": "application/json",
-    "X-XSRF-TOKEN": csrfToken
+    "X-Internal-Key": internalKey
   }
 })
 </pre>
@@ -93,31 +107,30 @@ fetch(url, {
 
 <div class="section">
 <h2>Authorization</h2>
-<p>Access controlled via Laravel middleware and policies.</p>
+<p>
+Authorization is currently coarse-grained: possession of <code>X-Internal-Key</code> grants access.
+This is acceptable for the POC, and intended to move behind Opus employee authentication later.
+</p>
 
-<table border="1" cellpadding="8">
+<table>
 <tr>
 <th>Operation</th>
-<th>Required Role</th>
+<th>Allowed</th>
 </tr>
 <tr>
-<td>Read styles/tracks</td>
-<td>Authenticated user</td>
+<td>Read styles/tracks/assignments/weights/playback-profile</td>
+<td>Internal key required</td>
 </tr>
 <tr>
-<td>Update assignments</td>
-<td>Music Admin / Curator</td>
-</tr>
-<tr>
-<td>Update weights</td>
-<td>Music Admin</td>
+<td>Write assignments/weights</td>
+<td>Internal key required</td>
 </tr>
 </table>
 </div>
 
 <div class="section">
 <h2>Versioning</h2>
-<pre>/internal/api/v1</pre>
+<pre>/v1</pre>
 
 <ul>
 <li>Breaking changes → new version path</li>
@@ -165,7 +178,7 @@ PRIMARY KEY (style_id, library_song_id)
 <h3>sim_style_class_weights</h3>
 <pre>
 style_id (UUID)
-class_code (TEXT)
+class_code (TEXT)  // A | B | C | REST (REST usually 0)
 weight_pct (INT 0–100)
 PRIMARY KEY (style_id, class_code)
 </pre>
@@ -174,9 +187,10 @@ PRIMARY KEY (style_id, class_code)
 <div class="section">
 <h2>Class Code Rules</h2>
 <ul>
-<li>Valid: A, B, C, REST</li>
+<li>Valid: <code>A</code>, <code>B</code>, <code>C</code>, <code>REST</code></li>
 <li>Stored uppercase</li>
-<li>Unassigned = no row in sim_style_song_classes</li>
+<li><strong>REST</strong> = explicitly not played</li>
+<li><strong>UNCATEGORIZED</strong> = in the style but has no row in <code>sim_style_song_classes</code></li>
 </ul>
 </div>
 
@@ -184,59 +198,105 @@ PRIMARY KEY (style_id, class_code)
 <h2>Endpoints</h2>
 
 <div class="endpoint">
-<h3>GET /internal/api/v1/styles</h3>
+<h3>GET /health</h3>
+<p>Health check. No auth required.</p>
+<pre>
+{ "ok": true }
+</pre>
+</div>
+
+<div class="endpoint">
+<h3>GET /v1/styles</h3>
 <p>Returns all styles ordered by name.</p>
 </div>
 
 <div class="endpoint">
-<h3>GET /internal/api/v1/styles/{style_id}/tracks</h3>
-<p>Returns:</p>
-<ul>
-<li>Song metadata</li>
-<li>Duration override</li>
-<li>Class assignment (nullable)</li>
-</ul>
-</div>
-
-<div class="endpoint">
-<h3>POST /internal/api/v1/styles/{style_id}/assignments</h3>
+<h3>GET /v1/styles/{style_id}/tracks</h3>
+<p>Returns style membership plus song metadata (joined from <code>library_songs</code>).</p>
+<p>Response rows are normalized to include <code>song</code>.</p>
 <pre>
 {
-  "assignments": [
+  "data": [
     {
       "library_song_id": "uuid",
-      "class_code": "A"
+      "sim_duration_seconds": 215,
+      "song": {
+        "id": "uuid",
+        "artist": "Artist",
+        "title": "Title",
+        "album": "Album",
+        "peak_year": 2017,
+        "run_time_seconds": 215,
+        "styles": "..."
+      }
     }
   ]
 }
 </pre>
-<p>Behavior:</p>
+</div>
+
+<div class="endpoint">
+<h3>GET /v1/styles/{style_id}/assignments</h3>
+<p>Returns all explicit class assignments for a style.</p>
+<pre>
+{
+  "data": [
+    { "library_song_id": "uuid", "class_code": "A", "moved_at": "2026-02-20T18:00:00Z" }
+  ]
+}
+</pre>
+</div>
+
+<div class="endpoint">
+<h3>PUT /v1/styles/{style_id}/assignments</h3>
+<p>Bulk upsert assignments (conflict target: <code>(style_id, library_song_id)</code>).</p>
+<pre>
+{
+  "assignments": [
+    { "library_song_id": "uuid", "class_code": "A" }
+  ]
+}
+</pre>
+<p>Notes:</p>
 <ul>
-<li>Bulk upsert</li>
-<li>Conflict target: (style_id, library_song_id)</li>
-<li>Class codes normalized</li>
+  <li>Class codes are normalized to uppercase</li>
+  <li>Valid codes: A/B/C/REST</li>
 </ul>
 </div>
 
 <div class="endpoint">
-<h3>DELETE /internal/api/v1/styles/{style_id}/assignments</h3>
+<h3>DELETE /v1/styles/{style_id}/assignments</h3>
+<p>Bulk delete assignments (returns songs to Uncategorized).</p>
 <pre>
 {
-  "library_song_ids": ["uuid1", "uuid2"]
+  "songIds": ["uuid1", "uuid2"]
 }
 </pre>
-<p>Removes assignments (returns songs to Uncategorized).</p>
 </div>
 
 <div class="endpoint">
-<h3>POST /internal/api/v1/styles/{style_id}/weights</h3>
+<h3>GET /v1/styles/{style_id}/weights</h3>
+<p>Returns class weights for a style.</p>
+<pre>
+{
+  "data": [
+    { "class_code": "A", "weight_pct": 35 },
+    { "class_code": "B", "weight_pct": 35 },
+    { "class_code": "C", "weight_pct": 30 }
+  ]
+}
+</pre>
+</div>
+
+<div class="endpoint">
+<h3>PUT /v1/styles/{style_id}/weights</h3>
+<p>Upserts weights for A/B/C (and optionally REST) for a style.</p>
 <pre>
 {
   "weights": [
-    { "class_code": "A", "weight_pct": 35 },
-    { "class_code": "B", "weight_pct": 35 },
-    { "class_code": "C", "weight_pct": 30 },
-    { "class_code": "REST", "weight_pct": 0 }
+    { "class_code": "A", "weight_pct": 50 },
+    { "class_code": "B", "weight_pct": 30 },
+    { "class_code": "C", "weight_pct": 20 }
   ]
 }
 </pre>
@@ -244,8 +304,54 @@ PRIMARY KEY (style_id, class_code)
 <ul>
 <li>Each weight 0–100</li>
 <li>Total must equal 100</li>
-<li>All four classes must be present</li>
 </ul>
+</div>
+
+<div class="endpoint">
+<h3>GET /v1/styles/{style_id}/playback-profile</h3>
+<p>
+Integration-ready payload for the playback engine. Provides:
+</p>
+<ul>
+  <li><code>mode</code>: <code>LEGACY</code> vs <code>CLASS_WEIGHTED</code></li>
+  <li>Class weights for A/B/C</li>
+  <li>Pool counts for A/B/C/UNCATEGORIZED/REST</li>
+  <li>Optional track ids (debug only)</li>
+</ul>
+
+<h4>Query Params</h4>
+<ul>
+  <li><code>include_track_ids=true</code> (optional; default false)</li>
+</ul>
+
+<h4>Response</h4>
+<pre>
+{
+  "data": {
+    "style_id": "uuid",
+    "mode": "LEGACY",
+    "updated_at": "2026-02-20T18:00:00Z",
+    "weights": { "A": 50, "B": 30, "C": 20 },
+    "pools": {
+      "A": { "count": 120 },
+      "B": { "count": 80 },
+      "C": { "count": 40 },
+      "UNCATEGORIZED": { "count": 12 },
+      "REST": { "count": 7 }
+    }
+  }
+}
+</pre>
+
+<h4>Mode Rules</h4>
+<ul>
+  <li><code>LEGACY</code> when there are no A/B/C assigned tracks (100% uncategorized/rest) or A/B/C weights sum to 0</li>
+  <li><code>CLASS_WEIGHTED</code> otherwise</li>
+</ul>
+
+<p>
+<strong>Playback semantics:</strong> REST tracks are explicitly not played. Uncategorized tracks exist in the style but have no assignment.
+</p>
 </div>
 
 </div>
@@ -255,4 +361,12 @@ PRIMARY KEY (style_id, class_code)
 <pre>
 {
   "error": {
-    "message": "Validation fai
+    "message": "Unauthorized",
+    "status": 401
+  }
+}
+</pre>
+</div>
+
+</body>
+</html>
