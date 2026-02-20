@@ -9,6 +9,7 @@ import stylesRoutes from './src/routes/styles.js';
 import tracksRoutes from './src/routes/styleTracks.js';
 import assignmentsRoutes from './src/routes/styleAssignments.js';
 import weightsRoutes from './src/routes/styleWeights.js';
+import playbackProfileRoutes from './src/routes/stylePlaybackProfile.js';
 
 const app = Fastify({
   logger: true
@@ -42,6 +43,7 @@ await app.register(stylesRoutes, { prefix: '/v1' });
 await app.register(tracksRoutes, { prefix: '/v1' });
 await app.register(assignmentsRoutes, { prefix: '/v1' });
 await app.register(weightsRoutes, { prefix: '/v1' });
+await app.register(playbackProfileRoutes, { prefix: '/v1' });
 
 // Error handler (consistent JSON)
 app.setErrorHandler((err, req, reply) => {

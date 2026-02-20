@@ -16,6 +16,7 @@ export default async function routes(app) {
       `)      
 .eq('style_id', styleId)
 .limit(3000);  // Add this line
+
     assertNoError(error, 'Failed to fetch style tracks');
 
     // Normalize response shape a bit for client consumption
