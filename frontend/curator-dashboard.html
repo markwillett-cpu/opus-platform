@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Curator Dashboard</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+      --power:#e74c3c;--core:#3498db;--library:#27ae60;--rest:#95a5a6;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50;flex-wrap:wrap}
+    .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
+    .toolbar-btn:hover{background:#5a7288}
+    .toolbar-btn.primary{background:var(--accent)}
+    .toolbar-btn.primary:hover{background:#2980b9}
+    .toolbar-sep{width:1px;height:22px;background:#5a7288;margin:0 4px}
+
+    .container{max-width:1800px;margin:0 auto;padding:18px}
+    .main-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;height:calc(100vh - 150px)}
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+    .panel-subheader{padding:10px 12px;border-bottom:1px solid var(--light);display:flex;flex-direction:column;gap:8px}
+    .search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .curator-select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;color:var(--primary);cursor:pointer;font-weight:700}
+    .style-list{overflow:auto;padding:10px;flex:1}
+
+    .style-item{background:var(--light);padding:12px;border-radius:6px;cursor:pointer;margin-bottom:8px;border-left:3px solid transparent;transition:.2s}
+    .style-item:hover{background:#e8f4f8;border-left-color:var(--accent)}
+    .style-item.active{background:#e8f4f8;border-left-color:var(--accent);box-shadow:0 2px 4px rgba(0,0,0,.08)}
+    .style-item.status-overdue{border-left-color:var(--danger)}
+    .style-item.status-due{border-left-color:var(--warning)}
+    .style-item.status-upcoming{border-left-color:var(--success)}
+    .style-name{font-weight:900;font-size:14px;margin-bottom:4px}
+    .style-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#7f8c8d;margin-top:4px}
+    .style-cadence{font-size:11px;color:#95a5a6;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900}
+    .b-ok{background:#d4edda;color:#155724}
+    .b-warn{background:#fff3cd;color:#856404}
+    .b-bad{background:#f8d7da;color:#721c24}
+
+    .detail-header{background:#2f3d4a;color:#fff;padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+    .detail-header h2{font-size:18px;margin-bottom:4px}
+    .detail-subtext{color:#9fb3c8;font-size:13px}
+    .header-actions{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
+    .btn{padding:9px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+    .btn:hover{background:#f8f9fa}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:#2980b9}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .stats-banner{background:#2f3d4a;color:#fff;padding:14px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;border-top:1px solid #3d4f5e}
+    .stat-box{text-align:center}
+    .stat-label{font-size:11px;letter-spacing:.4px;opacity:.85;text-transform:uppercase}
+    .stat-value{font-size:22px;font-weight:1000;margin-top:4px}
+    .stat-value.overdue{color:#ff8a8a}
+    .stat-value.due{color:#ffc66d}
+    .stat-value.ok{color:#5dbd87}
+
+    .content{padding:18px 22px;overflow:auto;flex:1}
+    .info{background:#e8f4f8;border-left:4px solid var(--accent);padding:12px 14px;border-radius:4px;font-size:13px;margin-bottom:18px}
+
+    .section-title{font-weight:900;font-size:14px;margin-bottom:12px;color:var(--secondary);display:flex;align-items:center;gap:8px}
+    .section-title span{color:#95a5a6;font-weight:700;font-size:12px}
+
+    table{width:100%;border-collapse:collapse;border:1px solid var(--light);border-radius:8px;overflow:hidden;margin-bottom:22px}
+    thead{background:var(--secondary);color:#fff}
+    th,td{padding:12px;font-size:13px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    tbody tr:hover{background:#f8f9fa}
+    .link-btn{background:transparent;border:1px solid var(--border);padding:6px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:900;color:var(--primary);transition:.2s}
+    .link-btn:hover{border-color:var(--accent);color:var(--accent);background:#e8f4f8}
+    .link-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .link-btn.primary:hover{background:#2980b9}
+
+    .cadence-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:900}
+    .cadence-pill.weekly{background:#fdecea;color:#a93226;border:1px solid #f0b8b8}
+    .cadence-pill.biweekly{background:#fdf6e3;color:#9a6d1f;border:1px solid #f0d9a0}
+    .cadence-pill.monthly{background:#f0faf2;color:#1e8449;border:1px solid #a9dfbf}
+    .cadence-pill.quarterly{background:#f4ecf7;color:#7d3c98;border:1px solid #d7b8e8}
+
+    .due-urgent{color:var(--danger);font-weight:900}
+    .due-warn{color:#c57a00;font-weight:900}
+    .due-ok{color:var(--success);font-weight:700}
+
+    .tag-overdue{background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+    .tag-due{background:#fff3cd;color:#856404;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+    .tag-upcoming{background:#d4edda;color:#155724;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+
+    .alert-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:22px}
+    .alert-card{border-radius:8px;border:1px solid var(--border);padding:14px 16px;background:#fff;border-left:4px solid transparent;transition:.15s}
+    .alert-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.1)}
+    .alert-card.overdue{border-left-color:var(--danger);background:#fff9f9}
+    .alert-card.due{border-left-color:var(--warning);background:#fffcf2}
+    .alert-card-title{font-weight:900;font-size:14px;margin-bottom:5px}
+    .alert-card-meta{font-size:12px;color:#7f8c8d;display:flex;gap:10px;flex-wrap:wrap}
+    .alert-card-action{margin-top:10px;display:flex;gap:6px}
+
+    .empty-state{text-align:center;padding:60px 20px;color:#95a5a6}
+    .empty-state .icon{font-size:48px;margin-bottom:12px}
+    .empty-state p{font-size:14px;font-weight:700}
+
+    /* Loading spinner */
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:12px 18px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;z-index:99999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.error{background:var(--danger)}
+    #toast.success{background:var(--success)}
+
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999}
+    .modal{max-width:500px;margin:8vh auto;background:#fff;border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.25);overflow:hidden}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+    .modal-header-title{font-weight:1000;font-size:16px}
+    .modal-body{padding:20px 18px;display:grid;gap:14px}
+    .modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:12px;font-weight:900;color:#7f8c8d;text-transform:uppercase;letter-spacing:.4px}
+    .form-group select,.form-group input{padding:9px 11px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fff;color:var(--primary)}
+
+    .footer{border-top:1px solid var(--border);background:var(--light);padding:12px 22px;display:flex;align-items:center;justify-content:space-between}
+    .footer-note{color:#7f8c8d;font-size:12px;font-weight:800}
+
+    .loading-row{padding:20px;color:#95a5a6;font-size:13px;font-weight:700;text-align:center}
+
+    @media(max-width:1100px){
+      .main-layout{grid-template-columns:1fr;height:auto}
+      .stats-banner{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item active" href="#">Curator Dashboard</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <button class="toolbar-btn primary" id="newScheduleBtn">＋ Add Schedule</button>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" id="exportBtn">Export CSV</button>
+</div>
+
+<div class="container">
+  <div class="main-layout">
+
+    <!-- LEFT: Styles filtered by curator -->
+    <div class="panel">
+      <div class="panel-header">
+        Styles (Playlists)
+        <span id="styleCount" style="font-weight:700;font-size:12px;opacity:.75"></span>
+      </div>
+      <div class="panel-subheader">
+        <select class="curator-select" id="curatorFilter">
+          <option value="">All Curators</option>
+        </select>
+        <input class="search-input" id="styleSearch" placeholder="Search styles…" />
+      </div>
+      <div class="style-list" id="styleList">
+        <div class="loading-row">Loading…</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Dashboard -->
+    <div class="panel">
+      <div class="detail-header">
+        <div>
+          <h2 id="dashHeadline">Curator Dashboard</h2>
+          <div class="detail-subtext" id="dashSubtext">Loading schedules…</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn primary" id="markUpdatedBtn" style="display:none">✓ Mark Updated Today</button>
+          <button class="btn" id="editScheduleBtn" style="display:none">Edit Schedule</button>
+        </div>
+      </div>
+
+      <div class="stats-banner">
+        <div class="stat-box"><div class="stat-label">Scheduled Styles</div><div class="stat-value" id="statStyles">—</div></div>
+        <div class="stat-box"><div class="stat-label">Overdue</div><div class="stat-value overdue" id="statOverdue">—</div></div>
+        <div class="stat-box"><div class="stat-label">Due This Week</div><div class="stat-value due" id="statDue">—</div></div>
+        <div class="stat-box"><div class="stat-label">On Schedule</div><div class="stat-value ok" id="statOk">—</div></div>
+      </div>
+
+      <div class="content" id="dashContent">
+        <div id="alertSection" style="display:none">
+          <div class="section-title">🔴 Needs Attention <span id="alertCount"></span></div>
+          <div class="alert-cards" id="alertCards"></div>
+        </div>
+        <div id="allStylesSection">
+          <div class="section-title">Scheduled Styles <span id="schedTableCount"></span></div>
+          <table id="schedTable" style="display:none">
+            <thead>
+              <tr>
+                <th>Style</th>
+                <th>Curator</th>
+                <th>Cadence</th>
+                <th>Last Updated</th>
+                <th>Next Due</th>
+                <th>Status</th>
+                <th style="text-align:right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="schedTableBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState" style="display:none">
+            <div class="icon">📋</div>
+            <p>No schedules yet. Use "＋ Add Schedule" to create one.</p>
+          </div>
+          <div class="loading-row" id="tableLoading">Loading schedules…</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="footer-note" id="footerNote">Schedule data loaded from Opus API</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="scheduleModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-title" id="modalTitle">Add Schedule</div>
+      <button class="btn" id="closeModal">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Style</label>
+        <select id="modalStyle"><option value="">— Select style —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Curator</label>
+        <input type="text" id="modalCurator" placeholder="e.g. Maya Chen" />
+      </div>
+      <div class="form-group">
+        <label>Cadence</label>
+        <select id="modalCadence">
+          <option value="weekly">Weekly (every 7 days)</option>
+          <option value="biweekly">Bi-Weekly (every 14 days)</option>
+          <option value="monthly" selected>Monthly (every 30 days)</option>
+          <option value="quarterly">Quarterly (every 90 days)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Last Updated</label>
+        <input type="date" id="modalLastUpdated" />
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="modalNotes" placeholder="e.g. Focus on new releases" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="deleteScheduleBtn" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn" id="cancelModal">Cancel</button>
+      <button class="btn primary" id="saveScheduleBtn">Save Schedule</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Load existing Opus scripts -->
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONSTANTS & HELPERS
+// ════════════════════════════════════════════════════════
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+
+const CADENCE_DAYS = { weekly:7, biweekly:14, monthly:30, quarterly:90 };
+
+function nextDue(lastUpdated, cadence) {
+  const d = new Date(lastUpdated);
+  d.setDate(d.getDate() + (CADENCE_DAYS[cadence] || 30));
+  return d;
+}
+
+function getStatus(nd) {
+  const diff = Math.ceil((nd - TODAY) / 86400000);
+  if (diff < 0)  return 'overdue';
+  if (diff <= 7) return 'due';
+  return 'upcoming';
+}
+
+function daysLabel(nd) {
+  const diff = Math.ceil((nd - TODAY) / 86400000);
+  if (diff < 0)  return `${Math.abs(diff)}d overdue`;
+  if (diff === 0) return 'Due today';
+  if (diff === 1) return 'Due tomorrow';
+  return `In ${diff} days`;
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function cadenceLabel(c) {
+  return {weekly:'Weekly',biweekly:'Bi-Weekly',monthly:'Monthly',quarterly:'Quarterly'}[c] || c;
+}
+
+function enrichSched(s) {
+  const nd = nextDue(s.last_updated, s.cadence);
+  return { ...s, nextDue: nd, status: getStatus(nd) };
+}
+
+// Toast
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className='', 3000);
+}
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let allStyles    = [];   // from GET /v1/styles
+let allSchedules = [];   // from GET /v1/curator-schedules (enriched)
+let curatorFilter = '';
+let searchQuery   = '';
+let selectedStyleId = null;  // currently clicked style in left pane
+let editingStyleId  = null;  // style being edited in modal
+
+// ════════════════════════════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════════════════════════════
+async function loadAll() {
+  try {
+    // Parallel fetch
+    const [styles, schedules, curatorNames] = await Promise.all([
+      window.api.getStyles(),
+      window.api.getCuratorSchedules(),
+      window.api.getCuratorNames()
+    ]);
+
+    allStyles    = styles    || [];
+    allSchedules = (schedules || []).map(enrichSched);
+
+    populateCuratorDropdown(curatorNames || []);
+    populateModalStyles(allStyles);
+
+    renderStyleList();
+    renderDashboard();
+    document.getElementById('tableLoading').style.display = 'none';
+  } catch(err) {
+    console.error(err);
+    toast('Failed to load data: ' + err.message, 'error');
+    document.getElementById('tableLoading').textContent = 'Error loading data.';
+  }
+}
+
+function populateCuratorDropdown(names) {
+  const sel = document.getElementById('curatorFilter');
+  // Also derive from schedules in case curators endpoint isn't populated yet
+  const fromSched = [...new Set(allSchedules.map(s => s.curator_name))];
+  const combined  = [...new Set([...names, ...fromSched])].sort();
+
+  sel.innerHTML = '<option value="">All Curators</option>' +
+    combined.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+function populateModalStyles(styles) {
+  const exclude = (window.OPUS_CONFIG?.STYLES_TO_EXCLUDE) || [];
+  const filtered = styles.filter(s => !exclude.includes(s.name));
+  document.getElementById('modalStyle').innerHTML =
+    '<option value="">— Select style —</option>' +
+    filtered.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// LEFT PANE — STYLE LIST
+// ════════════════════════════════════════════════════════
+function getVisibleStyleIds() {
+  return new Set(
+    allSchedules
+      .filter(s => !curatorFilter || s.curator_name === curatorFilter)
+      .map(s => s.style_id)
+  );
+}
+
+function renderStyleList() {
+  const exclude    = (window.OPUS_CONFIG?.STYLES_TO_EXCLUDE) || [];
+  const visibleIds = getVisibleStyleIds();
+  const q          = searchQuery.toLowerCase();
+
+  const list = allStyles.filter(style =>
+    !exclude.includes(style.name) &&
+    visibleIds.has(style.id) &&
+    (!q || style.name.toLowerCase().includes(q))
+  );
+
+  document.getElementById('styleCount').textContent =
+    `${list.length} style${list.length !== 1 ? 's' : ''}`;
+
+  const el = document.getElementById('styleList');
+  if (!list.length) {
+    el.innerHTML = `<div class="loading-row">No styles found</div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(style => {
+    const sched = allSchedules.find(s => s.style_id === style.id &&
+      (!curatorFilter || s.curator_name === curatorFilter));
+    const active      = selectedStyleId === style.id ? 'active' : '';
+    const statusClass = sched ? `status-${sched.status}` : '';
+    const badgeCls    = sched ? {overdue:'b-bad',due:'b-warn',upcoming:'b-ok'}[sched.status] : 'b-muted';
+    const badgeText   = sched ? daysLabel(sched.nextDue) : '—';
+    const cadenceStr  = sched ? `<div class="style-cadence">${cadenceLabel(sched.cadence)}</div>` : '';
+    const curator     = sched ? sched.curator_name : '—';
+
+    return `<div class="style-item ${statusClass} ${active}" data-style-id="${style.id}">
+      <div class="style-name">${style.name}</div>
+      ${cadenceStr}
+      <div class="style-meta">
+        <span>${curator}</span>
+        <span class="badge ${badgeCls}">${badgeText}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.style-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectedStyleId = item.dataset.styleId;
+      renderStyleList();
+      renderDashboard();
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// RIGHT PANE — DASHBOARD
+// ════════════════════════════════════════════════════════
+function getFilteredSchedules() {
+  const q = searchQuery.toLowerCase();
+  return allSchedules.filter(s => {
+    const matchCurator = !curatorFilter || s.curator_name === curatorFilter;
+    const matchStyle   = !selectedStyleId || s.style_id === selectedStyleId;
+    const matchSearch  = !q || (s.style_name||'').toLowerCase().includes(q);
+    return matchCurator && matchStyle && matchSearch;
+  }).sort((a,b) => a.nextDue - b.nextDue);
+}
+
+function renderDashboard() {
+  const visible  = getFilteredSchedules();
+  const overdue  = visible.filter(s => s.status === 'overdue');
+  const due      = visible.filter(s => s.status === 'due');
+  const ok       = visible.filter(s => s.status === 'upcoming');
+
+  document.getElementById('statStyles').textContent  = visible.length;
+  document.getElementById('statOverdue').textContent = overdue.length;
+  document.getElementById('statDue').textContent     = due.length;
+  document.getElementById('statOk').textContent      = ok.length;
+
+  // Headline
+  const selStyle   = selectedStyleId ? allStyles.find(s => s.id === selectedStyleId) : null;
+  const selSched   = selectedStyleId ? allSchedules.find(s => s.style_id === selectedStyleId) : null;
+
+  document.getElementById('dashHeadline').textContent = selStyle
+    ? selStyle.name
+    : curatorFilter ? `${curatorFilter}'s Styles` : 'All Curator Styles';
+
+  document.getElementById('dashSubtext').textContent = selStyle
+    ? (selSched ? `${selSched.curator_name} · ${cadenceLabel(selSched.cadence)} · ${daysLabel(selSched.nextDue)}` : 'No schedule set for this style')
+    : `${visible.length} style${visible.length!==1?'s':''} · ${curatorFilter || 'All curators'}`;
+
+  // Per-style action buttons
+  const markBtn = document.getElementById('markUpdatedBtn');
+  const editBtn = document.getElementById('editScheduleBtn');
+  if (selSched) {
+    markBtn.style.display = '';
+    markBtn.dataset.styleId = selSched.style_id;
+    editBtn.style.display = '';
+    editBtn.dataset.styleId = selSched.style_id;
+  } else {
+    markBtn.style.display = 'none';
+    editBtn.style.display = 'none';
+  }
+
+  // Alert cards — overdue + due this week, only when not filtered to one style
+  const urgent = [...overdue, ...due];
+  const alertSection = document.getElementById('alertSection');
+  if (urgent.length && !selectedStyleId) {
+    alertSection.style.display = '';
+    document.getElementById('alertCount').textContent = `— ${urgent.length}`;
+    document.getElementById('alertCards').innerHTML = urgent.map(s => `
+      <div class="alert-card ${s.status}" data-style-id="${s.style_id}">
+        <div class="alert-card-title">${s.style_name || s.style_id}</div>
+        <div class="alert-card-meta">
+          <span>👤 ${s.curator_name}</span>
+          <span>🔁 ${cadenceLabel(s.cadence)}</span>
+          <span class="${s.status==='overdue'?'due-urgent':'due-warn'}">${daysLabel(s.nextDue)}</span>
+        </div>
+        <div class="alert-card-action">
+          <button class="link-btn primary mark-updated-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">✓ Mark Updated</button>
+          <button class="link-btn edit-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">Edit</button>
+        </div>
+      </div>
+    `).join('');
+    // Wire card buttons
+    document.querySelectorAll('.mark-updated-card').forEach(b =>
+      b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
+    document.querySelectorAll('.edit-card').forEach(b =>
+      b.addEventListener('click', () => openEditModal(b.dataset.styleId)));
+  } else {
+    alertSection.style.display = 'none';
+  }
+
+  // Main table
+  const tbody = document.getElementById('schedTableBody');
+  document.getElementById('schedTableCount').textContent = `— ${visible.length}`;
+
+  if (!visible.length) {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('schedTable').style.display = 'none';
+  } else {
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('schedTable').style.display = '';
+
+    tbody.innerHTML = visible.map(s => {
+      const tagCls   = {overdue:'tag-overdue',due:'tag-due',upcoming:'tag-upcoming'}[s.status];
+      const tagLabel = {overdue:'Overdue',due:'Due Soon',upcoming:'On Schedule'}[s.status];
+      const dueCls   = {overdue:'due-urgent',due:'due-warn',upcoming:'due-ok'}[s.status];
+      const urgent   = s.status !== 'upcoming';
+
+      return `<tr>
+        <td style="font-weight:900">${s.style_name || s.style_id}</td>
+        <td>${s.curator_name}</td>
+        <td><span class="cadence-pill ${s.cadence}">${cadenceLabel(s.cadence)}</span></td>
+        <td>${fmtDate(s.last_updated)}</td>
+        <td class="${dueCls}">${fmtDate(s.nextDue)}<br><small style="font-weight:700">${daysLabel(s.nextDue)}</small></td>
+        <td><span class="${tagCls}">${tagLabel}</span></td>
+        <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">
+          ${urgent ? `<button class="link-btn primary mark-updated-row" data-style-id="${s.style_id}" style="font-size:11px">✓ Mark Updated</button>` : ''}
+          <button class="link-btn edit-row" data-style-id="${s.style_id}" style="font-size:11px">Edit</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.querySelectorAll('.mark-updated-row').forEach(b =>
+      b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
+    document.querySelectorAll('.edit-row').forEach(b =>
+      b.addEventListener('click', () => openEditModal(b.dataset.styleId)));
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════
+async function markUpdated(styleId) {
+  try {
+    await window.api.markStyleUpdated(styleId);
+    toast('Marked as updated today ✓', 'success');
+    await reload();
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function reload() {
+  const [schedules] = await Promise.all([window.api.getCuratorSchedules()]);
+  allSchedules = (schedules || []).map(enrichSched);
+  const curatorNames = await window.api.getCuratorNames();
+  populateCuratorDropdown(curatorNames || []);
+  renderStyleList();
+  renderDashboard();
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════════════════
+function openAddModal() {
+  editingStyleId = null;
+  document.getElementById('modalTitle').textContent = 'Add Schedule';
+  document.getElementById('deleteScheduleBtn').style.display = 'none';
+  document.getElementById('modalStyle').value = '';
+  document.getElementById('modalCurator').value = '';
+  document.getElementById('modalCadence').value = 'monthly';
+  document.getElementById('modalLastUpdated').value = TODAY.toISOString().slice(0,10);
+  document.getElementById('modalNotes').value = '';
+  document.getElementById('modalStyle').disabled = false;
+  document.getElementById('scheduleModal').style.display = '';
+}
+
+function openEditModal(styleId) {
+  const s = allSchedules.find(x => x.style_id === styleId);
+  if (!s) return;
+  editingStyleId = styleId;
+  document.getElementById('modalTitle').textContent = `Edit: ${s.style_name || styleId}`;
+  document.getElementById('deleteScheduleBtn').style.display = '';
+  document.getElementById('modalStyle').value = s.style_id;
+  document.getElementById('modalCurator').value = s.curator_name;
+  document.getElementById('modalCadence').value = s.cadence;
+  document.getElementById('modalLastUpdated').value = s.last_updated;
+  document.getElementById('modalNotes').value = s.notes || '';
+  document.getElementById('modalStyle').disabled = true; // style locked when editing
+  document.getElementById('scheduleModal').style.display = '';
+}
+
+function closeModal() {
+  document.getElementById('scheduleModal').style.display = 'none';
+  editingStyleId = null;
+}
+
+async function saveSchedule() {
+  const styleId     = editingStyleId || document.getElementById('modalStyle').value;
+  const curatorName = document.getElementById('modalCurator').value.trim();
+  const cadence     = document.getElementById('modalCadence').value;
+  const lastUpdated = document.getElementById('modalLastUpdated').value;
+  const notes       = document.getElementById('modalNotes').value.trim();
+
+  if (!styleId || !curatorName || !cadence || !lastUpdated) {
+    toast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('saveScheduleBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+  try {
+    await window.api.upsertCuratorSchedule({ style_id: styleId, curator_name: curatorName, cadence, last_updated: lastUpdated, notes });
+    toast('Schedule saved ✓', 'success');
+    closeModal();
+    await reload();
+  } catch(err) {
+    toast('Error saving: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save Schedule';
+  }
+}
+
+async function deleteSchedule() {
+  const s = allSchedules.find(x => x.style_id === editingStyleId);
+  if (!confirm(`Remove schedule for "${s?.style_name || editingStyleId}"?`)) return;
+
+  try {
+    await window.api.deleteCuratorSchedule(editingStyleId);
+    toast('Schedule deleted', 'success');
+    selectedStyleId = null;
+    closeModal();
+    await reload();
+  } catch(err) {
+    toast('Error deleting: ' + err.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// EXPORT CSV
+// ════════════════════════════════════════════════════════
+function exportCSV() {
+  const rows = getFilteredSchedules();
+  const header = 'Style,Curator,Cadence,Last Updated,Next Due,Status';
+  const lines = rows.map(s =>
+    [s.style_name||s.style_id, s.curator_name, cadenceLabel(s.cadence), s.last_updated, fmtDate(s.nextDue), s.status].join(',')
+  );
+  const csv = [header, ...lines].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'opus-curator-schedules.csv';
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════
+// EVENT WIRING
+// ════════════════════════════════════════════════════════
+document.getElementById('curatorFilter').addEventListener('change', e => {
+  curatorFilter   = e.target.value;
+  selectedStyleId = null;
+  renderStyleList();
+  renderDashboard();
+});
+
+document.getElementById('styleSearch').addEventListener('input',
+  debounce(e => {
+    searchQuery = e.target.value.trim().toLowerCase();
+    renderStyleList();
+    renderDashboard();
+  }, window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200)
+);
+
+document.getElementById('newScheduleBtn').addEventListener('click', openAddModal);
+document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
+document.getElementById('cancelModal').addEventListener('click', closeModal);
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('deleteScheduleBtn').addEventListener('click', deleteSchedule);
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+document.getElementById('markUpdatedBtn').addEventListener('click', e =>
+  markUpdated(e.target.dataset.styleId));
+document.getElementById('editScheduleBtn').addEventListener('click', e =>
+  openEditModal(e.target.dataset.styleId));
+
+document.getElementById('scheduleModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('scheduleModal')) closeModal();
+});
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+loadAll();
+</script>
+</body>
+</html>

@@ -186,3 +186,40 @@ if (cfg) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = OpusAPIClient;
 }
+
+// ─────────────────────────────────────────────────────────
+// Curator schedule methods — patched onto prototype
+// ─────────────────────────────────────────────────────────
+
+OpusAPIClient.prototype.getCuratorSchedules = async function(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.curator_name) params.set('curator_name', filters.curator_name);
+  if (filters.style_id)     params.set('style_id', filters.style_id);
+  const qs = params.toString() ? `?${params}` : '';
+  const { data } = await this.request(`/curator-schedules${qs}`);
+  return data;
+};
+
+OpusAPIClient.prototype.getCuratorNames = async function() {
+  const { data } = await this.request('/curator-schedules/curators');
+  return data;
+};
+
+OpusAPIClient.prototype.upsertCuratorSchedule = async function(schedule) {
+  return await this.request('/curator-schedules', {
+    method: 'PUT',
+    body: JSON.stringify(schedule)
+  });
+};
+
+OpusAPIClient.prototype.markStyleUpdated = async function(styleId) {
+  return await this.request(`/curator-schedules/${styleId}/mark-updated`, {
+    method: 'PATCH'
+  });
+};
+
+OpusAPIClient.prototype.deleteCuratorSchedule = async function(styleId) {
+  return await this.request(`/curator-schedules/${styleId}`, {
+    method: 'DELETE'
+  });
+};
