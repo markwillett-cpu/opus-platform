@@ -711,13 +711,14 @@ document.getElementById('curatorFilter').addEventListener('change', e => {
   renderDashboard();
 });
 
-document.getElementById('styleSearch').addEventListener('input',
-  debounce(e => {
+document.getElementById('styleSearch').addEventListener('input', e => {
+  clearTimeout(window._searchTimer);
+  window._searchTimer = setTimeout(() => {
     searchQuery = e.target.value.trim().toLowerCase();
     renderStyleList();
     renderDashboard();
-  }, window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200)
-);
+  }, (window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200));
+});
 
 document.getElementById('newScheduleBtn').addEventListener('click', openAddModal);
 document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
