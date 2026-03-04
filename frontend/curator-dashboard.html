@@ -464,6 +464,9 @@ function renderStyleList() {
       renderStyleList();
       renderDashboard();
     });
+    item.addEventListener('dblclick', () => {
+      window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(item.dataset.styleId)}`;
+    });
   });
 }
 
@@ -531,12 +534,17 @@ function renderDashboard() {
           <span class="${s.status==='overdue'?'due-urgent':'due-warn'}">${daysLabel(s.nextDue)}</span>
         </div>
         <div class="alert-card-action">
-          <button class="link-btn primary mark-updated-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">✓ Mark Updated</button>
+          <button class="link-btn primary go-to-songs-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">＋ Add Songs</button>
+          <button class="link-btn mark-updated-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">✓ Mark Updated</button>
           <button class="link-btn edit-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">Edit</button>
         </div>
       </div>
     `).join('');
     // Wire card buttons
+    document.querySelectorAll('.go-to-songs-card').forEach(b =>
+      b.addEventListener('click', () => {
+        window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(b.dataset.styleId)}`;
+      }));
     document.querySelectorAll('.mark-updated-card').forEach(b =>
       b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
     document.querySelectorAll('.edit-card').forEach(b =>
@@ -570,12 +578,17 @@ function renderDashboard() {
         <td class="${dueCls}">${fmtDate(s.nextDue)}<br><small style="font-weight:700">${daysLabel(s.nextDue)}</small></td>
         <td><span class="${tagCls}">${tagLabel}</span></td>
         <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">
-          ${urgent ? `<button class="link-btn primary mark-updated-row" data-style-id="${s.style_id}" style="font-size:11px">✓ Mark Updated</button>` : ''}
+          ${urgent ? `<button class="link-btn primary go-to-songs-row" data-style-id="${s.style_id}" style="font-size:11px">＋ Add Songs</button>` : ''}
+          ${urgent ? `<button class="link-btn mark-updated-row" data-style-id="${s.style_id}" style="font-size:11px">✓ Mark Updated</button>` : ''}
           <button class="link-btn edit-row" data-style-id="${s.style_id}" style="font-size:11px">Edit</button>
         </td>
       </tr>`;
     }).join('');
 
+    document.querySelectorAll('.go-to-songs-row').forEach(b =>
+      b.addEventListener('click', () => {
+        window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(b.dataset.styleId)}`;
+      }));
     document.querySelectorAll('.mark-updated-row').forEach(b =>
       b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
     document.querySelectorAll('.edit-row').forEach(b =>
