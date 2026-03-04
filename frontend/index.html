@@ -3,756 +3,742 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Opus Playback Class Manager</title>
+  <title>Opus – Curator Dashboard</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{
       --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
-      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c; 
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
       --light:#ecf0f1;--border:#bdc3c7;
       --power:#e74c3c;--core:#3498db;--library:#27ae60;--rest:#95a5a6;
     }
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
     .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-    .opus-title{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
-    .hamburger{font-size:22px;opacity:.9}
+    .opus-title{font-weight:800;font-size:16px}
     .opus-nav{display:flex;gap:14px}
     .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
     .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
     .nav-item.active{color:#fff;background:var(--accent)}
-    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50;flex-wrap:wrap}
     .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
     .toolbar-btn:hover{background:#5a7288}
     .toolbar-btn.primary{background:var(--accent)}
     .toolbar-btn.primary:hover{background:#2980b9}
     .toolbar-sep{width:1px;height:22px;background:#5a7288;margin:0 4px}
+
     .container{max-width:1800px;margin:0 auto;padding:18px}
-    .main-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;height:calc(100vh - 160px)}
+    .main-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;height:calc(100vh - 150px)}
     .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column;min-height:0}
-    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px}
-    .panel-subheader{padding:12px 14px;border-bottom:1px solid var(--light)}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+    .panel-subheader{padding:10px 12px;border-bottom:1px solid var(--light);display:flex;flex-direction:column;gap:8px}
     .search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
-    .style-list{overflow:auto;padding:10px}
+    .curator-select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:#fff;color:var(--primary);cursor:pointer;font-weight:700}
+    .style-list{overflow:auto;padding:10px;flex:1}
+
     .style-item{background:var(--light);padding:12px;border-radius:6px;cursor:pointer;margin-bottom:8px;border-left:3px solid transparent;transition:.2s}
     .style-item:hover{background:#e8f4f8;border-left-color:var(--accent)}
     .style-item.active{background:#e8f4f8;border-left-color:var(--accent);box-shadow:0 2px 4px rgba(0,0,0,.08)}
+    .style-item.status-overdue{border-left-color:var(--danger)}
+    .style-item.status-due{border-left-color:var(--warning)}
+    .style-item.status-upcoming{border-left-color:var(--success)}
     .style-name{font-weight:900;font-size:14px;margin-bottom:4px}
-    .style-meta{display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d}
+    .style-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#7f8c8d;margin-top:4px}
+    .style-cadence{font-size:11px;color:#95a5a6;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+
     .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900}
     .b-ok{background:#d4edda;color:#155724}
     .b-warn{background:#fff3cd;color:#856404}
     .b-bad{background:#f8d7da;color:#721c24}
-    .category-header{background:var(--light);padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
-    .category-header h2{font-size:18px;margin-bottom:4px}
-    .subtext{color:#7f8c8d;font-size:13px}
-    .header-actions{display:flex;gap:10px}
-    .btn{padding:10px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+
+    .detail-header{background:#2f3d4a;color:#fff;padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+    .detail-header h2{font-size:18px;margin-bottom:4px}
+    .detail-subtext{color:#9fb3c8;font-size:13px}
+    .header-actions{display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
+    .btn{padding:9px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
     .btn:hover{background:#f8f9fa}
     .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-    .btn.primary:hover{background:#2980b9;border-color:#2980b9}
-    .stats-banner{background:#2f3d4a;color:#fff;padding:14px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .btn.primary:hover{background:#2980b9}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .stats-banner{background:#2f3d4a;color:#fff;padding:14px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;border-top:1px solid #3d4f5e}
     .stat-box{text-align:center}
     .stat-label{font-size:11px;letter-spacing:.4px;opacity:.85;text-transform:uppercase}
     .stat-value{font-size:22px;font-weight:1000;margin-top:4px}
-    .stat-sub{font-size:12px;opacity:.8;margin-top:2px}
-    .content{padding:18px 22px;overflow:auto}
-    .info{background:#e8f4f8;border-left:4px solid var(--accent);padding:12px 14px;border-radius:4px;color:var(--primary);font-size:13px;margin-bottom:14px}
-    .category-table{width:100%;border-collapse:collapse;border:1px solid var(--light);border-radius:8px;overflow:hidden}
-    .category-table thead{background:var(--secondary);color:#fff}
-    .category-table th,.category-table td{padding:12px;font-size:13px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
-    .category-table td.num{text-align:right;font-variant-numeric:tabular-nums}
-    .category-table tbody tr:hover{background:#f8f9fa;cursor:pointer}
-    .category-table .col-action{text-align:right;width:160px}
-    .category-table .col-action .link-btn{margin-right:2px}
-    .category-table .col-tracks{text-align:center;width:120px}
-    .cat-name{display:flex;align-items:center;gap:10px;font-weight:1000}
-    .dot{width:12px;height:12px;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-    .link-btn{background:transparent;border:1px solid var(--border);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:900;color:var(--primary);transition:.2s}
+    .stat-value.overdue{color:#ff8a8a}
+    .stat-value.due{color:#ffc66d}
+    .stat-value.ok{color:#5dbd87}
+
+    .content{padding:18px 22px;overflow:auto;flex:1}
+    .info{background:#e8f4f8;border-left:4px solid var(--accent);padding:12px 14px;border-radius:4px;font-size:13px;margin-bottom:18px}
+
+    .section-title{font-weight:900;font-size:14px;margin-bottom:12px;color:var(--secondary);display:flex;align-items:center;gap:8px}
+    .section-title span{color:#95a5a6;font-weight:700;font-size:12px}
+
+    table{width:100%;border-collapse:collapse;border:1px solid var(--light);border-radius:8px;overflow:hidden;margin-bottom:22px}
+    thead{background:var(--secondary);color:#fff}
+    th,td{padding:12px;font-size:13px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    tbody tr:hover{background:#f8f9fa}
+    .link-btn{background:transparent;border:1px solid var(--border);padding:6px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:900;color:var(--primary);transition:.2s}
     .link-btn:hover{border-color:var(--accent);color:var(--accent);background:#e8f4f8}
-    .footer{border-top:1px solid var(--border);background:var(--light);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .link-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .link-btn.primary:hover{background:#2980b9}
+
+    .cadence-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:900}
+    .cadence-pill.weekly{background:#fdecea;color:#a93226;border:1px solid #f0b8b8}
+    .cadence-pill.biweekly{background:#fdf6e3;color:#9a6d1f;border:1px solid #f0d9a0}
+    .cadence-pill.monthly{background:#f0faf2;color:#1e8449;border:1px solid #a9dfbf}
+    .cadence-pill.quarterly{background:#f4ecf7;color:#7d3c98;border:1px solid #d7b8e8}
+
+    .due-urgent{color:var(--danger);font-weight:900}
+    .due-warn{color:#c57a00;font-weight:900}
+    .due-ok{color:var(--success);font-weight:700}
+
+    .tag-overdue{background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+    .tag-due{background:#fff3cd;color:#856404;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+    .tag-upcoming{background:#d4edda;color:#155724;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:900}
+
+    .alert-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:22px}
+    .alert-card{border-radius:8px;border:1px solid var(--border);padding:14px 16px;background:#fff;border-left:4px solid transparent;transition:.15s}
+    .alert-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.1)}
+    .alert-card.overdue{border-left-color:var(--danger);background:#fff9f9}
+    .alert-card.due{border-left-color:var(--warning);background:#fffcf2}
+    .alert-card-title{font-weight:900;font-size:14px;margin-bottom:5px}
+    .alert-card-meta{font-size:12px;color:#7f8c8d;display:flex;gap:10px;flex-wrap:wrap}
+    .alert-card-action{margin-top:10px;display:flex;gap:6px}
+
+    .empty-state{text-align:center;padding:60px 20px;color:#95a5a6}
+    .empty-state .icon{font-size:48px;margin-bottom:12px}
+    .empty-state p{font-size:14px;font-weight:700}
+
+    /* Loading spinner */
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:12px 18px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;z-index:99999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.error{background:var(--danger)}
+    #toast.success{background:var(--success)}
+
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999}
+    .modal{max-width:500px;margin:8vh auto;background:#fff;border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.25);overflow:hidden}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
+    .modal-header-title{font-weight:1000;font-size:16px}
+    .modal-body{padding:20px 18px;display:grid;gap:14px}
+    .modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:12px;font-weight:900;color:#7f8c8d;text-transform:uppercase;letter-spacing:.4px}
+    .form-group select,.form-group input{padding:9px 11px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fff;color:var(--primary)}
+
+    .footer{border-top:1px solid var(--border);background:var(--light);padding:12px 22px;display:flex;align-items:center;justify-content:space-between}
     .footer-note{color:#7f8c8d;font-size:12px;font-weight:800}
-    .footer-actions{display:flex;gap:10px}
-    .mix-widget{background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:14px;padding:14px 18px}
-    .mix-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-    .mix-title{font-weight:900;font-size:14px;margin-bottom:4px}
-    .mix-summary{font-size:12px;color:#7f8c8d;font-weight:800}
-    .mix-bar{position:relative;height:18px;border-radius:10px;overflow:hidden;background:var(--light);border:1px solid var(--border);display:flex}
-    .mix-seg{height:100%}
-    .mix-seg.seg-a{background:var(--power)}
-    .mix-seg.seg-b{background:var(--core)}
-    .mix-seg.seg-c{background:var(--library)}
-    .mix-seg.seg-r{background:var(--rest)}
-    .mix-handle{position:absolute;top:-3px;width:10px;height:24px;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.15);transform:translateX(-50%);cursor:ew-resize}
-    .mix-inputs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-    .mix-in{display:flex;align-items:center;gap:8px;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
-    .mix-dot{width:10px;height:10px;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-    .mix-lbl{font-size:12px;font-weight:1000;min-width:40px}
-    .mix-in input{margin-left:auto;width:64px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:900;text-align:right;background:#fff}
-    .mix-note{margin-top:10px;font-size:12px;color:#7f8c8d;font-weight:800;line-height:1.35}
-    @media (max-width:1100px){.mix-inputs{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}.stats-banner{grid-template-columns:repeat(2,1fr)}}
+
+    .loading-row{padding:20px;color:#95a5a6;font-size:13px;font-weight:700;text-align:center}
+
+    @media(max-width:1100px){
+      .main-layout{grid-template-columns:1fr;height:auto}
+      .stats-banner{grid-template-columns:repeat(2,1fr)}
+    }
   </style>
 </head>
 <body>
-  <div class="opus-header">
-    <div class="opus-title">Opus4</div>
-    <nav class="opus-nav">
-      <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
-      <a class="nav-item" href="./api-docs.html">API Docs</a>
-      <a class="nav-item active" href="#">Playback Classes</a>
-      <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
-    </nav>
-  </div>
 
-  <div class="opus-toolbar">
-    <button class="toolbar-btn primary">Manage Playback Classes</button>
-  </div>
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item active" href="#">Curator Dashboard</a>
+  </nav>
+</div>
 
-  <div class="container">
-    <div class="main-layout">
-      <div class="panel">
-        <div class="panel-header">Styles (Playlists)</div>
-        <div class="panel-subheader"><input class="search-input" id="styleSearch" placeholder="Search styles..." /></div>
-        <div class="style-list" id="styleList">
-          <div class="loading">Loading styles...</div>
+<div class="opus-toolbar">
+  <button class="toolbar-btn primary" id="newScheduleBtn">＋ Add Schedule</button>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" id="exportBtn">Export CSV</button>
+</div>
+
+<div class="container">
+  <div class="main-layout">
+
+    <!-- LEFT: Styles filtered by curator -->
+    <div class="panel">
+      <div class="panel-header">
+        Styles (Playlists)
+        <span id="styleCount" style="font-weight:700;font-size:12px;opacity:.75"></span>
+      </div>
+      <div class="panel-subheader">
+        <select class="curator-select" id="curatorFilter">
+          <option value="">All Curators</option>
+        </select>
+        <input class="search-input" id="styleSearch" placeholder="Search styles…" />
+      </div>
+      <div class="style-list" id="styleList">
+        <div class="loading-row">Loading…</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Dashboard -->
+    <div class="panel">
+      <div class="detail-header">
+        <div>
+          <h2 id="dashHeadline">Curator Dashboard</h2>
+          <div class="detail-subtext" id="dashSubtext">Loading schedules…</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn primary" id="markUpdatedBtn" style="display:none">✓ Mark Updated Today</button>
+          <button class="btn" id="editScheduleBtn" style="display:none">Edit Schedule</button>
         </div>
       </div>
 
-      <div class="panel">
-        <div class="category-header">
-          <div>
-            <h2>Select a style to manage Playback Classes</h2>
-<div class="subtext">Classes are labeled A, B, C, and Rest. Labels can be customized per style. The class mix sets target class distribution for the playback algorithm.</div>
-          </div>
-          <div class="header-actions">
-        <button class="btn" id="editLabelsBtn">Edit class labels</button>
-            
-            <button class="btn primary" id="viewUncatBtn">View Uncategorized</button>
-          </div>
+      <div class="stats-banner">
+        <div class="stat-box"><div class="stat-label">Scheduled Styles</div><div class="stat-value" id="statStyles">—</div></div>
+        <div class="stat-box"><div class="stat-label">Overdue</div><div class="stat-value overdue" id="statOverdue">—</div></div>
+        <div class="stat-box"><div class="stat-label">Due This Week</div><div class="stat-value due" id="statDue">—</div></div>
+        <div class="stat-box"><div class="stat-label">On Schedule</div><div class="stat-value ok" id="statOk">—</div></div>
+      </div>
+
+      <div class="content" id="dashContent">
+        <div id="alertSection" style="display:none">
+          <div class="section-title">🔴 Needs Attention <span id="alertCount"></span></div>
+          <div class="alert-cards" id="alertCards"></div>
         </div>
-
-        <div class="stats-banner">
-          <div class="stat-box"><div class="stat-label">Total Tracks</div><div class="stat-value" id="statTotal">—</div></div>
-          <div class="stat-box"><div class="stat-label">Assigned</div><div class="stat-value" id="statAssigned">—</div><div class="stat-sub" id="statAssignedPct">—</div></div>
-          <div class="stat-box"><div class="stat-label">Unassigned</div><div class="stat-value" id="statUnassigned">—</div><div class="stat-sub" id="statUnassignedPct">—</div></div>
-          <div class="stat-box"><div class="stat-label">Classes</div><div class="stat-value">4</div></div>
-        </div>
-
-        <div class="content">
-          <div class="info">
-            <strong>How it works:</strong> The class mix below defines target class distribution for the playback algorithm. Each listener gets a unique stream weighted toward these proportions while maintaining artist/song separation rules. Review Uncategorized tracks first, assign them to classes (A, B, C, or Rest), then set the mix. <strong>Optional:</strong> Classes are not required. If none are assigned, playback uses standard artist and title separation rules only.
-          </div>
-
-          <div class="mix-widget" id="mixWidget">
-            <div class="mix-head">
-              <div>
-                <div class="mix-title">Class Mix (Playback Intent)</div>
-                <div class="mix-summary" id="mixSummary">Select a style to configure class mix.</div>
-              </div>
-              <button class="link-btn" id="resetMixBtn" type="button">Reset</button>
-            </div>
-
-            <div class="mix-bar" id="mixBar" aria-label="Class mix slider">
-              <div class="mix-seg seg-a" data-code="A" title="A"></div>
-              <div class="mix-handle" data-boundary="A|B" title="Drag to adjust A/B"></div>
-              <div class="mix-seg seg-b" data-code="B" title="B"></div>
-              <div class="mix-handle" data-boundary="B|C" title="Drag to adjust B/C"></div>
-              <div class="mix-seg seg-c" data-code="C" title="C"></div>
-              <div class="mix-handle" data-boundary="C|REST" title="Drag to adjust C/Rest"></div>
-              <div class="mix-seg seg-r" data-code="REST" title="Rest"></div>
-            </div>
-
-            <div class="mix-inputs">
-              <div class="mix-in"><span class="mix-dot" style="background:var(--power)"></span><span class="mix-lbl" data-code="A">A</span><input id="mixA" type="number" min="0" max="100" step="1" /></div>
-              <div class="mix-in"><span class="mix-dot" style="background:var(--core)"></span><span class="mix-lbl" data-code="B">B</span><input id="mixB" type="number" min="0" max="100" step="1" /></div>
-              <div class="mix-in"><span class="mix-dot" style="background:var(--library)"></span><span class="mix-lbl" data-code="C">C</span><input id="mixC" type="number" min="0" max="100" step="1" /></div>
-              <div class="mix-in"><span class="mix-dot" style="background:var(--rest)"></span><span class="mix-lbl" data-code="REST">Rest</span><input id="mixR" type="number" min="0" max="100" step="1" /></div>
-            </div>
-          </div>
-
-          <table class="category-table">
+        <div id="allStylesSection">
+          <div class="section-title">Scheduled Styles <span id="schedTableCount"></span></div>
+          <table id="schedTable" style="display:none">
             <thead>
               <tr>
-                <th>Class</th>
-                <th class="col-tracks">Tracks</th>
-                <th class="num">Actual %</th>
-                <th class="col-action">Action</th>
+                <th>Style</th>
+                <th>Curator</th>
+                <th>Cadence</th>
+                <th>Last Updated</th>
+                <th>Next Due</th>
+                <th>Status</th>
+                <th style="text-align:right">Action</th>
               </tr>
             </thead>
-            <tbody>
-              <tr data-class="A">
-                <td><div class="cat-name"><span class="dot" style="background:var(--power)"></span> <span class="class-code" data-class-code="A">A</span> <span class="class-alias" data-class-code="A"></span></div></td>
-                <td class="col-tracks" id="count-A">—</td><td class="num" id="pct-A">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
-              </tr>
-              <tr data-class="B">
-                <td><div class="cat-name"><span class="dot" style="background:var(--core)"></span> <span class="class-code" data-class-code="B">B</span> <span class="class-alias" data-class-code="B"></span></div></td>
-                <td class="col-tracks" id="count-B">—</td><td class="num" id="pct-B">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
-              </tr>
-              <tr data-class="C">
-                <td><div class="cat-name"><span class="dot" style="background:var(--library)"></span> <span class="class-code" data-class-code="C">C</span> <span class="class-alias" data-class-code="C"></span></div></td>
-                <td class="col-tracks" id="count-C">—</td><td class="num" id="pct-C">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
-              </tr>
-              <tr data-class="Rest">
-                <td><div class="cat-name"><span class="dot" style="background:var(--rest)"></span> <span class="class-code" data-class-code="REST">Rest</span> <span class="class-alias" data-class-code="REST"></span></div></td>
-                <td class="col-tracks" id="count-REST">—</td><td class="num" id="pct-REST">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
-              </tr>
-              <tr data-class="Uncategorized">
-                <td><div class="cat-name"><span class="dot" style="background: #ffffff; border: 1px solid var(--border)"></span> Uncategorized</div></td>
-                <td class="num" id="count-Uncategorized">—</td>
-                <td class="num" id="pct-Uncategorized">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
-              </tr>
-            </tbody>
+            <tbody id="schedTableBody"></tbody>
           </table>
-        </div>
-
-        <div class="footer">
-          <div class="footer-note">Tip: The class mix defines target distribution. The algorithm maintains these proportions while applying separation rules.</div>
-          
+          <div class="empty-state" id="emptyState" style="display:none">
+            <div class="icon">📋</div>
+            <p>No schedules yet. Use "＋ Add Schedule" to create one.</p>
           </div>
+          <div class="loading-row" id="tableLoading">Loading schedules…</div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div id="labelsModal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
-  <div class="modal" style="max-width:520px; margin:7vh auto; background:#fff; border-radius:10px; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden;">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);">
-      <div>
-        <div style="font-weight:1000; font-size:16px;">Edit class labels</div>
-        <div style="font-size:12px; color:#7f8c8d; font-weight:700; margin-top:4px;">Labels are style-specific. Classes remain A, B, C, and Rest.</div>
+      <div class="footer">
+        <div class="footer-note" id="footerNote">Schedule data loaded from Opus API</div>
       </div>
-      <button class="btn" id="closeLabelsModal" style="padding:8px 10px;">Close</button>
     </div>
-    <div style="padding:18px; display:grid; gap:12px;">
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">A</div>
-        <input id="labelA" type="text" placeholder="Optional label (e.g., Power)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="scheduleModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-title" id="modalTitle">Add Schedule</div>
+      <button class="btn" id="closeModal">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Style</label>
+        <select id="modalStyle"><option value="">— Select style —</option></select>
       </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">B</div>
-        <input id="labelB" type="text" placeholder="Optional label (e.g., Core)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      <div class="form-group">
+        <label>Curator</label>
+        <input type="text" id="modalCurator" placeholder="e.g. Maya Chen" />
       </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">C</div>
-        <input id="labelC" type="text" placeholder="Optional label (e.g., Library)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      <div class="form-group">
+        <label>Cadence</label>
+        <select id="modalCadence">
+          <option value="weekly">Weekly (every 7 days)</option>
+          <option value="biweekly">Bi-Weekly (every 14 days)</option>
+          <option value="monthly" selected>Monthly (every 30 days)</option>
+          <option value="quarterly">Quarterly (every 90 days)</option>
+        </select>
       </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">Rest</div>
-        <input id="labelR" type="text" placeholder="Optional label (e.g., Hold)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+      <div class="form-group">
+        <label>Last Updated</label>
+        <input type="date" id="modalLastUpdated" />
       </div>
-      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
-        <button class="btn" id="resetLabels">Reset</button>
-        <button class="btn primary" id="saveLabels">Save labels</button>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="modalNotes" placeholder="e.g. Focus on new releases" />
       </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="deleteScheduleBtn" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn" id="cancelModal">Cancel</button>
+      <button class="btn primary" id="saveScheduleBtn">Save Schedule</button>
     </div>
   </div>
 </div>
 
+<div id="toast"></div>
+
+<!-- Load existing Opus scripts -->
 <script src="config.js"></script>
 <script src="api-client.js"></script>
-<script src="class-labels.js"></script>
+
 <script>
+// ════════════════════════════════════════════════════════
+// CONSTANTS & HELPERS
+// ════════════════════════════════════════════════════════
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
 
+const CADENCE_DAYS = { weekly:7, biweekly:14, monthly:30, quarterly:90 };
 
-// ═══════════════════════════════════════════════════════════
-// CLASS MIX WEIGHTS (sim_style_class_weights)
-// ═══════════════════════════════════════════════════════════
-const DEFAULT_WEIGHTS = OPUS_CONFIG.DEFAULT_CLASS_MIX || { A: 30, B: 40, C: 30, REST: 0 };
-
-async function fetchWeights(styleId) {
-  const data = await window.api.getStyleWeights(styleId);
-
-  const out = { ...DEFAULT_WEIGHTS };
-  (data || []).forEach(r => {
-    const code = (r.class_code || '').toUpperCase();
-    if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
-  });
-
-  return normalizeWeights(out);
+function nextDue(lastUpdated, cadence) {
+  const d = new Date(lastUpdated);
+  d.setDate(d.getDate() + (CADENCE_DAYS[cadence] || 30));
+  return d;
 }
 
-
-async function fetchWeights(styleId) {
-  const data = await window.api.getStyleWeights(styleId);
-
-  const out = { ...DEFAULT_WEIGHTS };
-  (data || []).forEach(r => {
-    const code = (r.class_code || '').toUpperCase();
-    if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
-  });
-
-  return normalizeWeights(out);
+function getStatus(nd) {
+  const diff = Math.ceil((nd - TODAY) / 86400000);
+  if (diff < 0)  return 'overdue';
+  if (diff <= 7) return 'due';
+  return 'upcoming';
 }
 
-
-async function upsertWeights(styleId, weights) {
-  return await window.api.updateStyleWeights(styleId, weights);
+function daysLabel(nd) {
+  const diff = Math.ceil((nd - TODAY) / 86400000);
+  if (diff < 0)  return `${Math.abs(diff)}d overdue`;
+  if (diff === 0) return 'Due today';
+  if (diff === 1) return 'Due tomorrow';
+  return `In ${diff} days`;
 }
 
-
-
-function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
-
-function normalizeWeights(w) {
-  const codes = ['A','B','C','REST'];
-  const raw = codes.map(c => clamp(Math.round(Number(w[c]||0)), 0, 100));
-  let sum = raw.reduce((a,b)=>a+b,0);
-
-  if (sum === 100) return { A: raw[0], B: raw[1], C: raw[2], REST: raw[3] };
-  if (sum === 0) return { ...DEFAULT_WEIGHTS };
-
-  const scaled = raw.map(v => (v / sum) * 100);
-  const ints = scaled.map(v => Math.floor(v));
-  let remain = 100 - ints.reduce((a,b)=>a+b,0);
-
-  const fracs = scaled.map((v,i)=>({i, frac: v - Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
-  for (let k=0; k<remain; k++) ints[fracs[k % fracs.length].i] += 1;
-
-  return { A: ints[0], B: ints[1], C: ints[2], REST: ints[3] };
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
 
-// ═══════════════════════════════════════════════════════════
-// MIX UI WIRING
-// ═══════════════════════════════════════════════════════════
-let currentWeights = { ...DEFAULT_WEIGHTS };
-let mixDirty = false;
-let mixSaveT = null;
-
-const mixSummaryEl = document.getElementById('mixSummary');
-const mixBarEl = document.getElementById('mixBar');
-const resetMixBtn = document.getElementById('resetMixBtn');
-
-const inA = document.getElementById('mixA');
-const inB = document.getElementById('mixB');
-const inC = document.getElementById('mixC');
-const inR = document.getElementById('mixR');
-
-function labelFor(code){
-  const labels = window.currentClassLabels || {A:'',B:'',C:'',REST:''};
-  const v = labels[code] || '';
-  if (code === 'REST') return v ? `Rest — ${v}` : 'Rest';
-  return v ? `${code} — ${v}` : code;
+function cadenceLabel(c) {
+  return {weekly:'Weekly',biweekly:'Bi-Weekly',monthly:'Monthly',quarterly:'Quarterly'}[c] || c;
 }
 
-function renderMix() {
-  if (!mixBarEl) return;
-
-  const a = currentWeights.A, b = currentWeights.B, c = currentWeights.C, r = currentWeights.REST;
-
-  const segA = mixBarEl.querySelector('.mix-seg.seg-a');
-  const segB = mixBarEl.querySelector('.mix-seg.seg-b');
-  const segC = mixBarEl.querySelector('.mix-seg.seg-c');
-  const segR = mixBarEl.querySelector('.mix-seg.seg-r');
-
-  if (segA) segA.style.width = `${a}%`;
-  if (segB) segB.style.width = `${b}%`;
-  if (segC) segC.style.width = `${c}%`;
-  if (segR) segR.style.width = `${r}%`;
-
-  const handles = [...mixBarEl.querySelectorAll('.mix-handle')];
-  const cumA = a;
-  const cumAB = a + b;
-  const cumABC = a + b + c;
-
-  handles.forEach(h => {
-    const key = h.dataset.boundary || '';
-    let pct = 0;
-    if (key === 'A|B') pct = cumA;
-    if (key === 'B|C') pct = cumAB;
-    if (key === 'C|REST') pct = cumABC;
-    h.style.left = `${pct}%`;
-  });
-
-  if (inA) inA.value = a;
-  if (inB) inB.value = b;
-  if (inC) inC.value = c;
-  if (inR) inR.value = r;
-
-  document.querySelectorAll('.mix-lbl[data-code]').forEach(el=>{
-    const code = el.getAttribute('data-code');
-    el.textContent = labelFor(code);
-  });
-
-  if (mixSummaryEl) {
-    mixSummaryEl.textContent =
-      `${labelFor('A')}: ${a}% • ${labelFor('B')}: ${b}% • ${labelFor('C')}: ${c}% • ${labelFor('REST')}: ${r}%`;
-  }
+function enrichSched(s) {
+  const nd = nextDue(s.last_updated, s.cadence);
+  return { ...s, nextDue: nd, status: getStatus(nd) };
 }
 
-function scheduleSave() {
-  const styleId = window.selectedStyleId;
-  if (!styleId) return;
-
-  mixDirty = true;
-  if (mixSaveT) clearTimeout(mixSaveT);
-  mixSaveT = setTimeout(async () => {
-    try {
-      const { error } = await upsertWeights(styleId, currentWeights);
-      if (error) throw error;
-      mixDirty = false;
-    } catch (e) {
-      console.error('Failed to save class weights:', e);
-    }
-  }, CONFIG.AUTO_SAVE_DELAY);
+// Toast
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className='', 3000);
 }
 
-function setPair(boundary, newLeftVal) {
-  const [left, right] = boundary.split('|');
-  const sum = (currentWeights[left] ?? 0) + (currentWeights[right] ?? 0);
-  const clampedLeft = clamp(newLeftVal, 0, sum);
-  currentWeights[left] = clampedLeft;
-  currentWeights[right] = sum - clampedLeft;
-  currentWeights = normalizeWeights(currentWeights);
-  renderMix();
-  scheduleSave();
-}
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let allStyles    = [];   // from GET /v1/styles
+let allSchedules = [];   // from GET /v1/curator-schedules (enriched)
+let curatorFilter = '';
+let searchQuery   = '';
+let selectedStyleId = null;  // currently clicked style in left pane
+let editingStyleId  = null;  // style being edited in modal
 
-function setSingle(code, val) {
-  const v = clamp(val, 0, 100);
-  const other = ['A','B','C','REST'].filter(c=>c!==code);
-  let remaining = 100 - v;
-
-  const curSum = other.reduce((s,c)=>s + (currentWeights[c] ?? 0), 0);
-  const next = { ...currentWeights, [code]: v };
-  if (curSum <= 0) {
-    const each = Math.floor(remaining / other.length);
-    other.forEach(c => next[c] = each);
-    next[other[other.length-1]] += remaining - each*other.length;
-  } else {
-    other.forEach(c => next[c] = Math.round(((currentWeights[c] ?? 0) / curSum) * remaining));
-  }
-
-  currentWeights = normalizeWeights(next);
-  renderMix();
-  scheduleSave();
-}
-
-async function loadWeights(styleId) {
-  if (!styleId) return;
+// ════════════════════════════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════════════════════════════
+async function loadAll() {
+  // Styles are always required
   try {
-    currentWeights = await fetchWeights(styleId);
-    renderMix();
-  } catch (e) {
-    console.error('Failed to load class weights:', e);
-    currentWeights = { ...DEFAULT_WEIGHTS };
-    renderMix();
-  }
-}
-
-function wireInput(el, code){
-  if (!el) return;
-  el.addEventListener('change', () => setSingle(code, Number(el.value)));
-  el.addEventListener('blur', () => setSingle(code, Number(el.value)));
-}
-wireInput(inA,'A'); wireInput(inB,'B'); wireInput(inC,'C'); wireInput(inR,'REST');
-
-if (resetMixBtn) {
-  resetMixBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    currentWeights = { ...DEFAULT_WEIGHTS };
-    renderMix();
-    scheduleSave();
-  });
-}
-
-function wireHandle(handle){
-  if (!handle) return;
-  handle.addEventListener('pointerdown', (ev) => {
-    if (!window.selectedStyleId) return;
-    ev.preventDefault();
-    handle.setPointerCapture(ev.pointerId);
-
-    const boundary = handle.dataset.boundary;
-    const [left, right] = boundary.split('|');
-
-    const barRect = mixBarEl.getBoundingClientRect();
-    const startX = ev.clientX;
-    const startLeft = currentWeights[left] ?? 0;
-    const startRight = currentWeights[right] ?? 0;
-    const pairSum = startLeft + startRight;
-
-    const onMove = (mv) => {
-      const dx = mv.clientX - startX;
-      const pctDelta = Math.round((dx / barRect.width) * 100);
-      const nextLeft = clamp(startLeft + pctDelta, 0, pairSum);
-      setPair(boundary, nextLeft);
-    };
-
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-  });
-}
-
-if (mixBarEl) {
-  [...mixBarEl.querySelectorAll('.mix-handle')].forEach(wireHandle);
-}
-
-window.refreshMixUI = function() { renderMix(); };
-
-// ═══════════════════════════════════════════════════════════
-// STYLES LIST
-// ═══════════════════════════════════════════════════════════
-const styleListEl = document.getElementById('styleList');
-const styleSearchEl = document.getElementById('styleSearch');
-
-const urlParams = new URLSearchParams(window.location.search);
-const initialStyleId = urlParams.get('style_id') || null;
-
-function renderStyleList(styles) {
-  if (!styleListEl) return;
-
-  styleListEl.innerHTML = (styles || []).map(style => `
-    <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
-      <div class="style-name">${style.name}</div>
-      <div class="style-meta">
-        <span id="style-track-count-${style.id}">— tracks</span>
-        <span class="badge b-warn" id="style-badge-${style.id}">—</span>
-      </div>
-    </div>
-  `).join('');
-
-  styleListEl.querySelectorAll('.style-item').forEach(item => {
-    item.addEventListener('click', () => {
-      selectStyle(item.dataset.styleId, item.dataset.styleName);
-    });
-  });
-}
-
-async function loadStyleStats(styleId) {
-  try {
-    const tracks = await window.api.getStyleTracks(styleId);
-    const totalTracks = (tracks || []).length;
-
-    const assignments = await window.api.getStyleAssignments(styleId);
-    const assignedCount = (assignments || []).length;
-
-    const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
-
-    const countEl = document.getElementById(`style-track-count-${styleId}`);
-    const badgeEl = document.getElementById(`style-badge-${styleId}`);
-
-    if (countEl) countEl.textContent = `${totalTracks} tracks`;
-    if (badgeEl) {
-      badgeEl.textContent = `${pct}% assigned`;
-      badgeEl.className = 'badge ' + (pct === 100 ? 'b-ok' : pct >= 50 ? 'b-warn' : 'b-bad');
-    }
-  } catch (err) {
-    console.error('Error loading style stats:', err);
-  }
-}
-
-
-async function loadAllStyleStats(styles) {
-  const results = await Promise.allSettled(
-    styles.map(style => loadStyleStats(style.id))
-  );
-  
-  results.forEach((result, idx) => {
-    if (result.status === 'rejected') {
-      console.error(`Failed to load stats for ${styles[idx].name}:`, result.reason);
-    }
-  });
-}
-
-async function selectStyle(styleId, styleName) {
-  if (!styleId) return;
-
-  document.querySelectorAll('.style-item').forEach(i => i.classList.remove('active'));
-  const active = document.querySelector(`.style-item[data-style-id="${styleId}"]`);
-  if (active) active.classList.add('active');
-
-  window.selectedStyleId = styleId;
-
-  const h2 = document.querySelector('.category-header h2');
-  if (h2 && styleName) h2.textContent = `Playback Classes for "${styleName}"`;
-  document.getElementById('editLabelsBtn')?.removeAttribute('disabled');
-document.getElementById('viewUncatBtn')?.removeAttribute('disabled');
-
-  if (typeof window.reloadClassLabelsForCurrentStyle === 'function') {
-    window.reloadClassLabelsForCurrentStyle();
-  }
-
-  await loadWeights(styleId);
-  await loadClassStats(styleId);
-}
-
-async function loadStyles() {
-  try {
-    if (!styleListEl) return;
-
-    styleListEl.innerHTML = `<div class="loading">Loading styles...</div>`;
-
-  const styles = await window.api.getStyles();
-const exclude = Array.isArray(CONFIG.STYLES_TO_EXCLUDE) ? CONFIG.STYLES_TO_EXCLUDE : [];
-const list = (styles || []).filter(s => !exclude.includes(s.name));
-
-styleListEl.innerHTML = list.map(style => `
-  <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
-    <div class="style-name">${style.name}</div>
-    <div class="style-meta">
-      <span id="style-track-count-${style.id}">— tracks</span>
-      <span id="style-badge-${style.id}" class="badge">—% assigned</span>
-    </div>
-  </div>
-`).join('');
-
-styleListEl.querySelectorAll('.style-item').forEach(el => {
-  el.addEventListener('click', () => {
-    selectStyle(el.dataset.styleId, el.dataset.styleName);
-    if (typeof updateURL === 'function') updateURL(el.dataset.styleId);
-  });
-});
-
-
-    await loadAllStyleStats(list);
-
-    if (initialStyleId) {
-      const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
-      if (el) el.click();
-    }
-
-  } catch (err) {
-    console.error('Error loading styles:', err);
-    if (styleListEl) styleListEl.innerHTML = `<div class="error">Error loading styles: ${err.message}</div>`;
-  }
-}
-function debounce(fn, delay) {
-  let timer;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-const CONFIG = window.OPUS_CONFIG || window.CONFIG || {};
-
-if (styleSearchEl) {
-  styleSearchEl.addEventListener('input', debounce(() => {
-    const q = styleSearchEl.value.trim().toLowerCase();
-    document.querySelectorAll('.style-item').forEach(el => {
-      const name = (el.dataset.styleName || '').toLowerCase();
-      el.style.display = (!q || name.includes(q)) ? '' : 'none';
-    });
-  }, CONFIG.SEARCH_DEBOUNCE ?? 200));
-
-}
-
-// ═══════════════════════════════════════════════════════════
-// CLASS STATS + NAVIGATION
-// ═══════════════════════════════════════════════════════════
-async function loadClassStats(styleId) {
-  if (!styleId) return;
-
-  const rows = await window.api.getStyleTracks(styleId);
-const total = Array.isArray(rows) ? rows.length : 0;
-
-const assignments = await window.api.getStyleAssignments(styleId);
-
-// assignments might be an object map or an array; support both
-let assignmentMap = {};
-if (Array.isArray(assignments)) {
-  // if API returns array rows like [{library_song_id, class_code}, ...]
-  assignments.forEach(a => {
-    if (a && a.library_song_id) assignmentMap[a.library_song_id] = a;
-  });
-} else if (assignments && typeof assignments === 'object') {
-  assignmentMap = assignments;
-}
-
-const assignedCount = Object.keys(assignmentMap).length;
-
-  const unassignedCount = Math.max(0, total - assignedCount);
-  const assignedPct = total ? ((assignedCount / total) * 100).toFixed(1) : '0.0';
-  const unassignedPct = total ? ((unassignedCount / total) * 100).toFixed(1) : '0.0';
-
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statAssigned').textContent = assignedCount;
-  document.getElementById('statAssignedPct').textContent = `${assignedPct}%`;
-  document.getElementById('statUnassigned').textContent = unassignedCount;
-  document.getElementById('statUnassignedPct').textContent = `${unassignedPct}%`;
-
-  const counts = { A: 0, B: 0, C: 0, REST: 0 };
-  Object.entries(assignmentMap).forEach(([songId, a]) => {
-    const cls = a.class_code;
-    const code = (cls === 'Rest') ? 'REST' : cls;
-    if (counts[code] !== undefined) counts[code] += 1;
-  });
-
-  function setRow(codeKey, n) {
-    const countEl = document.getElementById(`count-${codeKey}`);
-    const pctEl = document.getElementById(`pct-${codeKey}`);
-    if (countEl) countEl.textContent = n;
-    if (pctEl) {
-      const pct = total ? ((n / total) * 100).toFixed(1) : '0.0';
-      pctEl.textContent = `${pct}%`;
-    }
-  }
-  setRow('A', counts.A);
-  setRow('B', counts.B);
-  setRow('C', counts.C);
-  setRow('REST', counts.REST);
-
-  const uncatEl = document.getElementById('count-Uncategorized');
-  const uncatPctEl = document.getElementById('pct-Uncategorized');
-  if (uncatEl) uncatEl.textContent = unassignedCount;
-  if (uncatPctEl) uncatPctEl.textContent = `${unassignedPct}%`;
-}
-
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.view-class');
-  if (!btn) return;
-
-  const row = btn.closest('tr[data-class]');
-  if (!row) return;
-
-  if (!window.selectedStyleId) {
-    console.warn('Select a style first');
+    allStyles = await window.api.getStyles() || [];
+  } catch(err) {
+    console.error('Failed to load styles:', err);
+    toast('Failed to load styles: ' + err.message, 'error');
+    document.getElementById('tableLoading').textContent = 'Error loading styles.';
     return;
   }
 
-  const cls = row.dataset.class;
-  if (cls === 'Uncategorized') {
-    window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(window.selectedStyleId)}`;
-  } else {
-    window.location.href = `class-detail.html?style_id=${encodeURIComponent(window.selectedStyleId)}&class=${encodeURIComponent(cls)}`;
+  // Populate modal dropdown immediately so Add Schedule works
+  // even before curator schedule API is deployed
+  populateModalStyles(allStyles);
+
+  // Curator schedule endpoints are non-fatal
+  try {
+    const [schedules, curatorNames] = await Promise.all([
+      window.api.getCuratorSchedules(),
+      window.api.getCuratorNames()
+    ]);
+    allSchedules = (schedules || []).map(enrichSched);
+    populateCuratorDropdown(curatorNames || []);
+  } catch(err) {
+    console.warn('Curator schedule API not available yet:', err.message);
+    allSchedules = [];
+    populateCuratorDropdown([]);
   }
+
+  renderStyleList();
+  renderDashboard();
+  document.getElementById('tableLoading').style.display = 'none';
+}
+
+function populateCuratorDropdown(names) {
+  const sel = document.getElementById('curatorFilter');
+  // Also derive from schedules in case curators endpoint isn't populated yet
+  const fromSched = [...new Set(allSchedules.map(s => s.curator_name))];
+  const combined  = [...new Set([...names, ...fromSched])].sort();
+
+  sel.innerHTML = '<option value="">All Curators</option>' +
+    combined.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+function populateModalStyles(styles) {
+  const exclude = (window.OPUS_CONFIG?.STYLES_TO_EXCLUDE) || [];
+  const filtered = styles.filter(s => !exclude.includes(s.name));
+  document.getElementById('modalStyle').innerHTML =
+    '<option value="">— Select style —</option>' +
+    filtered.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// LEFT PANE — STYLE LIST
+// ════════════════════════════════════════════════════════
+function getVisibleStyleIds() {
+  return new Set(
+    allSchedules
+      .filter(s => !curatorFilter || s.curator_name === curatorFilter)
+      .map(s => s.style_id)
+  );
+}
+
+function renderStyleList() {
+  const exclude    = (window.OPUS_CONFIG?.STYLES_TO_EXCLUDE) || [];
+  const visibleIds = getVisibleStyleIds();
+  const q          = searchQuery.toLowerCase();
+
+  // If no schedules exist yet, show all styles so curator can assign them
+  const hasAnySchedules = allSchedules.length > 0;
+  const list = allStyles.filter(style =>
+    !exclude.includes(style.name) &&
+    (!hasAnySchedules || visibleIds.has(style.id)) &&
+    (!q || style.name.toLowerCase().includes(q))
+  );
+
+  document.getElementById('styleCount').textContent =
+    `${list.length} style${list.length !== 1 ? 's' : ''}`;
+
+  const el = document.getElementById('styleList');
+  if (!list.length) {
+    el.innerHTML = `<div class="loading-row">No styles found</div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(style => {
+    const sched = allSchedules.find(s => s.style_id === style.id &&
+      (!curatorFilter || s.curator_name === curatorFilter));
+    const active      = selectedStyleId === style.id ? 'active' : '';
+    const statusClass = sched ? `status-${sched.status}` : '';
+    const badgeCls    = sched ? {overdue:'b-bad',due:'b-warn',upcoming:'b-ok'}[sched.status] : 'b-muted';
+    const badgeText   = sched ? daysLabel(sched.nextDue) : '—';
+    const cadenceStr  = sched ? `<div class="style-cadence">${cadenceLabel(sched.cadence)}</div>` : '';
+    const curator     = sched ? sched.curator_name : '—';
+
+    return `<div class="style-item ${statusClass} ${active}" data-style-id="${style.id}">
+      <div class="style-name">${style.name}</div>
+      ${cadenceStr}
+      <div class="style-meta">
+        <span>${curator}</span>
+        <span class="badge ${badgeCls}">${badgeText}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.style-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectedStyleId = item.dataset.styleId;
+      renderStyleList();
+      renderDashboard();
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// RIGHT PANE — DASHBOARD
+// ════════════════════════════════════════════════════════
+function getFilteredSchedules() {
+  const q = searchQuery.toLowerCase();
+  return allSchedules.filter(s => {
+    const matchCurator = !curatorFilter || s.curator_name === curatorFilter;
+    const matchStyle   = !selectedStyleId || s.style_id === selectedStyleId;
+    const matchSearch  = !q || (s.style_name||'').toLowerCase().includes(q);
+    return matchCurator && matchStyle && matchSearch;
+  }).sort((a,b) => a.nextDue - b.nextDue);
+}
+
+function renderDashboard() {
+  const visible  = getFilteredSchedules();
+  const overdue  = visible.filter(s => s.status === 'overdue');
+  const due      = visible.filter(s => s.status === 'due');
+  const ok       = visible.filter(s => s.status === 'upcoming');
+
+  document.getElementById('statStyles').textContent  = visible.length;
+  document.getElementById('statOverdue').textContent = overdue.length;
+  document.getElementById('statDue').textContent     = due.length;
+  document.getElementById('statOk').textContent      = ok.length;
+
+  // Headline
+  const selStyle   = selectedStyleId ? allStyles.find(s => s.id === selectedStyleId) : null;
+  const selSched   = selectedStyleId ? allSchedules.find(s => s.style_id === selectedStyleId) : null;
+
+  document.getElementById('dashHeadline').textContent = selStyle
+    ? selStyle.name
+    : curatorFilter ? `${curatorFilter}'s Styles` : 'All Curator Styles';
+
+  document.getElementById('dashSubtext').textContent = selStyle
+    ? (selSched ? `${selSched.curator_name} · ${cadenceLabel(selSched.cadence)} · ${daysLabel(selSched.nextDue)}` : 'No schedule set for this style')
+    : `${visible.length} style${visible.length!==1?'s':''} · ${curatorFilter || 'All curators'}`;
+
+  // Per-style action buttons
+  const markBtn = document.getElementById('markUpdatedBtn');
+  const editBtn = document.getElementById('editScheduleBtn');
+  if (selSched) {
+    markBtn.style.display = '';
+    markBtn.dataset.styleId = selSched.style_id;
+    editBtn.style.display = '';
+    editBtn.dataset.styleId = selSched.style_id;
+  } else {
+    markBtn.style.display = 'none';
+    editBtn.style.display = 'none';
+  }
+
+  // Alert cards — overdue + due this week, only when not filtered to one style
+  const urgent = [...overdue, ...due];
+  const alertSection = document.getElementById('alertSection');
+  if (urgent.length && !selectedStyleId) {
+    alertSection.style.display = '';
+    document.getElementById('alertCount').textContent = `— ${urgent.length}`;
+    document.getElementById('alertCards').innerHTML = urgent.map(s => `
+      <div class="alert-card ${s.status}" data-style-id="${s.style_id}">
+        <div class="alert-card-title">${s.style_name || s.style_id}</div>
+        <div class="alert-card-meta">
+          <span>👤 ${s.curator_name}</span>
+          <span>🔁 ${cadenceLabel(s.cadence)}</span>
+          <span class="${s.status==='overdue'?'due-urgent':'due-warn'}">${daysLabel(s.nextDue)}</span>
+        </div>
+        <div class="alert-card-action">
+          <button class="link-btn primary mark-updated-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">✓ Mark Updated</button>
+          <button class="link-btn edit-card" data-style-id="${s.style_id}" style="font-size:11px;padding:5px 10px">Edit</button>
+        </div>
+      </div>
+    `).join('');
+    // Wire card buttons
+    document.querySelectorAll('.mark-updated-card').forEach(b =>
+      b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
+    document.querySelectorAll('.edit-card').forEach(b =>
+      b.addEventListener('click', () => openEditModal(b.dataset.styleId)));
+  } else {
+    alertSection.style.display = 'none';
+  }
+
+  // Main table
+  const tbody = document.getElementById('schedTableBody');
+  document.getElementById('schedTableCount').textContent = `— ${visible.length}`;
+
+  if (!visible.length) {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('schedTable').style.display = 'none';
+  } else {
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('schedTable').style.display = '';
+
+    tbody.innerHTML = visible.map(s => {
+      const tagCls   = {overdue:'tag-overdue',due:'tag-due',upcoming:'tag-upcoming'}[s.status];
+      const tagLabel = {overdue:'Overdue',due:'Due Soon',upcoming:'On Schedule'}[s.status];
+      const dueCls   = {overdue:'due-urgent',due:'due-warn',upcoming:'due-ok'}[s.status];
+      const urgent   = s.status !== 'upcoming';
+
+      return `<tr>
+        <td style="font-weight:900">${s.style_name || s.style_id}</td>
+        <td>${s.curator_name}</td>
+        <td><span class="cadence-pill ${s.cadence}">${cadenceLabel(s.cadence)}</span></td>
+        <td>${fmtDate(s.last_updated)}</td>
+        <td class="${dueCls}">${fmtDate(s.nextDue)}<br><small style="font-weight:700">${daysLabel(s.nextDue)}</small></td>
+        <td><span class="${tagCls}">${tagLabel}</span></td>
+        <td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">
+          ${urgent ? `<button class="link-btn primary mark-updated-row" data-style-id="${s.style_id}" style="font-size:11px">✓ Mark Updated</button>` : ''}
+          <button class="link-btn edit-row" data-style-id="${s.style_id}" style="font-size:11px">Edit</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    document.querySelectorAll('.mark-updated-row').forEach(b =>
+      b.addEventListener('click', () => markUpdated(b.dataset.styleId)));
+    document.querySelectorAll('.edit-row').forEach(b =>
+      b.addEventListener('click', () => openEditModal(b.dataset.styleId)));
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════
+async function markUpdated(styleId) {
+  try {
+    await window.api.markStyleUpdated(styleId);
+    toast('Marked as updated today ✓', 'success');
+    await reload();
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
+async function reload() {
+  const [schedules] = await Promise.all([window.api.getCuratorSchedules()]);
+  allSchedules = (schedules || []).map(enrichSched);
+  const curatorNames = await window.api.getCuratorNames();
+  populateCuratorDropdown(curatorNames || []);
+  renderStyleList();
+  renderDashboard();
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════════════════════
+function openAddModal() {
+  editingStyleId = null;
+  document.getElementById('modalTitle').textContent = 'Add Schedule';
+  document.getElementById('deleteScheduleBtn').style.display = 'none';
+  document.getElementById('modalStyle').value = '';
+  document.getElementById('modalCurator').value = '';
+  document.getElementById('modalCadence').value = 'monthly';
+  document.getElementById('modalLastUpdated').value = TODAY.toISOString().slice(0,10);
+  document.getElementById('modalNotes').value = '';
+  document.getElementById('modalStyle').disabled = false;
+  document.getElementById('scheduleModal').style.display = '';
+}
+
+function openEditModal(styleId) {
+  const s = allSchedules.find(x => x.style_id === styleId);
+  if (!s) return;
+  editingStyleId = styleId;
+  document.getElementById('modalTitle').textContent = `Edit: ${s.style_name || styleId}`;
+  document.getElementById('deleteScheduleBtn').style.display = '';
+  document.getElementById('modalStyle').value = s.style_id;
+  document.getElementById('modalCurator').value = s.curator_name;
+  document.getElementById('modalCadence').value = s.cadence;
+  document.getElementById('modalLastUpdated').value = s.last_updated;
+  document.getElementById('modalNotes').value = s.notes || '';
+  document.getElementById('modalStyle').disabled = true; // style locked when editing
+  document.getElementById('scheduleModal').style.display = '';
+}
+
+function closeModal() {
+  document.getElementById('scheduleModal').style.display = 'none';
+  editingStyleId = null;
+}
+
+async function saveSchedule() {
+  const styleId     = editingStyleId || document.getElementById('modalStyle').value;
+  const curatorName = document.getElementById('modalCurator').value.trim();
+  const cadence     = document.getElementById('modalCadence').value;
+  const lastUpdated = document.getElementById('modalLastUpdated').value;
+  const notes       = document.getElementById('modalNotes').value.trim();
+
+  if (!styleId || !curatorName || !cadence || !lastUpdated) {
+    toast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('saveScheduleBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+  try {
+    await window.api.upsertCuratorSchedule({ style_id: styleId, curator_name: curatorName, cadence, last_updated: lastUpdated, notes });
+    toast('Schedule saved ✓', 'success');
+    closeModal();
+    await reload();
+  } catch(err) {
+    toast('Error saving: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save Schedule';
+  }
+}
+
+async function deleteSchedule() {
+  const s = allSchedules.find(x => x.style_id === editingStyleId);
+  if (!confirm(`Remove schedule for "${s?.style_name || editingStyleId}"?`)) return;
+
+  try {
+    await window.api.deleteCuratorSchedule(editingStyleId);
+    toast('Schedule deleted', 'success');
+    selectedStyleId = null;
+    closeModal();
+    await reload();
+  } catch(err) {
+    toast('Error deleting: ' + err.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// EXPORT CSV
+// ════════════════════════════════════════════════════════
+function exportCSV() {
+  const rows = getFilteredSchedules();
+  const header = 'Style,Curator,Cadence,Last Updated,Next Due,Status';
+  const lines = rows.map(s =>
+    [s.style_name||s.style_id, s.curator_name, cadenceLabel(s.cadence), s.last_updated, fmtDate(s.nextDue), s.status].join(',')
+  );
+  const csv = [header, ...lines].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'opus-curator-schedules.csv';
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════
+// EVENT WIRING
+// ════════════════════════════════════════════════════════
+document.getElementById('curatorFilter').addEventListener('change', e => {
+  curatorFilter   = e.target.value;
+  selectedStyleId = null;
+  renderStyleList();
+  renderDashboard();
 });
 
-document.getElementById('viewUncatBtn')?.addEventListener('click', () => {
-  const styleId = window.selectedStyleId;
-  window.location.href = styleId
-    ? `uncategorized-detail.html?style_id=${encodeURIComponent(styleId)}`
-    : 'uncategorized-detail.html';
+document.getElementById('styleSearch').addEventListener('input',
+  debounce(e => {
+    searchQuery = e.target.value.trim().toLowerCase();
+    renderStyleList();
+    renderDashboard();
+  }, window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200)
+);
+
+document.getElementById('newScheduleBtn').addEventListener('click', openAddModal);
+document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
+document.getElementById('cancelModal').addEventListener('click', closeModal);
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('deleteScheduleBtn').addEventListener('click', deleteSchedule);
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+document.getElementById('markUpdatedBtn').addEventListener('click', e =>
+  markUpdated(e.target.dataset.styleId));
+document.getElementById('editScheduleBtn').addEventListener('click', e =>
+  openEditModal(e.target.dataset.styleId));
+
+document.getElementById('scheduleModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('scheduleModal')) closeModal();
 });
 
-// ═══════════════════════════════════════════════════════════
-// INIT - This must come after ClassLabels definition
-// ═══════════════════════════════════════════════════════════
-// Expose for legacy compatibility
-window.reloadClassLabelsForCurrentStyle = function () {
-  ClassLabels.apply(ClassLabels.load());
-};
-
-ClassLabels.init();
-loadStyles();
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+loadAll();
 </script>
 </body>
 </html>
