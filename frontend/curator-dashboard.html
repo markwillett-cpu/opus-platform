@@ -123,7 +123,7 @@
     #toast.error{background:var(--danger)}
     #toast.success{background:var(--success)}
 
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:flex-start;justify-content:center}
     .modal{max-width:500px;margin:8vh auto;background:#fff;border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.25);overflow:hidden}
     .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border)}
     .modal-header-title{font-weight:1000;font-size:16px}
@@ -618,7 +618,7 @@ function openAddModal() {
   document.getElementById('modalLastUpdated').value = TODAY.toISOString().slice(0,10);
   document.getElementById('modalNotes').value = '';
   document.getElementById('modalStyle').disabled = false;
-  document.getElementById('scheduleModal').style.display = '';
+  document.getElementById('scheduleModal').style.display = 'flex';
 }
 
 function openEditModal(styleId) {
@@ -633,7 +633,7 @@ function openEditModal(styleId) {
   document.getElementById('modalLastUpdated').value = s.last_updated;
   document.getElementById('modalNotes').value = s.notes || '';
   document.getElementById('modalStyle').disabled = true; // style locked when editing
-  document.getElementById('scheduleModal').style.display = '';
+  document.getElementById('scheduleModal').style.display = 'flex';
 }
 
 function closeModal() {
