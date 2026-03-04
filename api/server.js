@@ -12,7 +12,6 @@ import weightsRoutes from './src/routes/styleWeights.js';
 import playbackProfileRoutes from './src/routes/stylePlaybackProfile.js';
 import curatorSchedulesRoutes from './src/routes/curatorSchedules.js';
 // ...
-await app.register(curatorSchedulesRoutes, { prefix: '/v1' });
 
 const app = Fastify({
   logger: true
@@ -47,6 +46,7 @@ await app.register(tracksRoutes, { prefix: '/v1' });
 await app.register(assignmentsRoutes, { prefix: '/v1' });
 await app.register(weightsRoutes, { prefix: '/v1' });
 await app.register(playbackProfileRoutes, { prefix: '/v1' });
+await app.register(curatorSchedulesRoutes, { prefix: '/v1' });
 
 // Error handler (consistent JSON)
 app.setErrorHandler((err, req, reply) => {
