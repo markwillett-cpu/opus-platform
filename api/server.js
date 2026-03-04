@@ -10,6 +10,9 @@ import tracksRoutes from './src/routes/styleTracks.js';
 import assignmentsRoutes from './src/routes/styleAssignments.js';
 import weightsRoutes from './src/routes/styleWeights.js';
 import playbackProfileRoutes from './src/routes/stylePlaybackProfile.js';
+import curatorSchedulesRoutes from './src/routes/curatorSchedules.js';
+// ...
+await app.register(curatorSchedulesRoutes, { prefix: '/v1' });
 
 const app = Fastify({
   logger: true
