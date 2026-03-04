@@ -354,28 +354,37 @@ let editingStyleId  = null;  // style being edited in modal
 // DATA LOADING
 // ════════════════════════════════════════════════════════
 async function loadAll() {
+  // Styles are always required
   try {
-    // Parallel fetch
-    const [styles, schedules, curatorNames] = await Promise.all([
-      window.api.getStyles(),
+    allStyles = await window.api.getStyles() || [];
+  } catch(err) {
+    console.error('Failed to load styles:', err);
+    toast('Failed to load styles: ' + err.message, 'error');
+    document.getElementById('tableLoading').textContent = 'Error loading styles.';
+    return;
+  }
+
+  // Populate modal dropdown immediately so Add Schedule works
+  // even before curator schedule API is deployed
+  populateModalStyles(allStyles);
+
+  // Curator schedule endpoints are non-fatal
+  try {
+    const [schedules, curatorNames] = await Promise.all([
       window.api.getCuratorSchedules(),
       window.api.getCuratorNames()
     ]);
-
-    allStyles    = styles    || [];
     allSchedules = (schedules || []).map(enrichSched);
-
     populateCuratorDropdown(curatorNames || []);
-    populateModalStyles(allStyles);
-
-    renderStyleList();
-    renderDashboard();
-    document.getElementById('tableLoading').style.display = 'none';
   } catch(err) {
-    console.error(err);
-    toast('Failed to load data: ' + err.message, 'error');
-    document.getElementById('tableLoading').textContent = 'Error loading data.';
+    console.warn('Curator schedule API not available yet:', err.message);
+    allSchedules = [];
+    populateCuratorDropdown([]);
   }
+
+  renderStyleList();
+  renderDashboard();
+  document.getElementById('tableLoading').style.display = 'none';
 }
 
 function populateCuratorDropdown(names) {
@@ -412,9 +421,11 @@ function renderStyleList() {
   const visibleIds = getVisibleStyleIds();
   const q          = searchQuery.toLowerCase();
 
+  // If no schedules exist yet, show all styles so curator can assign them
+  const hasAnySchedules = allSchedules.length > 0;
   const list = allStyles.filter(style =>
     !exclude.includes(style.name) &&
-    visibleIds.has(style.id) &&
+    (!hasAnySchedules || visibleIds.has(style.id)) &&
     (!q || style.name.toLowerCase().includes(q))
   );
 
@@ -700,13 +711,14 @@ document.getElementById('curatorFilter').addEventListener('change', e => {
   renderDashboard();
 });
 
-document.getElementById('styleSearch').addEventListener('input',
-  debounce(e => {
+document.getElementById('styleSearch').addEventListener('input', e => {
+  clearTimeout(window._searchTimer);
+  window._searchTimer = setTimeout(() => {
     searchQuery = e.target.value.trim().toLowerCase();
     renderStyleList();
     renderDashboard();
-  }, window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200)
-);
+  }, (window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200));
+});
 
 document.getElementById('newScheduleBtn').addEventListener('click', openAddModal);
 document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
