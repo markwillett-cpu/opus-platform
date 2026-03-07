@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Mood Tagging</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50;flex-wrap:wrap}
+    .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
+    .toolbar-btn:hover{background:#5a7288}
+    .toolbar-btn.primary{background:var(--accent)}
+    .toolbar-btn.primary:hover{background:#2980b9}
+    .toolbar-sep{width:1px;height:22px;background:#5a7288;margin:0 4px}
+    .toolbar-label{color:#9fb3c8;font-size:12px;font-weight:700}
+
+    .container{max-width:1800px;margin:0 auto;padding:18px}
+    .main-layout{display:grid;grid-template-columns:300px 1fr;gap:18px;height:calc(100vh - 152px)}
+
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
+    .panel-subheader{padding:10px 12px;border-bottom:1px solid var(--light);flex-shrink:0}
+    .search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .search-input:focus{outline:none;border-color:var(--accent)}
+    .style-list{overflow:auto;padding:8px;flex:1}
+
+    .style-item{padding:10px 12px;border-radius:6px;cursor:pointer;margin-bottom:6px;border-left:3px solid transparent;transition:.15s;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .style-item:hover{background:#e8f4f8;border-left-color:var(--accent)}
+    .style-item.active{background:#e8f4f8;border-left-color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .style-item.dirty{border-left-color:var(--warning)}
+    .style-name{font-weight:800;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .style-mood-count{font-size:11px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0}
+    .mc-full{background:#d4edda;color:#155724}
+    .mc-partial{background:#fff3cd;color:#856404}
+    .mc-empty{background:#f8d7da;color:#721c24}
+
+    .editor-header{background:#2f3d4a;color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0}
+    .editor-header h2{font-size:17px;font-weight:900;margin-bottom:3px}
+    .editor-subtext{color:#9fb3c8;font-size:12px}
+    .header-actions{display:flex;gap:8px;flex-shrink:0}
+    .btn{padding:8px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+    .btn:hover{background:#f8f9fa}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:#2980b9}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+
+    .editor-body{flex:1;overflow:auto;padding:22px}
+
+    .mood-limit-bar{background:#e8f4f8;border:1px solid #b8d9f0;border-radius:6px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .mood-limit-text{font-size:13px;font-weight:700;color:#1a6a9a}
+    .mood-counter{font-size:22px;font-weight:1000;color:var(--accent)}
+    .mood-counter.at-limit{color:var(--danger)}
+
+    .mood-section-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:#95a5a6;margin-bottom:10px;margin-top:18px;padding-bottom:6px;border-bottom:1px solid var(--light)}
+    .mood-section-title:first-of-type{margin-top:0}
+    .mood-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+
+    .mood-pill{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:800;cursor:pointer;border:2px solid transparent;transition:.15s;user-select:none;position:relative}
+    .mood-pill:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.12)}
+    .mood-pill.selected{box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .mood-pill.disabled:not(.selected){opacity:.35;cursor:not-allowed;transform:none}
+
+    .mood-pill.energy{background:#fdecea;color:#922b21;border-color:#f0b8b8}
+    .mood-pill.energy.selected{background:#e74c3c;color:#fff;border-color:#e74c3c}
+    .mood-pill.positive{background:#fef9e7;color:#9a6d1f;border-color:#f0d9a0}
+    .mood-pill.positive.selected{background:#f39c12;color:#fff;border-color:#f39c12}
+    .mood-pill.calm{background:#e8f8f5;color:#1a5276;border-color:#a2d9ce}
+    .mood-pill.calm.selected{background:#1abc9c;color:#fff;border-color:#1abc9c}
+    .mood-pill.refined{background:#f4ecf7;color:#6c3483;border-color:#d2b4de}
+    .mood-pill.refined.selected{background:#8e44ad;color:#fff;border-color:#8e44ad}
+    .mood-pill.social{background:#eafaf1;color:#1e6b3a;border-color:#a9dfbf}
+    .mood-pill.social.selected{background:#27ae60;color:#fff;border-color:#27ae60}
+
+    .order-badge{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--secondary);color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
+
+    .current-moods{background:#f9f9fb;border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px}
+    .current-moods-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#95a5a6;margin-bottom:10px}
+    .current-moods-slots{display:flex;gap:8px;flex-wrap:wrap}
+    .mood-slot{width:120px;height:36px;border-radius:6px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:#bdc3c7;font-weight:700;transition:.2s;position:relative;overflow:hidden}
+    .mood-slot.filled{border-style:solid;border-color:transparent;cursor:pointer}
+    .mood-slot.filled:hover .slot-remove{opacity:1}
+    .slot-label{font-size:12px;font-weight:800;padding:0 8px;text-align:center}
+    .slot-num{font-size:10px;font-weight:900;opacity:.6;margin-right:4px}
+    .slot-remove{position:absolute;inset:0;background:rgba(231,76,60,.85);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;opacity:0;transition:.15s;font-weight:900;cursor:pointer}
+
+    .footer{border-top:1px solid var(--border);background:var(--light);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .footer-note{color:#7f8c8d;font-size:12px;font-weight:800;display:flex;align-items:center;gap:6px}
+    .unsaved-dot{width:7px;height:7px;border-radius:50%;background:var(--warning);animation:pulse 1.4s ease-in-out infinite;flex-shrink:0}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.success{background:var(--success)}
+    #toast.error{background:var(--danger)}
+
+    .empty-state{padding:60px 20px;text-align:center;color:#95a5a6}
+    .empty-state .icon{font-size:40px;margin-bottom:10px}
+    .empty-state p{font-size:13px;font-weight:700}
+    .loading-row{padding:20px;color:#95a5a6;font-size:13px;font-weight:700;text-align:center}
+  </style>
+</head>
+<body>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item active" href="#">Mood Tagging</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <button class="toolbar-btn primary">Manage Moods</button>
+  <div class="toolbar-sep"></div>
+  <span class="toolbar-label">
+    <span id="toolbarStyleCount">—</span> styles ·
+    <span id="toolbarTagged">—</span> fully tagged
+  </span>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button class="toolbar-btn" id="prevBtn">← Prev</button>
+    <button class="toolbar-btn" id="nextBtn">Next →</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="main-layout">
+
+    <!-- LEFT: Style List -->
+    <div class="panel">
+      <div class="panel-header">
+        Styles
+        <span id="styleCountLabel" style="font-size:12px;opacity:.7;font-weight:700"></span>
+      </div>
+      <div class="panel-subheader">
+        <input class="search-input" id="styleSearch" placeholder="Search styles…" />
+      </div>
+      <div class="style-list" id="styleList">
+        <div class="loading-row">Loading styles…</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Mood Editor -->
+    <div class="panel">
+      <div class="editor-header">
+        <div>
+          <h2 id="editorTitle">Select a style</h2>
+          <div class="editor-subtext" id="editorSubtext">Choose a style from the left to edit its moods</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn" id="clearBtn" disabled>Clear All</button>
+          <button class="btn primary" id="saveBtn" disabled>Save Moods</button>
+        </div>
+      </div>
+
+      <div class="editor-body" id="editorBody">
+        <div class="empty-state">
+          <div class="icon">🎭</div>
+          <p>Select a style to start tagging moods</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="footer-note" id="footerNote">Select a style to begin</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="footerClear" disabled>Clear</button>
+          <button class="btn primary" id="footerSave" disabled>Save Moods</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script>
+// ════════════════════════════════════════════════════════
+// MOOD DEFINITIONS
+// ════════════════════════════════════════════════════════
+const MAX_MOODS = 6;
+
+const MOOD_FAMILY = {
+  Energetic:'energy', Upbeat:'energy', Vibrant:'energy',
+  Festive:'energy', Joyful:'energy', Uplifting:'energy',
+  Fun:'positive', Warm:'positive', Comfortable:'positive',
+  Welcoming:'positive', Soulful:'positive',
+  Calm:'calm', Relaxed:'calm', Peaceful:'calm',
+  Reflective:'calm', Intimate:'calm',
+  Sophisticated:'refined', Premium:'refined', Professional:'refined',
+  Classic:'social', Current:'social', Modern:'social',
+};
+
+const MOOD_FAMILIES = [
+  { label: 'Energy & Excitement', moods: ['Energetic','Upbeat','Vibrant','Festive','Joyful','Uplifting'] },
+  { label: 'Warmth & Positivity',  moods: ['Fun','Warm','Comfortable','Welcoming','Soulful'] },
+  { label: 'Calm & Reflective',    moods: ['Calm','Relaxed','Peaceful','Reflective','Intimate'] },
+  { label: 'Polished & Refined',   moods: ['Sophisticated','Premium','Professional'] },
+  { label: 'Era & Style',          moods: ['Classic','Current','Modern'] },
+];
+
+const SLOT_COLORS = {
+  energy:   { bg:'#e74c3c', text:'#fff' },
+  positive: { bg:'#f39c12', text:'#fff' },
+  calm:     { bg:'#1abc9c', text:'#fff' },
+  refined:  { bg:'#8e44ad', text:'#fff' },
+  social:   { bg:'#27ae60', text:'#fff' },
+};
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let allStyles    = [];  // [{ id, name }]
+let moodState    = {};  // { styleId: ['Calm', 'Relaxed', ...] }
+let dirtyStyles  = new Set();
+let selectedStyleId = null;
+let searchQuery  = '';
+let filteredStyles = [];
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2500);
+}
+
+function moodCountClass(n) {
+  if (n >= 4) return 'mc-full';
+  if (n >= 1) return 'mc-partial';
+  return 'mc-empty';
+}
+
+function getFullyTaggedCount() {
+  return Object.values(moodState).filter(m => m.length >= 4).length;
+}
+
+function updateToolbarCounts() {
+  const exclude = window.OPUS_CONFIG?.STYLES_TO_EXCLUDE || [];
+  const visible = allStyles.filter(s => !exclude.includes(s.name));
+  document.getElementById('toolbarStyleCount').textContent = visible.length;
+  document.getElementById('toolbarTagged').textContent = getFullyTaggedCount();
+}
+
+// ════════════════════════════════════════════════════════
+// DATA LOADING
+// ════════════════════════════════════════════════════════
+async function loadAll() {
+  try {
+    const [styles, allMoods] = await Promise.all([
+      window.api.getStyles(),
+      window.api.getAllMoods()
+    ]);
+
+    allStyles = styles || [];
+
+    // Seed moodState with empty arrays for every style
+    allStyles.forEach(s => { moodState[s.id] = []; });
+
+    // Fill in moods from API
+    (allMoods || []).forEach(row => {
+      if (moodState[row.style_id] !== undefined) {
+        moodState[row.style_id] = row.moods;
+      }
+    });
+
+    renderStyleList();
+    updateToolbarCounts();
+    document.getElementById('styleList').querySelector('.loading-row')?.remove();
+
+    // Auto-select first style
+    if (allStyles.length) selectStyle(allStyles[0].id);
+
+  } catch(err) {
+    console.error(err);
+    toast('Failed to load: ' + err.message, 'error');
+    document.getElementById('styleList').innerHTML =
+      `<div class="loading-row">Error loading styles.</div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// LEFT PANEL
+// ════════════════════════════════════════════════════════
+function renderStyleList() {
+  const exclude = window.OPUS_CONFIG?.STYLES_TO_EXCLUDE || [];
+  const q = searchQuery.toLowerCase();
+
+  filteredStyles = allStyles.filter(s =>
+    !exclude.includes(s.name) &&
+    (!q || s.name.toLowerCase().includes(q))
+  );
+
+  document.getElementById('styleCountLabel').textContent =
+    `${filteredStyles.length} style${filteredStyles.length !== 1 ? 's' : ''}`;
+
+  const el = document.getElementById('styleList');
+  if (!filteredStyles.length) {
+    el.innerHTML = `<div class="loading-row">No styles found</div>`;
+    return;
+  }
+
+  el.innerHTML = filteredStyles.map(s => {
+    const moods = moodState[s.id] || [];
+    const n = moods.length;
+    const isActive = selectedStyleId === s.id;
+    const isDirty  = dirtyStyles.has(s.id);
+    return `<div class="style-item ${isActive?'active':''} ${isDirty?'dirty':''}" data-id="${s.id}">
+      <span class="style-name">${s.name}</span>
+      <span class="style-mood-count ${moodCountClass(n)}">${n}/6</span>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.style-item').forEach(item => {
+    item.addEventListener('click', () => selectStyle(item.dataset.id));
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// EDITOR
+// ════════════════════════════════════════════════════════
+function selectStyle(id) {
+  selectedStyleId = id;
+  renderStyleList();
+  renderEditor();
+  // Scroll selected item into view
+  document.querySelector(`.style-item[data-id="${id}"]`)
+    ?.scrollIntoView({ block: 'nearest' });
+}
+
+function renderEditor() {
+  if (!selectedStyleId) return;
+  const style  = allStyles.find(s => s.id === selectedStyleId);
+  const moods  = moodState[selectedStyleId] || [];
+  const atLimit = moods.length >= MAX_MOODS;
+
+  document.getElementById('editorTitle').textContent = style?.name || '—';
+  document.getElementById('editorSubtext').textContent =
+    `${moods.length} of ${MAX_MOODS} moods assigned · click to add or remove`;
+
+  ['saveBtn','clearBtn','footerSave','footerClear'].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
+
+  let html = '';
+
+  // Assigned slots
+  html += `<div class="current-moods">
+    <div class="current-moods-title">Assigned Moods (in order)</div>
+    <div class="current-moods-slots">`;
+  for (let i = 0; i < MAX_MOODS; i++) {
+    const mood = moods[i];
+    const fam  = mood ? (MOOD_FAMILY[mood] || 'social') : '';
+    const col  = SLOT_COLORS[fam] || { bg:'#3498db', text:'#fff' };
+    if (mood) {
+      html += `<div class="mood-slot filled" style="background:${col.bg};color:${col.text}" data-remove="${mood}">
+        <span class="slot-num">${i+1}</span><span class="slot-label">${mood}</span>
+        <div class="slot-remove">×</div>
+      </div>`;
+    } else {
+      html += `<div class="mood-slot"><span style="font-size:10px">${i+1}</span></div>`;
+    }
+  }
+  html += `</div></div>`;
+
+  // Counter
+  html += `<div class="mood-limit-bar">
+    <span class="mood-limit-text">Select up to ${MAX_MOODS} moods — Mood 1 is primary</span>
+    <span class="mood-counter ${atLimit?'at-limit':''}">${moods.length}/${MAX_MOODS}</span>
+  </div>`;
+
+  // Mood pills by family
+  MOOD_FAMILIES.forEach(fam => {
+    html += `<div class="mood-section-title">${fam.label}</div><div class="mood-grid">`;
+    fam.moods.forEach(mood => {
+      const selected  = moods.includes(mood);
+      const disabled  = !selected && atLimit;
+      const order     = selected ? moods.indexOf(mood) + 1 : null;
+      const cls       = MOOD_FAMILY[mood] || 'social';
+      html += `<div class="mood-pill ${cls} ${selected?'selected':''} ${disabled?'disabled':''}" data-mood="${mood}">
+        ${mood}
+        ${selected ? `<span class="order-badge">${order}</span>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  document.getElementById('editorBody').innerHTML = html;
+
+  // Wire pill clicks
+  document.querySelectorAll('.mood-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const mood    = pill.dataset.mood;
+      const current = moodState[selectedStyleId];
+      if (current.includes(mood)) {
+        moodState[selectedStyleId] = current.filter(m => m !== mood);
+      } else {
+        if (current.length >= MAX_MOODS) return;
+        moodState[selectedStyleId] = [...current, mood];
+      }
+      dirtyStyles.add(selectedStyleId);
+      renderEditor();
+      renderStyleList();
+      updateFooter();
+    });
+  });
+
+  // Wire slot remove clicks
+  document.querySelectorAll('[data-remove]').forEach(slot => {
+    slot.querySelector('.slot-remove')?.addEventListener('click', () => {
+      const mood = slot.dataset.remove;
+      moodState[selectedStyleId] = moodState[selectedStyleId].filter(m => m !== mood);
+      dirtyStyles.add(selectedStyleId);
+      renderEditor();
+      renderStyleList();
+      updateFooter();
+    });
+  });
+
+  updateFooter();
+}
+
+function updateFooter() {
+  const isDirty = dirtyStyles.has(selectedStyleId);
+  const note    = document.getElementById('footerNote');
+  if (isDirty) {
+    note.innerHTML = '<span class="unsaved-dot"></span>Unsaved changes';
+  } else {
+    const n = moodState[selectedStyleId]?.length || 0;
+    note.textContent = `${n} mood${n !== 1 ? 's' : ''} saved`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// SAVE / CLEAR
+// ════════════════════════════════════════════════════════
+async function saveCurrentStyle() {
+  if (!selectedStyleId) return;
+  const moods  = moodState[selectedStyleId] || [];
+  const style  = allStyles.find(s => s.id === selectedStyleId);
+  const btn    = document.getElementById('saveBtn');
+  const btnF   = document.getElementById('footerSave');
+
+  [btn, btnF].forEach(b => {
+    b.disabled = true;
+    b.innerHTML = '<span class="spinner"></span>Saving…';
+  });
+
+  try {
+    await window.api.updateStyleMoods(selectedStyleId, moods);
+    dirtyStyles.delete(selectedStyleId);
+    renderStyleList();
+    updateFooter();
+    updateToolbarCounts();
+    toast(`Moods saved for "${style?.name}" ✓`, 'success');
+  } catch(err) {
+    toast('Error saving: ' + err.message, 'error');
+  } finally {
+    [btn, btnF].forEach(b => {
+      b.disabled = false;
+      b.innerHTML = 'Save Moods';
+    });
+  }
+}
+
+function clearCurrentStyle() {
+  if (!selectedStyleId) return;
+  moodState[selectedStyleId] = [];
+  dirtyStyles.add(selectedStyleId);
+  renderEditor();
+  renderStyleList();
+  updateFooter();
+}
+
+['saveBtn','footerSave'].forEach(id =>
+  document.getElementById(id).addEventListener('click', saveCurrentStyle));
+['clearBtn','footerClear'].forEach(id =>
+  document.getElementById(id).addEventListener('click', clearCurrentStyle));
+
+// ════════════════════════════════════════════════════════
+// PREV / NEXT
+// ════════════════════════════════════════════════════════
+document.getElementById('prevBtn').addEventListener('click', () => {
+  const idx = filteredStyles.findIndex(s => s.id === selectedStyleId);
+  if (idx > 0) selectStyle(filteredStyles[idx - 1].id);
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const idx = filteredStyles.findIndex(s => s.id === selectedStyleId);
+  if (idx < filteredStyles.length - 1) selectStyle(filteredStyles[idx + 1].id);
+});
+
+// ════════════════════════════════════════════════════════
+// SEARCH
+// ════════════════════════════════════════════════════════
+document.getElementById('styleSearch').addEventListener('input', e => {
+  clearTimeout(window._searchTimer);
+  window._searchTimer = setTimeout(() => {
+    searchQuery = e.target.value.trim();
+    renderStyleList();
+  }, window.OPUS_CONFIG?.SEARCH_DEBOUNCE || 200);
+});
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+loadAll();
+</script>
+</body>
+</html>
