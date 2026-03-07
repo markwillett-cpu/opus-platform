@@ -251,3 +251,20 @@ OpusAPIClient.prototype.clearStyleMoods = async function(styleId) {
     method: 'DELETE'
   });
 };
+
+// ─────────────────────────────────────────────────────────
+// Song Search & Add methods
+// ─────────────────────────────────────────────────────────
+
+OpusAPIClient.prototype.searchSongs = async function(q, limit = 20) {
+  const params = new URLSearchParams({ q, limit });
+  const { data } = await this.request(`/songs/search?${params}`);
+  return data; // [{ id, title, artist, album, peak_year, run_time_seconds, styles }]
+};
+
+OpusAPIClient.prototype.addSongToStyle = async function(styleId, library_song_id) {
+  return await this.request(`/styles/${styleId}/songs`, {
+    method: 'POST',
+    body: JSON.stringify({ library_song_id })
+  });
+};
