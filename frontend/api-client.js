@@ -223,3 +223,31 @@ OpusAPIClient.prototype.deleteCuratorSchedule = async function(styleId) {
     method: 'DELETE'
   });
 };
+
+// ─────────────────────────────────────────────────────────
+// Style Mood methods
+// ─────────────────────────────────────────────────────────
+
+OpusAPIClient.prototype.getStyleMoods = async function(styleId) {
+  const { data } = await this.request(`/styles/${styleId}/moods`);
+  return data; // [{ mood, position }, ...]
+};
+
+OpusAPIClient.prototype.getAllMoods = async function() {
+  const { data } = await this.request('/moods/all');
+  return data; // [{ style_id, style_name, moods: [...] }, ...]
+};
+
+OpusAPIClient.prototype.updateStyleMoods = async function(styleId, moods) {
+  // moods: ordered array of mood strings e.g. ['Calm', 'Relaxed', 'Peaceful']
+  return await this.request(`/styles/${styleId}/moods`, {
+    method: 'PUT',
+    body: JSON.stringify({ moods })
+  });
+};
+
+OpusAPIClient.prototype.clearStyleMoods = async function(styleId) {
+  return await this.request(`/styles/${styleId}/moods`, {
+    method: 'DELETE'
+  });
+};
