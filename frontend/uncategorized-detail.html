@@ -50,7 +50,7 @@
     .b-ok{background:#d4edda;color:#155724}
     .b-warn{background:#fff3cd;color:#856404}
     .b-bad{background:#f8d7da;color:#721c24}
-    .category-header{background:var(--light);padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start;width:100%}
+    .category-header{background:var(--light);padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
     .category-header h2{font-size:18px;margin-bottom:4px}
     .subtext{color:#7f8c8d;font-size:13px}
     .header-actions{display:flex;gap:10px}
@@ -68,7 +68,7 @@
     .footer{border-top:1px solid var(--border);background:var(--light);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px}
     .footer-note{color:#7f8c8d;font-size:12px;font-weight:800}
     .footer-actions{display:flex;gap:10px}
-    @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}.{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}.stats-banner{grid-template-columns:repeat(2,1fr)}}
     .back-link{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--accent);font-size:13px;font-weight:900;cursor:pointer;padding:0;margin-bottom:2px}
     .back-link:hover{text-decoration:underline}
     .detail-body{display:grid;grid-template-columns:1fr 260px;gap:18px;height:100%}
@@ -112,39 +112,41 @@
     @keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
 
     /* ── Song Search Drawer ───────────────────────────── */
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
-.drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
-.drawer.open{transform:translateX(0)}
-.drawer-header{background:var(--secondary);color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.drawer-header h3{font-size:15px;font-weight:900;margin:0}
-.drawer-header .drawer-style{font-size:12px;opacity:.7;font-weight:700;margin-top:2px}
-.drawer-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0;opacity:.8}
-.drawer-close:hover{opacity:1}
-.drawer-search-wrap{padding:14px 16px;border-bottom:1px solid var(--light);flex-shrink:0}
-.drawer-search{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit}
-.drawer-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.12)}
-.drawer-search-hint{font-size:11px;color:#95a5a6;font-weight:700;margin-top:6px}
-.drawer-results{flex:1;overflow:auto;padding:8px}
-.drawer-empty{text-align:center;padding:50px 20px;color:#95a5a6}
-.drawer-empty .di{font-size:36px;margin-bottom:8px}
-.drawer-empty p{font-size:13px;font-weight:700}
-.drawer-spinner{text-align:center;padding:40px;color:#95a5a6;font-size:13px;font-weight:700}
-.drawer-spinner::before{content:'';display:block;width:24px;height:24px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
-.song-result{display:flex;align-items:center;gap:12px;padding:10px;border-radius:6px;transition:.15s}
-.song-result:hover{background:var(--light)}
-.song-result.already-in{opacity:.45;cursor:not-allowed}
-.song-info{flex:1;min-width:0}
-.song-title{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.song-artist{font-size:12px;color:#7f8c8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.song-year{font-size:11px;color:#bdc3c7;font-weight:700;flex-shrink:0}
-.song-add-btn{flex-shrink:0;padding:6px 12px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:900;cursor:pointer;transition:.15s}
-.song-add-btn:hover{background:var(--accent);color:#fff}
-.song-add-btn:disabled{border-color:var(--success);color:var(--success);cursor:default;background:#fff}
-.drawer-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0;text-align:center}
-.add-songs-btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:4px;font-size:13px;font-weight:900;cursor:pointer;transition:.2s}
-.add-songs-btn:hover{background:#2980b9}
-.add-songs-btn:disabled{opacity:.4;cursor:not-allowed}
+    .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+    .drawer-overlay.open{opacity:1;pointer-events:all}
+    .drawer{position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+    .drawer.open{transform:translateX(0)}
+    .drawer-header{background:var(--secondary);color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .drawer-header h3{font-size:15px;font-weight:900;margin:0}
+    .drawer-header .drawer-style{font-size:12px;opacity:.7;font-weight:700;margin-top:2px}
+    .drawer-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0;opacity:.8}
+    .drawer-close:hover{opacity:1}
+    .drawer-search-wrap{padding:14px 16px;border-bottom:1px solid var(--light);flex-shrink:0}
+    .drawer-search{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit}
+    .drawer-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.12)}
+    .drawer-search-hint{font-size:11px;color:#95a5a6;font-weight:700;margin-top:6px}
+    .drawer-results{flex:1;overflow:auto;padding:8px}
+    .drawer-empty{text-align:center;padding:50px 20px;color:#95a5a6}
+    .drawer-empty .di{font-size:36px;margin-bottom:8px}
+    .drawer-empty p{font-size:13px;font-weight:700}
+    .drawer-spinner{text-align:center;padding:40px;color:#95a5a6;font-size:13px;font-weight:700}
+    .drawer-spinner::before{content:'';display:block;width:24px;height:24px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .song-result{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:6px;transition:.15s;cursor:default}
+    .song-result:hover{background:var(--light)}
+    .song-result.already-in{opacity:.45;cursor:not-allowed}
+    .song-info{flex:1;min-width:0}
+    .song-title{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .song-artist{font-size:12px;color:#7f8c8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .song-year{font-size:11px;color:#bdc3c7;font-weight:700;flex-shrink:0}
+    .song-add-btn{flex-shrink:0;padding:6px 12px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:900;cursor:pointer;transition:.15s;white-space:nowrap}
+    .song-add-btn:hover{background:var(--accent);color:#fff}
+    .song-add-btn:disabled{border-color:var(--success);color:var(--success);cursor:default;background:#fff}
+    .song-add-btn.adding{opacity:.6;cursor:wait}
+    .drawer-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0;text-align:center}
+    .add-songs-btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:4px;font-size:13px;font-weight:900;cursor:pointer;transition:.2s}
+    .add-songs-btn:hover{background:#2980b9}
+    .add-songs-btn:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -156,7 +158,6 @@
     <a class="nav-item" href="./index.html">Playback Classes</a>
     <a class="nav-item" href="./api-docs.html">API Docs</a>
     <a class="nav-item active" href="./curator-dashboard.html">Curator Dashboard</a>
-    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
   </nav>
 </div>
 
@@ -184,18 +185,17 @@
 
     </div>
 
-<div class="category-header">
-  <div>
-    <button class="back-link" id="backToClassesBtn">← Back to all classes</button>
-    <h2>Uncategorized</h2>
-    <p class="subtext"><span id="styleName">Select a style</span> · Tracks not yet assigned to a playback class</p>
-  </div>
-  <div class="header-actions">
-    <button class="add-songs-btn" id="openDrawerBtn" disabled>＋ Add Songs</button>
-  </div>
-</div>
-
-
+    <div class="panel">
+      <div class="category-header">
+        <div>
+          <button class="back-link" id="backToClassesBtn">← Back to all classes</button>
+          <h2>Uncategorized</h2>
+          <p class="subtext"><span id="styleName">Select a style</span> · Tracks not yet assigned to a playback class</p>
+        </div>
+        <div class="header-actions">
+          <button class="add-songs-btn" id="openDrawerBtn" disabled>&#xff0b; Add Songs</button>
+        </div>
+      </div>
 
       <div class="stats-banner">
         <div class="stat-box"><div class="stat-label">Unassigned</div><div class="stat-value" id="statUnassigned">—</div></div>
@@ -286,9 +286,9 @@
       <div class="footer">
         <div class="footer-note">💡 Changes are saved automatically</div>
       </div>
-    </div>
-  </div>
-</div>
+    </div><!-- /panel -->
+  </div><!-- /main-layout -->
+</div><!-- /container -->
 
 <script src="config.js"></script>
 <script src="api-client.js"></script>
@@ -1009,7 +1009,8 @@ document.getElementById('backToClassesBtn')?.addEventListener('click', () => {
   }
 })();
 </script>
-  <!-- Song Search Drawer -->
+
+<!-- Song Search Drawer -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <div class="drawer" id="songDrawer" role="dialog">
   <div class="drawer-header">
