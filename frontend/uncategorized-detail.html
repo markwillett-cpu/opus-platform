@@ -289,7 +289,30 @@
     </div><!-- /panel -->
   </div><!-- /main-layout -->
 </div><!-- /container -->
-
+<!-- Song Search Drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="songDrawer" role="dialog">
+  <div class="drawer-header">
+    <div>
+      <h3>Add Songs</h3>
+      <div class="drawer-style" id="drawerStyleName">—</div>
+    </div>
+    <button class="drawer-close" id="closeDrawerBtn">&times;</button>
+  </div>
+  <div class="drawer-search-wrap">
+    <input class="drawer-search" id="drawerSearch" type="text"
+      placeholder="e.g. Petty Learning, Fleetwood Dreams, Purple Rain…"
+      autocomplete="off" spellcheck="false" />
+    <div class="drawer-search-hint">Search by title, artist, or any combo of words</div>
+  </div>
+  <div class="drawer-results" id="drawerResults">
+    <div class="drawer-empty">
+      <div class="di">&#127925;</div>
+      <p>Type to search the full song library</p>
+    </div>
+  </div>
+  <div class="drawer-footer">Songs added this session: <strong id="drawerAddCount">0</strong></div>
+</div>
 <script src="config.js"></script>
 <script src="api-client.js"></script>
 <script src="class-labels.js"></script>
@@ -1010,29 +1033,6 @@ document.getElementById('backToClassesBtn')?.addEventListener('click', () => {
 })();
 </script>
 
-<!-- Song Search Drawer -->
-<div class="drawer-overlay" id="drawerOverlay"></div>
-<div class="drawer" id="songDrawer" role="dialog">
-  <div class="drawer-header">
-    <div>
-      <h3>Add Songs</h3>
-      <div class="drawer-style" id="drawerStyleName">—</div>
-    </div>
-    <button class="drawer-close" id="closeDrawerBtn">&times;</button>
-  </div>
-  <div class="drawer-search-wrap">
-    <input class="drawer-search" id="drawerSearch" type="text"
-      placeholder="e.g. Petty Learning, Fleetwood Dreams, Purple Rain…"
-      autocomplete="off" spellcheck="false" />
-    <div class="drawer-search-hint">Search by title, artist, or any combo of words</div>
-  </div>
-  <div class="drawer-results" id="drawerResults">
-    <div class="drawer-empty">
-      <div class="di">&#127925;</div>
-      <p>Type to search the full song library</p>
-    </div>
-  </div>
-  <div class="drawer-footer">Songs added this session: <strong id="drawerAddCount">0</strong></div>
-</div>
+
 </body>
 </html>
