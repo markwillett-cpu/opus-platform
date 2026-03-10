@@ -4,7 +4,12 @@ export const config = {
   OPUS_INTERNAL_API_KEY: process.env.OPUS_INTERNAL_API_KEY || '',
   CORS_ORIGIN: process.env.CORS_ORIGIN || '',
   SUPABASE_URL: process.env.SUPABASE_URL || '',
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || '',
+  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || '',
+  SPOTIFY_REFRESH_TOKEN: process.env.SPOTIFY_REFRESH_TOKEN || '',
+  SPOTIFY_TARGET_USER_ID: process.env.SPOTIFY_TARGET_USER_ID || '',
+  API_BASE_URL: process.env.API_BASE_URL || 'https://opus-platform.onrender.com'
 };
 
 function must(value, name) {
