@@ -268,3 +268,28 @@ OpusAPIClient.prototype.addSongToStyle = async function(styleId, library_song_id
     body: JSON.stringify({ library_song_id })
   });
 };
+
+// ─────────────────────────────────────────────────────────
+// Spotify Playlist Matcher methods
+// ─────────────────────────────────────────────────────────
+
+OpusAPIClient.prototype.matchSpotifyPlaylist = async function(playlist_url) {
+  return await this.request('/spotify/match-playlist', {
+    method: 'POST',
+    body: JSON.stringify({ playlist_url })
+  });
+};
+
+OpusAPIClient.prototype.spotifyAddToStyle = async function(style_id, song_ids) {
+  return await this.request('/spotify/add-to-style', {
+    method: 'POST',
+    body: JSON.stringify({ style_id, song_ids })
+  });
+};
+
+OpusAPIClient.prototype.spotifyCreateStyle = async function(name, song_ids) {
+  return await this.request('/spotify/create-style', {
+    method: 'POST',
+    body: JSON.stringify({ name, song_ids })
+  });
+};
