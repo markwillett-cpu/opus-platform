@@ -73,8 +73,16 @@ async function fetchAllPlaylistTracks(playlistId, token) {
 async function copyPlaylist(sourceId, sourceName, token) {
   const userId = config.SPOTIFY_TARGET_USER_ID;
 
+  // Verify we're using the right user ID by fetching /me
+  const me = await spotifyGet('/me', token);
+  console.log(`[Spotify] Authenticated as: id="${me.id}" display_name="${me.display_name}"`);
+  console.log(`[Spotify] SPOTIFY_TARGET_USER_ID env = "${userId}"`);
+
+  // Use the actual authenticated user's ID, not the env var
+  const actualUserId = me.id;
+
   // Create new playlist
-  const created = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+  const created = await fetch(`https://api.spotify.com/v1/users/${actualUserId}/playlists`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -242,6 +250,17 @@ export default async function routes(app) {
    * Step 1 of one-time OAuth setup — redirects to Spotify login.
    * Visit this URL once in your browser to get a refresh token.
    */
+  /**
+   * GET /v1/spotify/me
+   * Returns the authenticated Spotify user's profile — use this to find the correct user ID.
+   * Temporary debug endpoint.
+   */
+  app.get('/spotify/me', async (req, reply) => {
+    const token = await getAccessToken();
+    const me = await spotifyGet('/me', token);
+    return reply.send({ id: me.id, display_name: me.display_name, email: me.email });
+  });
+
   app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
     const scopes = [
       'playlist-read-private',
