@@ -69,54 +69,10 @@ async function fetchAllPlaylistTracks(playlistId, token) {
   return tracks;
 }
 
-// Copy a playlist to our account and return the new playlist ID
+// Read tracks directly from source playlist (works for public playlists and playlists shared with authenticated user)
 async function copyPlaylist(sourceId, sourceName, token) {
-  const userId = config.SPOTIFY_TARGET_USER_ID;
-
-  // Verify we're using the right user ID by fetching /me
-  const me = await spotifyGet('/me', token);
-  console.log(`[Spotify] Authenticated as: id="${me.id}" display_name="${me.display_name}"`);
-  console.log(`[Spotify] SPOTIFY_TARGET_USER_ID env = "${userId}"`);
-
-  // Use the actual authenticated user's ID, not the env var
-  const actualUserId = me.id;
-
-  // Create new playlist
-  const created = await fetch(`https://api.spotify.com/v1/users/${actualUserId}/playlists`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: `[Opus Import] ${sourceName}`,
-      public: false,
-      description: `Copied from playlist ${sourceId} for Opus matching`
-    })
-  });
-
-  if (!created.ok) throw new Error(`Failed to create playlist: ${await created.text()}`);
-  const newPlaylist = await created.json();
-
-  // Get all track URIs from source
   const tracks = await fetchAllPlaylistTracks(sourceId, token);
-  const uris = tracks.map(t => `spotify:track:${t.id}`);
-
-  // Add in batches of 100
-  for (let i = 0; i < uris.length; i += 100) {
-    const batch = uris.slice(i, i + 100);
-    const added = await fetch(`https://api.spotify.com/v1/playlists/${newPlaylist.id}/tracks`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ uris: batch })
-    });
-    if (!added.ok) throw new Error(`Failed to add tracks: ${await added.text()}`);
-  }
-
-  return { newPlaylistId: newPlaylist.id, tracks };
+  return { newPlaylistId: sourceId, tracks };
 }
 
 // ─────────────────────────────────────────────────────────
