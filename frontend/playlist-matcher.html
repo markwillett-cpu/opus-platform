@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Playlist Matcher</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;--spotify:#1db954;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+    .toolbar-label{color:#9fb3c8;font-size:12px;font-weight:700}
+
+    .container{max-width:1400px;margin:0 auto;padding:24px}
+
+    /* ── INPUT CARD ── */
+    .input-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:28px 32px;margin-bottom:22px}
+    .input-card h2{font-size:17px;font-weight:900;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+    .spotify-dot{width:10px;height:10px;border-radius:50%;background:var(--spotify);flex-shrink:0}
+    .input-card p{font-size:13px;color:#7f8c8d;margin-bottom:18px}
+    .url-row{display:flex;gap:10px}
+    .url-input{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;transition:.2s}
+    .url-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.1)}
+    .url-input::placeholder{color:#bdc3c7}
+    .match-btn{padding:11px 22px;background:var(--spotify);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:900;cursor:pointer;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:8px}
+    .match-btn:hover{background:#17a349}
+    .match-btn:disabled{opacity:.5;cursor:not-allowed}
+    .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── SUMMARY BANNER ── */
+    .summary-banner{background:#2f3d4a;color:#fff;border-radius:8px;padding:18px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+    .sum-box{text-align:center}
+    .sum-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.75}
+    .sum-value{font-size:26px;font-weight:1000;margin-top:4px}
+    .sum-value.green{color:#2ecc71}
+    .sum-value.yellow{color:#f39c12}
+    .sum-value.red{color:#e74c3c}
+    .sum-sub{font-size:12px;opacity:.7;margin-top:2px}
+
+    /* ── RESULTS LAYOUT ── */
+    .results-layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+    /* ── PANEL ── */
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+    .panel-header{background:var(--secondary);color:#fff;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .panel-header h3{font-size:14px;font-weight:900}
+    .panel-badge{font-size:12px;font-weight:900;padding:3px 9px;border-radius:10px}
+    .pb-green{background:#27ae60}
+    .pb-red{background:#e74c3c}
+    .pb-yellow{background:#f39c12}
+
+    .panel-toolbar{padding:10px 12px;border-bottom:1px solid var(--light);display:flex;gap:8px;align-items:center;flex-shrink:0}
+    .panel-search{flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px}
+    .panel-search:focus{outline:none;border-color:var(--accent)}
+    .method-filter{padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:#fff}
+
+    .track-scroll{overflow:auto;flex:1;max-height:480px}
+    .track-table{width:100%;border-collapse:collapse;font-size:12px}
+    .track-table thead{background:var(--secondary);color:#fff;position:sticky;top:0;z-index:1}
+    .track-table th,.track-table td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    .track-table tbody tr:hover{background:#f8f9fa}
+    .track-table tbody tr.checked{background:#eef6fc}
+    .track-table .overflow{max-width:180px;overflow:hidden;text-overflow:ellipsis}
+
+    .method-pill{display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:900}
+    .m-isrc{background:#d4edda;color:#155724}
+    .m-spotify{background:#d1ecf1;color:#0c5460}
+    .m-fuzzy{background:#fff3cd;color:#856404}
+    .m-aggressive{background:#f8d7da;color:#721c24}
+
+    .conf-bar{display:inline-flex;align-items:center;gap:5px}
+    .conf-dot{width:8px;height:8px;border-radius:50%}
+
+    /* ── ACTION BAR ── */
+    .action-bar{border-top:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--light)}
+    .sel-count{font-size:13px;font-weight:900;color:#7f8c8d;margin-right:auto}
+    .btn{padding:9px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+    .btn:hover{background:#f0f0f0}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:#2980b9}
+    .btn.success{background:var(--success);border-color:var(--success);color:#fff}
+    .btn.success:hover{background:#219a52}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.2);width:460px;max-width:95vw;overflow:hidden}
+    .modal-header{background:var(--secondary);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+    .modal-header h3{font-size:15px;font-weight:900}
+    .modal-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.8}
+    .modal-close:hover{opacity:1}
+    .modal-body{padding:22px}
+    .modal-label{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;color:#7f8c8d;margin-bottom:6px}
+    .modal-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;margin-bottom:16px}
+    .modal-input:focus{outline:none;border-color:var(--accent)}
+    .modal-select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;background:#fff;font-family:inherit;margin-bottom:6px}
+    .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+    .empty-state{padding:50px 20px;text-align:center;color:#95a5a6}
+    .empty-state .ei{font-size:36px;margin-bottom:8px}
+    .empty-state p{font-size:13px;font-weight:700}
+
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.success{background:var(--success)}
+    #toast.error{background:var(--danger)}
+  </style>
+</head>
+<body>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+    <a class="nav-item active" href="#">Playlist Matcher</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <span class="toolbar-label" id="toolbarStatus">Paste a Spotify playlist URL to begin</span>
+</div>
+
+<div class="container">
+
+  <!-- INPUT -->
+  <div class="input-card">
+    <h2><span class="spotify-dot"></span> Spotify Playlist Matcher</h2>
+    <p>Paste a customer's Spotify playlist URL. We'll copy it to our account, then match every track against the library using ISRC, Spotify ID, and fuzzy title/artist matching.</p>
+    <div class="url-row">
+      <input class="url-input" id="playlistUrl" type="text"
+        placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" />
+      <button class="match-btn" id="matchBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Match Playlist
+      </button>
+    </div>
+  </div>
+
+  <!-- SUMMARY (hidden until results) -->
+  <div class="summary-banner" id="summaryBanner" style="display:none">
+    <div class="sum-box">
+      <div class="sum-label">Playlist</div>
+      <div class="sum-value" id="sumName" style="font-size:15px;margin-top:6px">—</div>
+      <div class="sum-sub" id="sumOwner">—</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-label">Total Tracks</div>
+      <div class="sum-value" id="sumTotal">—</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-label">Matched</div>
+      <div class="sum-value green" id="sumMatched">—</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-label">Unmatched</div>
+      <div class="sum-value red" id="sumUnmatched">—</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-label">Match Rate</div>
+      <div class="sum-value" id="sumRate">—</div>
+      <div class="sum-sub">of playlist covered</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-layout" id="resultsLayout" style="display:none">
+
+    <!-- MATCHED -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>✓ Matched Songs</h3>
+        <span class="panel-badge pb-green" id="matchedBadge">0</span>
+      </div>
+      <div class="panel-toolbar">
+        <input class="panel-search" id="matchedSearch" placeholder="Filter matched…" />
+        <select class="method-filter" id="methodFilter">
+          <option value="">All methods</option>
+          <option value="isrc">ISRC</option>
+          <option value="spotify_id">Spotify ID</option>
+          <option value="fuzzy_norm">Fuzzy</option>
+          <option value="fuzzy_aggressive">Aggressive</option>
+        </select>
+      </div>
+      <div class="track-scroll">
+        <table class="track-table">
+          <thead>
+            <tr>
+              <th style="width:36px"><input type="checkbox" id="selectAllMatched" /></th>
+              <th>Spotify Track</th>
+              <th>Library Match</th>
+              <th>Method</th>
+            </tr>
+          </thead>
+          <tbody id="matchedBody"></tbody>
+        </table>
+      </div>
+      <div class="action-bar">
+        <span class="sel-count" id="matchedSelCount">0 selected</span>
+        <button class="btn" id="selectAllMatchedBtn">Select All</button>
+        <button class="btn primary" id="addToStyleBtn" disabled>Add to Style…</button>
+        <button class="btn success" id="createStyleBtn" disabled>Create Style…</button>
+      </div>
+    </div>
+
+    <!-- UNMATCHED -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>✗ Unmatched Songs</h3>
+        <span class="panel-badge pb-red" id="unmatchedBadge">0</span>
+      </div>
+      <div class="panel-toolbar">
+        <input class="panel-search" id="unmatchedSearch" placeholder="Filter unmatched…" />
+      </div>
+      <div class="track-scroll">
+        <table class="track-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Artist</th>
+              <th>ISRC</th>
+            </tr>
+          </thead>
+          <tbody id="unmatchedBody"></tbody>
+        </table>
+      </div>
+      <div class="action-bar">
+        <span class="sel-count" style="margin-right:auto;color:#7f8c8d;font-size:12px;font-weight:700">These tracks are not in the library</span>
+        <button class="btn" id="exportUnmatchedBtn" disabled>Export CSV</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD TO STYLE MODAL -->
+<div class="modal-overlay" id="addToStyleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add to Existing Style</h3>
+      <button class="modal-close" id="closeAddModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-label">Select Style</div>
+      <select class="modal-select" id="styleSelect">
+        <option value="">Loading styles…</option>
+      </select>
+      <div style="font-size:12px;color:#7f8c8d;font-weight:700" id="addModalNote"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelAddModal">Cancel</button>
+      <button class="btn primary" id="confirmAddModal">Add Songs</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE STYLE MODAL -->
+<div class="modal-overlay" id="createStyleModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Create New Style</h3>
+      <button class="modal-close" id="closeCreateModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-label">Style Name</div>
+      <input class="modal-input" id="newStyleName" type="text" placeholder="e.g. Customer Playlist — Acme Corp" />
+      <div style="font-size:12px;color:#7f8c8d;font-weight:700" id="createModalNote"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelCreateModal">Cancel</button>
+      <button class="btn success" id="confirmCreateModal">Create Style</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let matchResults   = null;
+let allStyles      = [];
+let filteredMatched   = [];
+let filteredUnmatched = [];
+
+// ════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+// ════════════════════════════════════════════════════════
+// MATCH
+// ════════════════════════════════════════════════════════
+document.getElementById('matchBtn').addEventListener('click', runMatch);
+document.getElementById('playlistUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runMatch();
+});
+
+async function runMatch() {
+  const url = document.getElementById('playlistUrl').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('matchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Matching…';
+  document.getElementById('toolbarStatus').textContent = 'Copying playlist and matching tracks…';
+
+  try {
+    const result = await window.api.matchSpotifyPlaylist(url);
+    matchResults = result;
+    renderResults(result);
+    document.getElementById('toolbarStatus').textContent =
+      `"${result.playlist.name}" — ${result.summary.match_rate}% match rate (${result.summary.matched}/${result.summary.total} tracks)`;
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+    document.getElementById('toolbarStatus').textContent = 'Match failed — check the URL and try again';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg> Match Playlist`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ════════════════════════════════════════════════════════
+function renderResults(result) {
+  const { playlist, summary, matched, unmatched } = result;
+
+  // Summary banner
+  document.getElementById('summaryBanner').style.display = 'grid';
+  document.getElementById('resultsLayout').style.display = 'grid';
+  document.getElementById('sumName').textContent = playlist.name;
+  document.getElementById('sumOwner').textContent = playlist.owner || '';
+  document.getElementById('sumTotal').textContent = summary.total;
+  document.getElementById('sumMatched').textContent = summary.matched;
+  document.getElementById('sumUnmatched').textContent = summary.unmatched;
+  const rateEl = document.getElementById('sumRate');
+  rateEl.textContent = summary.match_rate + '%';
+  rateEl.className = 'sum-value ' + (summary.match_rate >= 80 ? 'green' : summary.match_rate >= 50 ? 'yellow' : 'red');
+
+  document.getElementById('matchedBadge').textContent = summary.matched;
+  document.getElementById('unmatchedBadge').textContent = summary.unmatched;
+
+  filteredMatched = [...matched];
+  filteredUnmatched = [...unmatched];
+
+  renderMatchedTable();
+  renderUnmatchedTable();
+
+  document.getElementById('exportUnmatchedBtn').disabled = unmatched.length === 0;
+}
+
+function methodPill(method) {
+  const map = {
+    isrc:             ['ISRC', 'm-isrc'],
+    spotify_id:       ['Spotify ID', 'm-spotify'],
+    fuzzy_norm:       ['Fuzzy', 'm-fuzzy'],
+    fuzzy_aggressive: ['Aggressive', 'm-aggressive'],
+  };
+  const [label, cls] = map[method] || ['Unknown', ''];
+  return `<span class="method-pill ${cls}">${label}</span>`;
+}
+
+function confColor(c) {
+  if (c >= 0.9) return '#27ae60';
+  if (c >= 0.7) return '#f39c12';
+  return '#e74c3c';
+}
+
+function renderMatchedTable() {
+  const tbody = document.getElementById('matchedBody');
+  if (!filteredMatched.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#95a5a6">No matched tracks</td></tr>';
+    updateMatchedSelCount();
+    return;
+  }
+
+  tbody.innerHTML = filteredMatched.map(m => `
+    <tr data-song-id="${m.library.id}">
+      <td><input type="checkbox" class="matchCheck" /></td>
+      <td>
+        <div class="overflow" style="font-weight:800;font-size:12px" title="${esc(m.spotify.title)}">${esc(m.spotify.title)}</div>
+        <div style="font-size:11px;color:#7f8c8d">${esc(m.spotify.artist)}</div>
+      </td>
+      <td>
+        <div class="overflow" style="font-weight:800;font-size:12px" title="${esc(m.library.title)}">${esc(m.library.title)}</div>
+        <div style="font-size:11px;color:#7f8c8d">${esc(m.library.artist)}</div>
+      </td>
+      <td>
+        ${methodPill(m.match_method)}
+        <span class="conf-bar" title="${Math.round(m.confidence*100)}% confidence">
+          <span class="conf-dot" style="background:${confColor(m.confidence)}"></span>
+        </span>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('.matchCheck').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('tr').classList.toggle('checked', cb.checked);
+      updateMatchedSelCount();
+    });
+  });
+
+  updateMatchedSelCount();
+}
+
+function renderUnmatchedTable() {
+  const tbody = document.getElementById('unmatchedBody');
+  if (!filteredUnmatched.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:30px;color:#95a5a6">No unmatched tracks 🎉</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filteredUnmatched.map(u => `
+    <tr>
+      <td><div class="overflow" style="font-weight:800;font-size:12px">${esc(u.spotify.title)}</div></td>
+      <td><div style="font-size:12px;color:#7f8c8d">${esc(u.spotify.artist)}</div></td>
+      <td><div style="font-size:11px;color:#bdc3c7;font-family:monospace">${u.spotify.isrc || '—'}</div></td>
+    </tr>
+  `).join('');
+}
+
+function updateMatchedSelCount() {
+  const sel = document.querySelectorAll('#matchedBody .matchCheck:checked').length;
+  document.getElementById('matchedSelCount').textContent = `${sel} selected`;
+  document.getElementById('addToStyleBtn').disabled = sel === 0;
+  document.getElementById('createStyleBtn').disabled = sel === 0;
+}
+
+// ════════════════════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════════════════════
+document.getElementById('matchedSearch').addEventListener('input', filterMatched);
+document.getElementById('methodFilter').addEventListener('change', filterMatched);
+
+function filterMatched() {
+  if (!matchResults) return;
+  const q = document.getElementById('matchedSearch').value.toLowerCase();
+  const method = document.getElementById('methodFilter').value;
+  filteredMatched = matchResults.matched.filter(m => {
+    const textMatch = !q ||
+      m.spotify.title.toLowerCase().includes(q) ||
+      m.spotify.artist.toLowerCase().includes(q) ||
+      m.library.title.toLowerCase().includes(q);
+    const methodMatch = !method || m.match_method === method;
+    return textMatch && methodMatch;
+  });
+  renderMatchedTable();
+}
+
+document.getElementById('unmatchedSearch').addEventListener('input', () => {
+  if (!matchResults) return;
+  const q = document.getElementById('unmatchedSearch').value.toLowerCase();
+  filteredUnmatched = matchResults.unmatched.filter(u =>
+    !q || u.spotify.title.toLowerCase().includes(q) || u.spotify.artist.toLowerCase().includes(q)
+  );
+  renderUnmatchedTable();
+});
+
+// ════════════════════════════════════════════════════════
+// SELECT ALL MATCHED
+// ════════════════════════════════════════════════════════
+document.getElementById('selectAllMatched').addEventListener('change', e => {
+  document.querySelectorAll('#matchedBody .matchCheck').forEach(cb => {
+    cb.checked = e.target.checked;
+    cb.closest('tr').classList.toggle('checked', e.target.checked);
+  });
+  updateMatchedSelCount();
+});
+
+document.getElementById('selectAllMatchedBtn').addEventListener('click', () => {
+  document.querySelectorAll('#matchedBody .matchCheck').forEach(cb => {
+    cb.checked = true;
+    cb.closest('tr').classList.add('checked');
+  });
+  updateMatchedSelCount();
+});
+
+// ════════════════════════════════════════════════════════
+// GET SELECTED SONG IDS
+// ════════════════════════════════════════════════════════
+function getSelectedSongIds() {
+  return [...document.querySelectorAll('#matchedBody tr.checked')]
+    .map(tr => tr.dataset.songId)
+    .filter(Boolean);
+}
+
+// ════════════════════════════════════════════════════════
+// ADD TO STYLE MODAL
+// ════════════════════════════════════════════════════════
+document.getElementById('addToStyleBtn').addEventListener('click', async () => {
+  const ids = getSelectedSongIds();
+  document.getElementById('addModalNote').textContent = `${ids.length} song${ids.length !== 1 ? 's' : ''} will be added as Uncategorized`;
+
+  // Load styles if not already loaded
+  if (!allStyles.length) {
+    const styles = await window.api.getStyles();
+    allStyles = styles || [];
+  }
+
+  const sel = document.getElementById('styleSelect');
+  sel.innerHTML = allStyles.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('addToStyleModal').classList.add('open');
+});
+
+document.getElementById('closeAddModal').addEventListener('click', () =>
+  document.getElementById('addToStyleModal').classList.remove('open'));
+document.getElementById('cancelAddModal').addEventListener('click', () =>
+  document.getElementById('addToStyleModal').classList.remove('open'));
+
+document.getElementById('confirmAddModal').addEventListener('click', async () => {
+  const styleId = document.getElementById('styleSelect').value;
+  const ids = getSelectedSongIds();
+  if (!styleId || !ids.length) return;
+
+  const btn = document.getElementById('confirmAddModal');
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+
+  try {
+    const result = await window.api.spotifyAddToStyle(styleId, ids);
+    document.getElementById('addToStyleModal').classList.remove('open');
+    const styleName = allStyles.find(s => s.id === styleId)?.name || 'style';
+    toast(`✓ Added ${result.added} songs to "${styleName}"${result.skipped ? ` (${result.skipped} already existed)` : ''}`, 'success');
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Songs';
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// CREATE STYLE MODAL
+// ════════════════════════════════════════════════════════
+document.getElementById('createStyleBtn').addEventListener('click', () => {
+  const ids = getSelectedSongIds();
+  document.getElementById('createModalNote').textContent = `${ids.length} song${ids.length !== 1 ? 's' : ''} will be added as Uncategorized`;
+
+  // Pre-fill name from playlist if available
+  if (matchResults?.playlist?.name) {
+    document.getElementById('newStyleName').value = matchResults.playlist.name;
+  }
+  document.getElementById('createStyleModal').classList.add('open');
+  setTimeout(() => document.getElementById('newStyleName').select(), 80);
+});
+
+document.getElementById('closeCreateModal').addEventListener('click', () =>
+  document.getElementById('createStyleModal').classList.remove('open'));
+document.getElementById('cancelCreateModal').addEventListener('click', () =>
+  document.getElementById('createStyleModal').classList.remove('open'));
+
+document.getElementById('confirmCreateModal').addEventListener('click', async () => {
+  const name = document.getElementById('newStyleName').value.trim();
+  const ids = getSelectedSongIds();
+  if (!name || !ids.length) return;
+
+  const btn = document.getElementById('confirmCreateModal');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    const result = await window.api.spotifyCreateStyle(name, ids);
+    document.getElementById('createStyleModal').classList.remove('open');
+    toast(`✓ Created style "${result.style.name}" with ${result.added} songs`, 'success');
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Style';
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// EXPORT UNMATCHED CSV
+// ════════════════════════════════════════════════════════
+document.getElementById('exportUnmatchedBtn').addEventListener('click', () => {
+  if (!matchResults) return;
+  const rows = [['Title', 'Artist', 'ISRC', 'Spotify ID']];
+  matchResults.unmatched.forEach(u => {
+    rows.push([u.spotify.title, u.spotify.artist, u.spotify.isrc || '', u.spotify.id]);
+  });
+  const csv = rows.map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `unmatched-${matchResults.playlist.name.replace(/\s+/g,'-')}.csv`;
+  a.click();
+});
+
+// ════════════════════════════════════════════════════════
+// CLOSE MODALS ON OVERLAY CLICK
+// ════════════════════════════════════════════════════════
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+function esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
