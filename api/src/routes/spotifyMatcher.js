@@ -238,27 +238,52 @@ if (aggExactMatch) {
 export default async function routes(app) {
 
   /**
-   * GET /v1/spotify/auth
-   * Step 1 of one-time OAuth setup — redirects to Spotify login.
-   * Visit this URL once in your browser to get a refresh token.
-   */
-  /**
    * GET /v1/spotify/me
-   * Returns the authenticated Spotify user's profile — use this to find the correct user ID.
-   * Temporary debug endpoint.
+   * Returns the authenticated Spotify user's profile.
+   * Temporary debug endpoint — use to find the correct user ID.
    */
+
+  /**
+   * GET /v1/spotify/auth
+   * One-time OAuth setup — redirects to Spotify login.
+   * Visit in browser once to get a refresh token, then save to SPOTIFY_REFRESH_TOKEN env var.
+   */
+
   app.get('/spotify/me', async (req, reply) => {
     const token = await getAccessToken();
     const me = await spotifyGet('/me', token);
     return reply.send({ id: me.id, display_name: me.display_name, email: me.email });
   });
-
-  app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
+  
+app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
     const scopes = [
       'playlist-read-private',
       'playlist-read-collaborative',
       'playlist-modify-private',
       'playlist-modify-public'
+    ].join(' ');
+
+    const params = new URLSearchParams({
+      client_id: config.SPOTIFY_CLIENT_ID,
+      response_type: 'code',
+      redirect_uri: `${config.API_BASE_URL}/v1/spotify/callback`,
+      scope: scopes,
+      show_dialog: 'true'
+    });
+
+    return reply.redirect(`https://accounts.spotify.com/authorize?${params}`);
+  });
+
+  app.get('/spotify/customer-auth', { config: { skipAuth: true } }, async (req, reply) => {
+    const { customer_id } = req.query;
+
+    if (!customer_id) {
+      return reply.code(400).send({ error: 'customer_id is required' });
+    }
+
+    const scopes = [
+      'playlist-read-private',
+      'playlist-read-collaborative',
     ].join(' ');
 
     const params = new URLSearchParams({
