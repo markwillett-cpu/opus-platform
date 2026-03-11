@@ -165,10 +165,10 @@ async function matchTracks(spotifyTracks) {
 
     // No match
     unmatched.push({
-      spotify: { id: track.id, title: track.name, artist: artistName, isrc },
-      match_method: null,
-      confidence: 0
-    });
+  spotify: { id: track.id, title: track.name, artist: artistName },
+  match_method: null,
+  confidence: 0
+});
   }
 
   return { matched, unmatched };
