@@ -38,7 +38,10 @@ app.get('/health', async () => ({ ok: true }));
 // Internal-only guard (simple and effective for now)
 app.addHook('onRequest', async (req, reply) => {
   if (req.url === '/health') return;
-  if (req.url.startsWith('/v1/spotify/auth') || req.url.startsWith('/v1/spotify/callback')) return;
+  if (req.url.startsWith('/v1/spotify/auth') || 
+      req.url.startsWith('/v1/spotify/callback') ||
+      req.url.startsWith('/v1/spotify/customer-auth') ||
+      req.url.startsWith('/v1/spotify/customer-callback')) return;
   return requireInternalKey(req, reply);
 });
 
