@@ -289,8 +289,9 @@ app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
     const params = new URLSearchParams({
       client_id: config.SPOTIFY_CLIENT_ID,
       response_type: 'code',
-      redirect_uri: `${config.API_BASE_URL}/v1/spotify/callback`,
+redirect_uri: `${config.API_BASE_URL}/v1/spotify/customer-callback`,
       scope: scopes,
+      state: customer_id,
       show_dialog: 'true'
     });
 
