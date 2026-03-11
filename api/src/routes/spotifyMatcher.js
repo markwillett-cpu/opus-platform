@@ -142,7 +142,7 @@ async function matchTracks(spotifyTracks) {
     }
 
     // 3. Aggressive fuzzy with title length similarity guard
-    const aggTitle = normalize(track.name).replace(/\(.*?\)/g, '').replace(/feat.*/i, '').trim();
+    const aggTitle = normalize(track.name).replace(/\(.*?\)/g, '').replace(/feat.*/i, '').replace(/^the\s+/i, '').trim();
     const aggArtist = normalize(artistName).split(' ')[0];
 
     const { data: aggMatches } = await supabase
