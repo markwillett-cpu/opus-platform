@@ -380,7 +380,7 @@ try {
 
     // Show success page
     return reply.type('text/html').send(`
-      <html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#f9f9f9">
+      <html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:40px;text-align:center;background:#f9f9f9">
         <div style="max-width:400px;margin:80px auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
           <h2 style="color:#1db954">&#10003; You're all set!</h2>
           <p style="color:#555">Your Spotify account has been connected successfully.</p>
