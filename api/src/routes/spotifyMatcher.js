@@ -87,6 +87,7 @@ async function copyPlaylist(sourceId, sourceName, token) {
 function normalize(str) {
   return (str || '')
     .toLowerCase()
+    .replace(/&/g, 'and') 
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -142,31 +143,29 @@ async function matchTracks(spotifyTracks) {
     }
 
     // Tier 3: Exact title_aggressive + artist_aggressive
-    const aggTitle = normalize(track.name)
-      .replace(/\(.*?\)/g, '')
-      .replace(/feat.*/i, '')
-      .replace(/^the\s+/i, '')
-      .trim();
-    const aggArtist = normalize(artistName)
-      .replace(/^the\s+/i, '')
-      .trim();
+ // Tier 3: Exact title_aggressive + artist_aggressive (try with and without leading "the")
+const aggTitlesToTry = [aggTitle, `the ${aggTitle}`];
 
-    const { data: aggExactMatches } = await supabase
-      .from('library_songs')
-      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
-      .eq('title_aggressive', aggTitle)
-      .eq('artist_aggressive', aggArtist)
-      .limit(1);
+let aggExactMatch = null;
+for (const t of aggTitlesToTry) {
+  const { data } = await supabase
+    .from('library_songs')
+    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+    .eq('title_aggressive', t)
+    .eq('artist_aggressive', aggArtist)
+    .limit(1);
+  if (data && data.length > 0) { aggExactMatch = data[0]; break; }
+}
 
-    if (aggExactMatches && aggExactMatches.length > 0) {
-      matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName },
-        library: aggExactMatches[0],
-        match_method: 'exact_aggressive',
-        confidence: 0.85
-      });
-      continue;
-    }
+if (aggExactMatch) {
+  matched.push({
+    spotify: { id: track.id, title: track.name, artist: artistName },
+    library: aggExactMatch,
+    match_method: 'exact_aggressive',
+    confidence: 0.85
+  });
+  continue;
+}
 
     // Tier 4: feat/remix fuzzy — library title starts with spotify title + qualifier
     const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
