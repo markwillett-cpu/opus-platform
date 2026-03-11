@@ -87,6 +87,8 @@ async function copyPlaylist(sourceId, sourceName, token) {
 function normalize(str) {
   return (str || '')
     .toLowerCase()
+     .normalize('NFD')                    // ← decompose accented chars
+    .replace(/[\u0300-\u036f]/g, '') // ← strip accent marks
     .replace(/&/g, 'and') 
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
