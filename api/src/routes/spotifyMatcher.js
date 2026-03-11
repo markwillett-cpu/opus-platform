@@ -66,7 +66,7 @@ let url = `/playlists/${playlistId}/items?limit=100`;
      console.log('RAW SPOTIFY RESPONSE:', JSON.stringify(data).slice(0, 1000));
     const items = data.items || [];
     for (const item of items) {
-      const track = item.track;
+      const track = item.item;
       if (track && track.id) tracks.push(track);
     }
     url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
