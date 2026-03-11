@@ -348,9 +348,15 @@ redirect_uri: `${config.API_BASE_URL}/v1/spotify/customer-callback`,
 
     // Get their Spotify profile
     const profileRes = await fetch('https://api.spotify.com/v1/me', {
-      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-    });
-    const profile = await profileRes.json();
+  headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+});
+const profileText = await profileRes.text();
+let profile = {};
+try {
+  profile = JSON.parse(profileText);
+} catch (e) {
+  req.log.error('Spotify profile fetch failed: ' + profileText);
+}
 
     // Save to Supabase
     const { error: dbError } = await supabase
