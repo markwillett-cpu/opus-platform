@@ -296,7 +296,92 @@ app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
 
     return reply.redirect(`https://accounts.spotify.com/authorize?${params}`);
   });
+/**
+   * GET /v1/spotify/customer-callback
+   * Spotify redirects here after customer login.
+   * Saves their refresh token to Supabase and shows a success page.
+   */
+  app.get('/spotify/customer-callback', { config: { skipAuth: true } }, async (req, reply) => {
+    const { code, error, state: customer_id } = req.query;
 
+    if (error) {
+      return reply.type('text/html').send(`
+        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
+          <h2>Something went wrong</h2>
+          <p>Spotify returned an error: ${error}</p>
+          <p>Please try again or contact support.</p>
+        </body></html>
+      `);
+    }
+
+    if (!customer_id) {
+      return reply.code(400).send({ error: 'Missing customer_id in state' });
+    }
+
+    // Exchange code for tokens
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(
+          `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
+        ).toString('base64')
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: `${config.API_BASE_URL}/v1/spotify/customer-callback`
+      })
+    });
+
+    const tokenData = await res.json();
+
+    if (tokenData.error) {
+      return reply.type('text/html').send(`
+        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
+          <h2>Something went wrong</h2>
+          <p>Could not complete Spotify authorization. Please try again.</p>
+        </body></html>
+      `);
+    }
+
+    // Get their Spotify profile
+    const profileRes = await fetch('https://api.spotify.com/v1/me', {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    });
+    const profile = await profileRes.json();
+
+    // Save to Supabase
+    const { error: dbError } = await supabase
+      .from('customer_spotify_tokens')
+      .upsert({
+        customer_id,
+        refresh_token: tokenData.refresh_token,
+        spotify_user_id: profile.id,
+        spotify_display_name: profile.display_name,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'customer_id' });
+
+    if (dbError) {
+      return reply.type('text/html').send(`
+        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
+          <h2>Something went wrong</h2>
+          <p>Could not save your authorization. Please try again.</p>
+        </body></html>
+      `);
+    }
+
+    // Show success page
+    return reply.type('text/html').send(`
+      <html><body style="font-family:sans-serif;padding:40px;text-align:center;background:#f9f9f9">
+        <div style="max-width:400px;margin:80px auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+          <h2 style="color:#1db954">✓ You're all set!</h2>
+          <p style="color:#555">Your Spotify account has been connected successfully.</p>
+          <p style="color:#999;font-size:14px">You can close this window.</p>
+        </div>
+      </body></html>
+    `);
+  });
   /**
    * GET /v1/spotify/callback
    * Step 2 — Spotify redirects here after login.
