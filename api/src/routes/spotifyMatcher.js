@@ -58,13 +58,14 @@ function extractPlaylistId(input) {
 // external_ids (ISRC) removed in new API — omitted from fields request.
 async function fetchAllPlaylistTracks(playlistId, token) {
   const tracks = [];
-  let url = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists,album(name),duration_ms))`;
+  // /tracks → /items
+  let url = `/playlists/${playlistId}/items?limit=100&fields=next,items(track(id,name,artists,album(name),duration_ms))`;
 
   while (url) {
     const data = await spotifyGet(url, token);
     const items = data.items || [];
     for (const item of items) {
-      const track = item.track || item.item;
+      const track = item.track;
       if (track && track.id) tracks.push(track);
     }
     url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
