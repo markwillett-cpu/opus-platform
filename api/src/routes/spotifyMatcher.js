@@ -127,14 +127,14 @@ async function matchTracks(spotifyTracks) {
 
     const { data: fuzzyMatches } = await supabase
       .from('library_songs')
-      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+      .select('id, title, artist, album, spotify_track_id, artist_norm, title_norm, artist_aggressive, title_aggressive')
       .eq('title_norm', normTitle)
       .ilike('artist_norm', `%${normArtist.split(' ')[0]}%`)
       .limit(5);
 
     if (fuzzyMatches && fuzzyMatches.length > 0) {
       matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, isrc },
+        spotify: { id: track.id, title: track.name, artist: artistName, },
         library: fuzzyMatches[0],
         match_method: 'fuzzy_norm',
         confidence: 0.8
