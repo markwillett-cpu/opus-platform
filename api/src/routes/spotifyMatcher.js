@@ -59,8 +59,8 @@ function extractPlaylistId(input) {
 async function fetchAllPlaylistTracks(playlistId, token) {
   const tracks = [];
   // /tracks → /items
-  let url = `/playlists/${playlistId}/items?limit=100&fields=next,items(track(id,name,artists,album(name),duration_ms))`;
-
+let url = `/playlists/${playlistId}/items?limit=100`;
+  
   while (url) {
     const data = await spotifyGet(url, token);
     const items = data.items || [];
