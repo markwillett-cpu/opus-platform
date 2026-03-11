@@ -152,24 +152,38 @@ async function matchTracks(spotifyTracks) {
       .ilike('artist_aggressive', `%${aggArtist}%`)
       .limit(5);
 
-    if (aggMatches && aggMatches.length > 0) {
-      // Length similarity guard: reject if library title is >40% longer than spotify title
-      const best = aggMatches.find(m => {
-        const libLen = (m.title_aggressive || m.title_norm || '').length;
-        const spotLen = aggTitle.length;
-        return libLen <= spotLen * 1.4;
-      });
+   if (aggMatches && aggMatches.length > 0) {
+  const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
 
-      if (best) {
-        matched.push({
-          spotify: { id: track.id, title: track.name, artist: artistName },
-          library: best,
-          match_method: 'fuzzy_aggressive',
-          confidence: 0.6
-        });
-        continue;
-      }
+  const best = aggMatches.find(m => {
+    const libAgg = (m.title_aggressive || '').toLowerCase();
+    const spotAgg = aggTitle.toLowerCase();
+
+    if (libAgg === spotAgg) return true;
+
+    if (libAgg.startsWith(spotAgg)) {
+      const extra = libAgg.slice(spotAgg.length).trim();
+      return featPattern.test(extra);
     }
+
+    if (spotAgg.startsWith(libAgg)) {
+      const extra = spotAgg.slice(libAgg.length).trim();
+      return featPattern.test(extra);
+    }
+
+    return false;
+  });
+
+  if (best) {
+    matched.push({
+      spotify: { id: track.id, title: track.name, artist: artistName },
+      library: best,
+      match_method: 'fuzzy_aggressive',
+      confidence: 0.6
+    });
+    continue;
+  }
+}
 
     // No match
     unmatched.push({
