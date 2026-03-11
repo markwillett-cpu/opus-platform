@@ -98,7 +98,7 @@ async function matchTracks(spotifyTracks) {
 
   const spotifyIds = spotifyTracks.map(t => t.id).filter(Boolean);
 
-  // Bulk fetch by Spotify track ID (primary method)
+  // Tier 1: Bulk fetch by Spotify ID
   const { data: spotifyMatches } = await supabase
     .from('library_songs')
     .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
@@ -109,7 +109,7 @@ async function matchTracks(spotifyTracks) {
   for (const track of spotifyTracks) {
     const artistName = track.artists?.[0]?.name || '';
 
-    // 1. Spotify ID match
+    // Tier 1: Spotify ID
     if (spotifyIdMap.has(track.id)) {
       matched.push({
         spotify: { id: track.id, title: track.name, artist: artistName },
@@ -120,70 +120,94 @@ async function matchTracks(spotifyTracks) {
       continue;
     }
 
-    // 2. Fuzzy: title_norm + artist first word, with length similarity guard
     const normTitle = normalize(track.name);
     const normArtist = normalize(artistName);
 
-    const { data: fuzzyMatches } = await supabase
+    // Tier 2: Exact title_norm + artist_norm
+    const { data: exactMatches } = await supabase
       .from('library_songs')
       .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
       .eq('title_norm', normTitle)
-      .ilike('artist_norm', `%${normArtist.split(' ')[0]}%`)
-      .limit(5);
+      .eq('artist_norm', normArtist)
+      .limit(1);
 
-    if (fuzzyMatches && fuzzyMatches.length > 0) {
+    if (exactMatches && exactMatches.length > 0) {
       matched.push({
         spotify: { id: track.id, title: track.name, artist: artistName },
-        library: fuzzyMatches[0],
-        match_method: 'fuzzy_norm',
-        confidence: 0.8
+        library: exactMatches[0],
+        match_method: 'exact_norm',
+        confidence: 0.9
       });
       continue;
     }
 
-    // 3. Aggressive fuzzy with title length similarity guard
-    const aggTitle = normalize(track.name).replace(/\(.*?\)/g, '').replace(/feat.*/i, '').replace(/^the\s+/i, '').trim();
-    const aggArtist = normalize(artistName).split(' ')[0];
+    // Tier 3: Exact title_aggressive + artist_aggressive
+    const aggTitle = normalize(track.name)
+      .replace(/\(.*?\)/g, '')
+      .replace(/feat.*/i, '')
+      .replace(/^the\s+/i, '')
+      .trim();
+    const aggArtist = normalize(artistName)
+      .replace(/^the\s+/i, '')
+      .trim();
 
-    const { data: aggMatches } = await supabase
+    const { data: aggExactMatches } = await supabase
       .from('library_songs')
       .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
-      .ilike('title_aggressive', `%${aggTitle}%`)
-      .ilike('artist_aggressive', `%${aggArtist}%`)
+      .eq('title_aggressive', aggTitle)
+      .eq('artist_aggressive', aggArtist)
+      .limit(1);
+
+    if (aggExactMatches && aggExactMatches.length > 0) {
+      matched.push({
+        spotify: { id: track.id, title: track.name, artist: artistName },
+        library: aggExactMatches[0],
+        match_method: 'exact_aggressive',
+        confidence: 0.85
+      });
+      continue;
+    }
+
+    // Tier 4: feat/remix fuzzy — library title starts with spotify title + qualifier
+    const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
+
+    const { data: fuzzyMatches } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+      .ilike('title_aggressive', `${aggTitle}%`)
+      .ilike('artist_aggressive', `${aggArtist}%`)
       .limit(5);
 
-   if (aggMatches && aggMatches.length > 0) {
-  const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
+    if (fuzzyMatches && fuzzyMatches.length > 0) {
+      const best = fuzzyMatches.find(m => {
+        const libAgg = (m.title_aggressive || '').toLowerCase();
+        const spotAgg = aggTitle.toLowerCase();
 
-  const best = aggMatches.find(m => {
-    const libAgg = (m.title_aggressive || '').toLowerCase();
-    const spotAgg = aggTitle.toLowerCase();
+        if (libAgg === spotAgg) return true;
 
-    if (libAgg === spotAgg) return true;
+        if (libAgg.startsWith(spotAgg)) {
+          const extra = libAgg.slice(spotAgg.length).trim();
+          return featPattern.test(extra);
+        }
 
-    if (libAgg.startsWith(spotAgg)) {
-      const extra = libAgg.slice(spotAgg.length).trim();
-      return featPattern.test(extra);
+        if (spotAgg.startsWith(libAgg)) {
+          const extra = spotAgg.slice(libAgg.length).trim();
+          return featPattern.test(extra);
+        }
+
+        return false;
+      });
+
+      if (best) {
+        matched.push({
+          spotify: { id: track.id, title: track.name, artist: artistName },
+          library: best,
+          match_method: 'fuzzy_feat',
+          confidence: 0.75
+        });
+        continue;
+      }
     }
-
-    if (spotAgg.startsWith(libAgg)) {
-      const extra = spotAgg.slice(libAgg.length).trim();
-      return featPattern.test(extra);
-    }
-
-    return false;
-  });
-
-  if (best) {
-    matched.push({
-      spotify: { id: track.id, title: track.name, artist: artistName },
-      library: best,
-      match_method: 'fuzzy_aggressive',
-      confidence: 0.6
-    });
-    continue;
-  }
-}
 
     // No match
     unmatched.push({
