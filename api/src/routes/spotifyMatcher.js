@@ -148,14 +148,14 @@ async function matchTracks(spotifyTracks) {
 
     const { data: aggMatches } = await supabase
       .from('library_songs')
-      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+      .select('id, title, artist, album, spotify_track_id, artist_norm, title_norm, artist_aggressive, title_aggressive')
       .ilike('title_aggressive', `%${aggTitle}%`)
       .ilike('artist_aggressive', `%${aggArtist}%`)
       .limit(5);
 
     if (aggMatches && aggMatches.length > 0) {
       matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, isrc },
+        spotify: { id: track.id, title: track.name, artist: artistName },
         library: aggMatches[0],
         match_method: 'fuzzy_aggressive',
         confidence: 0.6
