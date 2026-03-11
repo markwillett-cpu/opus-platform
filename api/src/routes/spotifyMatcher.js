@@ -54,16 +54,19 @@ function extractPlaylistId(input) {
 }
 
 // Pull all tracks from a playlist (handles pagination)
+// Compatible with both pre- and post-February 2026 Spotify API.
+// external_ids (ISRC) removed in new API — omitted from fields request.
 async function fetchAllPlaylistTracks(playlistId, token) {
   const tracks = [];
-  let url = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists,album(name),duration_ms,external_ids))`;
+  let url = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(id,name,artists,album(name),duration_ms))`;
 
   while (url) {
     const data = await spotifyGet(url, token);
-    for (const item of (data.items || [])) {
-      if (item.track && item.track.id) tracks.push(item.track);
+    const items = data.items || [];
+    for (const item of items) {
+      const track = item.track || item.item;
+      if (track && track.id) tracks.push(track);
     }
-    // next is a full URL, strip the base
     url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
   }
   return tracks;
@@ -91,23 +94,9 @@ async function matchTracks(spotifyTracks) {
   const matched = [];
   const unmatched = [];
 
-  // Collect all ISRCs and Spotify IDs for bulk queries
-  const isrcs = spotifyTracks
-    .map(t => t.external_ids?.isrc)
-    .filter(Boolean)
-    .map(i => i.toUpperCase());
-
   const spotifyIds = spotifyTracks.map(t => t.id).filter(Boolean);
 
-  // Bulk fetch by ISRC
-  const { data: isrcMatches } = await supabase
-    .from('library_songs')
-    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
-    .in('isrc', isrcs);
-
-  const isrcMap = new Map((isrcMatches || []).map(s => [s.isrc?.toUpperCase(), s]));
-
-  // Bulk fetch by Spotify track ID
+  // Bulk fetch by Spotify track ID (primary method — works on all API versions)
   const { data: spotifyMatches } = await supabase
     .from('library_songs')
     .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
@@ -118,23 +107,11 @@ async function matchTracks(spotifyTracks) {
   // Match each track
   for (const track of spotifyTracks) {
     const artistName = track.artists?.[0]?.name || '';
-    const isrc = track.external_ids?.isrc?.toUpperCase();
 
-    // 1. ISRC match
-    if (isrc && isrcMap.has(isrc)) {
-      matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, isrc },
-        library: isrcMap.get(isrc),
-        match_method: 'isrc',
-        confidence: 1.0
-      });
-      continue;
-    }
-
-    // 2. Spotify track ID match
+    // 1. Spotify track ID match (most reliable, works on all API versions)
     if (spotifyIdMap.has(track.id)) {
       matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, isrc },
+        spotify: { id: track.id, title: track.name, artist: artistName, isrc: null },
         library: spotifyIdMap.get(track.id),
         match_method: 'spotify_id',
         confidence: 0.95
@@ -305,10 +282,10 @@ export default async function routes(app) {
     const token = await getAccessToken();
 
     // Get playlist metadata
-    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner,tracks(total)`, token);
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
 
-    // Copy to our account and get tracks
-    const { tracks } = await copyPlaylist(playlistId, playlistMeta.name, token);
+    // Fetch tracks directly (no copy needed for public playlists)
+    const tracks = await fetchAllPlaylistTracks(playlistId, token);
 
     // Match against library
     const { matched, unmatched } = await matchTracks(tracks);
@@ -379,7 +356,7 @@ export default async function routes(app) {
       return reply.code(400).send({ error: { message: 'name and song_ids are required', status: 400 } });
     }
 
-    // Create the style
+    // Create the style in our DB (not Spotify)
     const { data: style, error: styleError } = await supabase
       .from('sim_styles')
       .insert({ name })
