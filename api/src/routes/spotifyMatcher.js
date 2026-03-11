@@ -390,6 +390,86 @@ try {
     `);
   });
   /**
+   * POST /v1/spotify/customer-match
+   * Matches a customer's playlist against the library using their stored token.
+   * Body: { customer_id, playlist_url }
+   */
+  app.post('/spotify/customer-match', async (req, reply) => {
+    const { customer_id, playlist_url } = req.body || {};
+
+    if (!customer_id || !playlist_url) {
+      return reply.code(400).send({ error: { message: 'customer_id and playlist_url are required', status: 400 } });
+    }
+
+    // Look up their stored token
+    const { data: customer, error: customerError } = await supabase
+      .from('customer_spotify_tokens')
+      .select('refresh_token, spotify_display_name')
+      .eq('customer_id', customer_id)
+      .single();
+
+    if (customerError || !customer) {
+      return reply.code(404).send({ error: { message: `No Spotify token found for customer_id: ${customer_id}`, status: 404 } });
+    }
+
+    // Exchange refresh token for access token
+    const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(
+          `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
+        ).toString('base64')
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: customer.refresh_token
+      })
+    });
+
+    const tokenData = await tokenRes.json();
+
+    if (tokenData.error) {
+      return reply.code(401).send({ error: { message: `Could not refresh token for customer: ${tokenData.error}`, status: 401 } });
+    }
+
+    const token = tokenData.access_token;
+
+    // Extract playlist ID and fetch metadata
+    const playlistId = extractPlaylistId(playlist_url);
+    if (!playlistId) {
+      return reply.code(400).send({ error: { message: 'Could not extract playlist ID from URL', status: 400 } });
+    }
+
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
+    const tracks = await fetchAllPlaylistTracks(playlistId, token);
+    const { matched, unmatched } = await matchTracks(tracks);
+
+    const total = tracks.length;
+    const matchRate = total > 0 ? Math.round((matched.length / total) * 100) : 0;
+
+    return reply.send({
+      customer: {
+        customer_id,
+        spotify_display_name: customer.spotify_display_name
+      },
+      playlist: {
+        id: playlistId,
+        name: playlistMeta.name,
+        owner: playlistMeta.owner?.display_name,
+        total_tracks: total
+      },
+      summary: {
+        total,
+        matched: matched.length,
+        unmatched: unmatched.length,
+        match_rate: matchRate
+      },
+      matched,
+      unmatched
+    });
+  });
+  /**
    * GET /v1/spotify/callback
    * Step 2 — Spotify redirects here after login.
    * Exchanges code for tokens and displays the refresh token.
