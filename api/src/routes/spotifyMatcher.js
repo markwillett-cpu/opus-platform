@@ -124,6 +124,16 @@ async function matchTracks(spotifyTracks) {
     const normTitle = normalize(track.name);
     const normArtist = normalize(artistName);
 
+    
+const aggTitle = normalize(track.name)
+  .replace(/\(.*?\)/g, '')
+  .replace(/feat.*/i, '')
+  .replace(/^the\s+/i, '')
+  .trim();
+const aggArtist = normalize(artistName)
+  .replace(/^the\s+/i, '')
+  .trim();
+
     // Tier 2: Exact title_norm + artist_norm
     const { data: exactMatches } = await supabase
       .from('library_songs')
