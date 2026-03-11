@@ -98,10 +98,10 @@ async function matchTracks(spotifyTracks) {
 
   const spotifyIds = spotifyTracks.map(t => t.id).filter(Boolean);
 
-  // Bulk fetch all matches in one query
+  // Bulk fetch by Spotify track ID (primary method)
   const { data: spotifyMatches } = await supabase
     .from('library_songs')
-    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm')
+    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
     .in('spotify_track_id', spotifyIds);
 
   const spotifyIdMap = new Map((spotifyMatches || []).map(s => [s.spotify_track_id, s]));
@@ -109,6 +109,7 @@ async function matchTracks(spotifyTracks) {
   for (const track of spotifyTracks) {
     const artistName = track.artists?.[0]?.name || '';
 
+    // 1. Spotify ID match
     if (spotifyIdMap.has(track.id)) {
       matched.push({
         spotify: { id: track.id, title: track.name, artist: artistName },
@@ -116,13 +117,66 @@ async function matchTracks(spotifyTracks) {
         match_method: 'spotify_id',
         confidence: 0.95
       });
-    } else {
-      unmatched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName },
-        match_method: null,
-        confidence: 0
-      });
+      continue;
     }
+
+    // 2. Fuzzy: title_norm + artist first word, with length similarity guard
+    const normTitle = normalize(track.name);
+    const normArtist = normalize(artistName);
+
+    const { data: fuzzyMatches } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+      .eq('title_norm', normTitle)
+      .ilike('artist_norm', `%${normArtist.split(' ')[0]}%`)
+      .limit(5);
+
+    if (fuzzyMatches && fuzzyMatches.length > 0) {
+      matched.push({
+        spotify: { id: track.id, title: track.name, artist: artistName },
+        library: fuzzyMatches[0],
+        match_method: 'fuzzy_norm',
+        confidence: 0.8
+      });
+      continue;
+    }
+
+    // 3. Aggressive fuzzy with title length similarity guard
+    const aggTitle = normalize(track.name).replace(/\(.*?\)/g, '').replace(/feat.*/i, '').trim();
+    const aggArtist = normalize(artistName).split(' ')[0];
+
+    const { data: aggMatches } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+      .ilike('title_aggressive', `%${aggTitle}%`)
+      .ilike('artist_aggressive', `%${aggArtist}%`)
+      .limit(5);
+
+    if (aggMatches && aggMatches.length > 0) {
+      // Length similarity guard: reject if library title is >40% longer than spotify title
+      const best = aggMatches.find(m => {
+        const libLen = (m.title_aggressive || m.title_norm || '').length;
+        const spotLen = aggTitle.length;
+        return libLen <= spotLen * 1.4;
+      });
+
+      if (best) {
+        matched.push({
+          spotify: { id: track.id, title: track.name, artist: artistName },
+          library: best,
+          match_method: 'fuzzy_aggressive',
+          confidence: 0.6
+        });
+        continue;
+      }
+    }
+
+    // No match
+    unmatched.push({
+      spotify: { id: track.id, title: track.name, artist: artistName },
+      match_method: null,
+      confidence: 0
+    });
   }
 
   return { matched, unmatched };
