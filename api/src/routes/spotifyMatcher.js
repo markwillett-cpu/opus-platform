@@ -98,77 +98,31 @@ async function matchTracks(spotifyTracks) {
 
   const spotifyIds = spotifyTracks.map(t => t.id).filter(Boolean);
 
-  // Bulk fetch by Spotify track ID (primary method — works on all API versions)
+  // Bulk fetch all matches in one query
   const { data: spotifyMatches } = await supabase
     .from('library_songs')
-    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm')
     .in('spotify_track_id', spotifyIds);
 
   const spotifyIdMap = new Map((spotifyMatches || []).map(s => [s.spotify_track_id, s]));
 
-  // Match each track
   for (const track of spotifyTracks) {
     const artistName = track.artists?.[0]?.name || '';
 
-    // 1. Spotify track ID match (most reliable, works on all API versions)
     if (spotifyIdMap.has(track.id)) {
       matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, isrc: null },
+        spotify: { id: track.id, title: track.name, artist: artistName },
         library: spotifyIdMap.get(track.id),
         match_method: 'spotify_id',
         confidence: 0.95
       });
-      continue;
-    }
-
-    // 3. Fuzzy: artist_norm + title_norm
-    const normTitle = normalize(track.name);
-    const normArtist = normalize(artistName);
-
-    const { data: fuzzyMatches } = await supabase
-      .from('library_songs')
-      .select('id, title, artist, album, spotify_track_id, artist_norm, title_norm, artist_aggressive, title_aggressive')
-      .eq('title_norm', normTitle)
-      .ilike('artist_norm', `%${normArtist.split(' ')[0]}%`)
-      .limit(5);
-
-    if (fuzzyMatches && fuzzyMatches.length > 0) {
-      matched.push({
-        spotify: { id: track.id, title: track.name, artist: artistName, },
-        library: fuzzyMatches[0],
-        match_method: 'fuzzy_norm',
-        confidence: 0.8
-      });
-      continue;
-    }
-
-    // 4. Aggressive fuzzy: artist_aggressive + title_aggressive
-    const aggTitle = normalize(track.name).replace(/\(.*?\)/g, '').replace(/feat.*/i, '').trim();
-    const aggArtist = normalize(artistName).split(' ')[0];
-
-    const { data: aggMatches } = await supabase
-      .from('library_songs')
-      .select('id, title, artist, album, spotify_track_id, artist_norm, title_norm, artist_aggressive, title_aggressive')
-      .ilike('title_aggressive', `%${aggTitle}%`)
-      .ilike('artist_aggressive', `%${aggArtist}%`)
-      .limit(5);
-
-    if (aggMatches && aggMatches.length > 0) {
-      matched.push({
+    } else {
+      unmatched.push({
         spotify: { id: track.id, title: track.name, artist: artistName },
-        library: aggMatches[0],
-        match_method: 'fuzzy_aggressive',
-        confidence: 0.6
+        match_method: null,
+        confidence: 0
       });
-      continue;
     }
-
-    // No match
-    unmatched.push({
-  spotify: { id: track.id, title: track.name, artist: artistName },
-  match_method: null,
-  confidence: 0
-});
   }
 
   return { matched, unmatched };
