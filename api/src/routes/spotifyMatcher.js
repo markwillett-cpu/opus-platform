@@ -63,6 +63,7 @@ let url = `/playlists/${playlistId}/items?limit=100`;
   
   while (url) {
     const data = await spotifyGet(url, token);
+     console.log('RAW SPOTIFY RESPONSE:', JSON.stringify(data).slice(0, 1000));
     const items = data.items || [];
     for (const item of items) {
       const track = item.track;
