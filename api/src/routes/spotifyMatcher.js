@@ -283,6 +283,7 @@ async function runSync(syncRecord) {
     added: toAdd.length,
     removed: toRemove.length,
     unmatched: unmatched.length,
+    unmatched_tracks: unmatched,
     total_tracks: tracks.length
   };
 }
