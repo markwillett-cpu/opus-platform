@@ -83,6 +83,19 @@
     .spinner-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--accent)}
     @keyframes spin{to{transform:rotate(360deg)}}
 
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:flex-start;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{width:600px;max-width:95vw;margin:8vh auto;background:#fff;border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column;max-height:80vh}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .modal-header-title{font-weight:900;font-size:15px}
+    .modal-header-sub{font-size:12px;color:#7f8c8d;margin-top:2px}
+    .modal-body{padding:0;overflow-y:auto;flex:1}
+    .modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+    .modal-loading{padding:40px;text-align:center;color:#95a5a6;font-size:13px;font-weight:700}
+    .modal-loading .spinner-dark{width:20px;height:20px;display:inline-block;margin-right:8px}
+    .chip.clickable{cursor:pointer;transition:.15s}
+    .chip.clickable:hover{opacity:.75;text-decoration:underline}
+
     #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:12px 18px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;z-index:99999;pointer-events:none}
     #toast.show{opacity:1}
     #toast.error{background:var(--danger)}
@@ -160,6 +173,28 @@
       </table>
     </div>
 
+  </div>
+</div>
+
+<!-- Unmatched Songs Modal -->
+<div id="unmatchedModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-header-title" id="modalTitle">Unmatched Songs</div>
+        <div class="modal-header-sub" id="modalSub"></div>
+      </div>
+      <button class="btn" id="closeModalBtn">Close</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading">
+        <span class="spinner spinner-dark"></span>Fetching playlist…
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="closeModalFooterBtn">Close</button>
+      <button class="btn primary" id="exportUnmatchedBtn" style="width:auto;display:none">Export CSV</button>
+    </div>
   </div>
 </div>
 
@@ -258,7 +293,7 @@ function renderSyncs() {
       ? `<div class="stat-chips">
           <span class="chip chip-green">+${sync.last_sync_added ?? 0} added</span>
           <span class="chip chip-red">-${sync.last_sync_removed ?? 0} removed</span>
-          <span class="chip chip-gray">${sync.last_sync_unmatched ?? 0} unmatched</span>
+          <span class="chip chip-gray clickable view-unmatched" data-playlist-id="${sync.playlist_id}" data-playlist-name="${sync.playlist_name || sync.playlist_id}">${sync.last_sync_unmatched ?? 0} unmatched ↗</span>
          </div>`
       : '<span style="color:#95a5a6;font-size:12px">Not yet synced</span>';
 
@@ -279,7 +314,9 @@ function renderSyncs() {
     </tr>`;
   }).join('');
 
-  tbody.querySelectorAll('.run-one-btn').forEach(btn =>
+  tbody.querySelectorAll('.view-unmatched').forEach(chip =>
+    chip.addEventListener('click', () =>
+      openUnmatchedModal(chip.dataset.playlistId, chip.dataset.playlistName)));
     btn.addEventListener('click', () => runSync(btn.dataset.playlistId, btn)));
 
   tbody.querySelectorAll('.remove-btn').forEach(btn =>
@@ -392,10 +429,92 @@ async function removeSync(playlistId) {
   }
 }
 
+// ─── Unmatched modal ─────────────────────────────────────
+let _currentUnmatched = [];
+
+async function openUnmatchedModal(playlistId, playlistName) {
+  const modal = document.getElementById('unmatchedModal');
+  const body  = document.getElementById('modalBody');
+  const exportBtn = document.getElementById('exportUnmatchedBtn');
+
+  document.getElementById('modalTitle').textContent = 'Unmatched Songs';
+  document.getElementById('modalSub').textContent = playlistName;
+  exportBtn.style.display = 'none';
+  body.innerHTML = '<div class="modal-loading"><span class="spinner spinner-dark"></span>Fetching playlist…</div>';
+  modal.classList.add('open');
+  _currentUnmatched = [];
+
+  try {
+    const { results } = await apiFetch('/spotify/run-sync', {
+      method: 'POST',
+      body: JSON.stringify({ playlist_id: playlistId })
+    });
+
+    const r = results?.[0];
+    const tracks = r?.unmatched_tracks || [];
+    _currentUnmatched = tracks;
+
+    if (!tracks.length) {
+      body.innerHTML = '<div class="modal-loading">No unmatched songs — everything is in the library 🎉</div>';
+      return;
+    }
+
+    body.innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="background:#34495e;color:#fff;padding:10px 14px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;text-align:left">Title</th>
+            <th style="background:#34495e;color:#fff;padding:10px 14px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;text-align:left">Artist</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tracks.map((t, i) => `
+            <tr style="background:${i % 2 === 0 ? '#fff' : '#f8f9fa'}">
+              <td style="padding:10px 14px;font-size:13px;font-weight:700;border-bottom:1px solid #ecf0f1">${t.spotify?.title || '—'}</td>
+              <td style="padding:10px 14px;font-size:13px;color:#555;border-bottom:1px solid #ecf0f1">${t.spotify?.artist || '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+
+    document.getElementById('modalSub').textContent = `${playlistName} — ${tracks.length} unmatched`;
+    exportBtn.style.display = '';
+    exportBtn.dataset.playlistName = playlistName;
+
+    // Reload syncs in background to update last sync stats
+    loadSyncs();
+
+  } catch(err) {
+    body.innerHTML = `<div class="modal-loading" style="color:#e74c3c">Error: ${err.message}</div>`;
+  }
+}
+
+function closeUnmatchedModal() {
+  document.getElementById('unmatchedModal').classList.remove('open');
+  _currentUnmatched = [];
+}
+
+function exportUnmatchedCSV(playlistName) {
+  const rows = _currentUnmatched.map(t =>
+    [t.spotify?.title || '', t.spotify?.artist || ''].map(v => `"${v.replace(/"/g, '""')}"`).join(',')
+  );
+  const csv = ['Title,Artist', ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `unmatched-${playlistName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.csv`;
+  a.click();
+}
+
 // ─── Event wiring ─────────────────────────────────────────
 document.getElementById('registerBtn').addEventListener('click', registerSync);
 document.getElementById('runAllBtn').addEventListener('click', runAllSyncs);
 document.getElementById('refreshBtn').addEventListener('click', loadSyncs);
+document.getElementById('closeModalBtn').addEventListener('click', closeUnmatchedModal);
+document.getElementById('closeModalFooterBtn').addEventListener('click', closeUnmatchedModal);
+document.getElementById('exportUnmatchedBtn').addEventListener('click', e =>
+  exportUnmatchedCSV(e.target.dataset.playlistName));
+document.getElementById('unmatchedModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('unmatchedModal')) closeUnmatchedModal();
+});
 
 // ─── Init ─────────────────────────────────────────────────
 loadStyles();
