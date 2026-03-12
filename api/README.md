@@ -61,9 +61,10 @@ No auth. Returns `{ ok: true }`.
 
 ### Styles
 ```
-GET /v1/styles
+GET  /v1/styles
+POST /v1/styles   body: { name }
 ```
-Returns `{ data: [{ id, name }] }`.
+Returns `{ data: [{ id, name }] }` for GET. Returns `{ ok: true, style: { id, name } }` for POST.
 
 ---
 
