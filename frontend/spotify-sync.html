@@ -143,7 +143,10 @@
           <div class="form-hint">Paste the full Spotify playlist URL</div>
         </div>
         <div class="form-group">
-          <label>Style</label>
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            Style
+            <button type="button" id="newStyleBtn" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:900;cursor:pointer;padding:0;text-decoration:underline">＋ New Style</button>
+          </label>
           <select id="styleSelect">
             <option value="">— Loading styles… —</option>
           </select>
@@ -178,6 +181,27 @@
       </table>
     </div>
 
+  </div>
+</div>
+
+<!-- New Style Modal -->
+<div id="newStyleModal" class="modal-overlay">
+  <div class="modal" style="max-height:unset">
+    <div class="modal-header">
+      <div class="modal-header-title">Create New Style</div>
+      <button class="btn" id="closeNewStyleBtn">Close</button>
+    </div>
+    <div class="modal-body" style="padding:20px 18px;overflow:visible">
+      <div class="form-group">
+        <label>Style Name</label>
+        <input type="text" id="newStyleName" placeholder="e.g. Bubbakoo's Burritos" />
+      </div>
+      <div id="newStyleError" style="display:none;margin-top:10px;padding:10px 12px;background:#f8d7da;color:#721c24;border-radius:4px;font-size:13px;font-weight:700"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelNewStyleBtn">Cancel</button>
+      <button class="btn primary" id="saveNewStyleBtn" style="width:auto">Create Style</button>
+    </div>
   </div>
 </div>
 
@@ -435,6 +459,71 @@ async function removeSync(playlistId) {
   }
 }
 
+// ─── New style modal ─────────────────────────────────────
+function openNewStyleModal() {
+  document.getElementById('newStyleName').value = '';
+  document.getElementById('newStyleError').style.display = 'none';
+  document.getElementById('saveNewStyleBtn').disabled = false;
+  document.getElementById('saveNewStyleBtn').textContent = 'Create Style';
+  document.getElementById('newStyleModal').classList.add('open');
+  setTimeout(() => document.getElementById('newStyleName').focus(), 50);
+}
+
+function closeNewStyleModal() {
+  document.getElementById('newStyleModal').classList.remove('open');
+}
+
+async function saveNewStyle() {
+  const name = document.getElementById('newStyleName').value.trim();
+  const errBox = document.getElementById('newStyleError');
+  const btn = document.getElementById('saveNewStyleBtn');
+
+  errBox.style.display = 'none';
+
+  if (!name) {
+    errBox.textContent = 'Please enter a style name.';
+    errBox.style.display = '';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating…';
+
+  try {
+    const { style } = await apiFetch('/styles', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+
+    // Add to local list and select it in the dropdown
+    allStyles.push(style);
+    allStyles.sort((a, b) => a.name.localeCompare(b.name));
+
+    const sel = document.getElementById('styleSelect');
+    const opt = document.createElement('option');
+    opt.value = style.id;
+    opt.textContent = style.name;
+
+    // Insert in alphabetical order
+    const options = [...sel.options];
+    const insertBefore = options.find(o => o.text > style.name && o.value !== '');
+    if (insertBefore) {
+      sel.insertBefore(opt, insertBefore);
+    } else {
+      sel.appendChild(opt);
+    }
+
+    sel.value = style.id;
+    closeNewStyleModal();
+    toast(`Style "${style.name}" created ✓`, 'success');
+  } catch(err) {
+    errBox.textContent = 'Error: ' + err.message;
+    errBox.style.display = '';
+    btn.disabled = false;
+    btn.textContent = 'Create Style';
+  }
+}
+
 // ─── Unmatched modal ─────────────────────────────────────
 let _currentUnmatched = [];
 
@@ -514,6 +603,16 @@ function exportUnmatchedCSV(playlistName) {
 document.getElementById('registerBtn').addEventListener('click', registerSync);
 document.getElementById('runAllBtn').addEventListener('click', runAllSyncs);
 document.getElementById('refreshBtn').addEventListener('click', loadSyncs);
+document.getElementById('newStyleBtn').addEventListener('click', openNewStyleModal);
+document.getElementById('saveNewStyleBtn').addEventListener('click', saveNewStyle);
+document.getElementById('cancelNewStyleBtn').addEventListener('click', closeNewStyleModal);
+document.getElementById('closeNewStyleBtn').addEventListener('click', closeNewStyleModal);
+document.getElementById('newStyleModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('newStyleModal')) closeNewStyleModal();
+});
+document.getElementById('newStyleName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveNewStyle();
+});
 document.getElementById('closeModalBtn').addEventListener('click', closeUnmatchedModal);
 document.getElementById('closeModalFooterBtn').addEventListener('click', closeUnmatchedModal);
 document.getElementById('exportUnmatchedBtn').addEventListener('click', e =>
