@@ -14,3 +14,4 @@ jobs:
           curl -X POST https://opus-platform.onrender.com/v1/spotify/run-sync \
             -H "Content-Type: application/json" \
             -H "x-api-key: ${{ secrets.API_KEY }}"
+            -d '{}'
