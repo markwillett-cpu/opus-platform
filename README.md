@@ -31,6 +31,7 @@ Auth is a static `x-api-key` header checked on every request. The service role k
 | `uncategorized-detail.html` | Unassigned tracks view + song search drawer |
 | `curator-dashboard.html` | Curator scheduling — cadence, overdue alerts, CSV export |
 | `mood-tagging.html` | Tag styles with up to 6 ordered moods |
+| `spotify-sync.html` | Spotify playlist sync — register playlists, view sync status, export unmatched songs |
 
 ---
 
@@ -85,6 +86,29 @@ All routes are prefixed `/v1` and require `x-api-key`.
 | GET | `/v1/songs/search?q=` | Fuzzy search by title + artist |
 | POST | `/v1/styles/:styleId/songs` | Add a song to a style (lands as Uncategorized) |
 
+### Spotify Sync
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/v1/spotify/register-sync` | Register a Spotify playlist to sync with a style |
+| POST | `/v1/spotify/run-sync` | Run sync for one or all registered playlists |
+| GET | `/v1/spotify/syncs` | List all registered syncs |
+| DELETE | `/v1/spotify/syncs/:playlistId` | Remove a registered sync |
+
+---
+
+## Spotify Sync System
+
+Playlists are synced to styles on a nightly schedule via GitHub Actions. The sync:
+1. Fetches the current playlist tracks from Spotify
+2. Matches each track against the library using a 4-tier matching strategy (Spotify ID → normalized title/artist → aggressive normalization → fuzzy feat/remix)
+3. Adds newly matched songs to the style
+4. Removes songs from the style that were removed from the playlist
+5. Records added/removed/unmatched counts on the sync record
+
+Unmatched songs (tracks in the playlist with no library match) are available via the Spotify Sync page and can be exported as CSV for the curation team to source.
+
+**Cron job:** `.github/workflows/nightly-sync.yml` runs `POST /v1/spotify/run-sync` at 3am UTC every night.
+
 ---
 
 ## Database Tables
@@ -99,10 +123,12 @@ All routes are prefixed `/v1` and require `x-api-key`.
 ### Added by Opus
 - `opus_curator_schedules` — curator cadence schedules (weekly/biweekly/monthly/quarterly)
 - `opus_style_moods` — ordered mood tags per style (up to 6, position matters)
+- `playlist_syncs` — registered Spotify playlist → style sync relationships
 
-Migrations for both are in the repo root:
+Migrations:
 - `supabase-migration.sql` — curator schedules table
 - `supabase-migration-moods.sql` — style moods table
+- `supabase-migration-playlist-syncs.sql` — playlist syncs table
 
 ---
 
