@@ -317,6 +317,7 @@ function renderSyncs() {
   tbody.querySelectorAll('.view-unmatched').forEach(chip =>
     chip.addEventListener('click', () =>
       openUnmatchedModal(chip.dataset.playlistId, chip.dataset.playlistName)));
+  tbody.querySelectorAll('.run-one-btn').forEach(btn =>
     btn.addEventListener('click', () => runSync(btn.dataset.playlistId, btn)));
 
   tbody.querySelectorAll('.remove-btn').forEach(btn =>
