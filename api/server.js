@@ -14,6 +14,8 @@ import curatorSchedulesRoutes from './src/routes/curatorSchedules.js';
 import styleMoodsRoutes from './src/routes/styleMoods.js';
 import songSearchRoutes from './src/routes/songSearch.js';
 import spotifyMatcherRoutes from './src/routes/spotifyMatcher.js';
+import songEnrichRoutes from './src/routes/songEnrich.js';
+
 
 const app = Fastify({
   logger: true
@@ -56,6 +58,8 @@ await app.register(curatorSchedulesRoutes, { prefix: '/v1' });
 await app.register(styleMoodsRoutes, { prefix: '/v1' });
 await app.register(songSearchRoutes, { prefix: '/v1' });
 await app.register(spotifyMatcherRoutes, { prefix: '/v1' });
+await app.register(songEnrichRoutes, { prefix: '/v1' });
+
 
 // Error handler (consistent JSON)
 app.setErrorHandler((err, req, reply) => {
