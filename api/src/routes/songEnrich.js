@@ -84,6 +84,30 @@ async function enrichSong(song) {
 export default async function routes(app) {
 
   /**
+   * GET /v1/songs/attributes?ids=uuid1,uuid2,...
+   * Returns song_attributes rows for the given library_song_ids.
+   * Used by the frontend to load audio metadata for a style's tracks.
+   */
+  app.get('/songs/attributes', async (req, reply) => {
+    const raw = req.query?.ids || '';
+    const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (ids.length === 0) {
+      return reply.send([]);
+    }
+
+    const { data, error } = await supabase
+      .from('song_attributes')
+      .select('*')
+      .in('library_song_id', ids)
+      .eq('source', 'soundcharts');
+
+    assertNoError(error, 'Failed to fetch song attributes');
+
+    return reply.send(data || []);
+  });
+
+  /**
    * POST /v1/songs/enrich
    * Enriches a batch of songs from library_songs with audio attributes from Soundcharts.
    * Body (optional): { limit: 100, offset: 0 }
