@@ -10,4 +10,20 @@ export default async function routes(app) {
     assertNoError(error, 'Failed to fetch styles');
     return reply.send({ data });
   });
+  app.post('/styles', async (req, reply) => {
+    const { name } = req.body || {};
+
+    if (!name?.trim()) {
+      return reply.code(400).send({ error: { message: 'name is required', status: 400 } });
+    }
+
+    const { data, error } = await supabase
+      .from('sim_styles')
+      .insert({ name: name.trim() })
+      .select('id, name')
+      .single();
+
+    assertNoError(error, 'Failed to create style');
+    return reply.code(201).send({ ok: true, style: data });
+  });
 }
