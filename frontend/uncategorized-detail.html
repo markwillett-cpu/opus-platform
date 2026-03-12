@@ -147,6 +147,52 @@
     .add-songs-btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:4px;font-size:13px;font-weight:900;cursor:pointer;transition:.2s}
     .add-songs-btn:hover{background:#2980b9}
     .add-songs-btn:disabled{opacity:.4;cursor:not-allowed}
+
+    /* ── Track Info Icon ─────────────────────────────── */
+    .info-icon-btn{background:none;border:none;cursor:pointer;color:#bdc3c7;font-size:15px;padding:2px 4px;border-radius:3px;transition:.15s;line-height:1}
+    .info-icon-btn:hover{color:var(--accent);background:#e8f4f8}
+
+    /* ── Track Metadata Modal ────────────────────────── */
+    .tm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+    .tm-overlay.open{opacity:1;pointer-events:all}
+    .tm-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-48%);width:560px;max-width:95vw;max-height:88vh;background:#fff;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.22);z-index:301;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+    .tm-modal.open{opacity:1;pointer-events:all;transform:translate(-50%,-50%)}
+    .tm-header{background:var(--secondary);color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+    .tm-title{font-size:16px;font-weight:900;line-height:1.2}
+    .tm-artist{font-size:12px;opacity:.7;font-weight:700;margin-top:3px}
+    .tm-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:0;opacity:.8;flex-shrink:0}
+    .tm-close:hover{opacity:1}
+    .tm-body{overflow:auto;padding:20px;flex:1}
+    .tm-loading{text-align:center;padding:40px;color:#7f8c8d;font-size:13px;font-weight:700}
+    .tm-loading::before{content:'';display:block;width:24px;height:24px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+    .tm-no-data{text-align:center;padding:30px;color:#95a5a6;font-size:13px;font-weight:700}
+    .tm-section{margin-bottom:18px}
+    .tm-section-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#7f8c8d;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--light)}
+    .tm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .tm-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .tm-attr{background:var(--light);border-radius:6px;padding:10px 12px}
+    .tm-attr-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#95a5a6;margin-bottom:4px}
+    .tm-attr-value{font-size:18px;font-weight:1000;color:var(--primary)}
+    .tm-attr-sub{font-size:11px;color:#95a5a6;margin-top:2px}
+    .tm-bar-wrap{margin-top:6px;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden}
+    .tm-bar{height:100%;border-radius:3px;transition:width .4s}
+    .tm-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+    .tm-tag{background:#e8f4f8;color:var(--accent);padding:3px 10px;border-radius:10px;font-size:11px;font-weight:900;text-transform:capitalize}
+    .tm-meta-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--light);font-size:13px}
+    .tm-meta-row:last-child{border-bottom:none}
+    .tm-meta-label{color:#7f8c8d;font-weight:700}
+    .tm-meta-val{font-weight:900}
+
+    /* ── BPM / Energy Filter Bar ─────────────────────── */
+    .filter-bar{background:#f0f4f8;border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;font-weight:700}
+    .filter-bar label{color:#7f8c8d;white-space:nowrap}
+    .filter-bar input[type=range]{width:90px;accent-color:var(--accent);cursor:pointer}
+    .filter-bar .filter-val{color:var(--primary);font-weight:900;min-width:32px}
+    .filter-bar .filter-sep{color:#bdc3c7}
+    .filter-bar select{padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px}
+    .filter-bar .filter-reset{background:none;border:none;color:var(--accent);font-size:11px;font-weight:900;cursor:pointer;padding:0;margin-left:4px}
+    .filter-bar .filter-reset:hover{text-decoration:underline}
+    .filter-active-count{background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:900;margin-left:4px}
 </style>
 </head>
 <body>
@@ -233,6 +279,35 @@
              </select>
             </div>
 
+            <div class="filter-bar" id="filterBar">
+              <label>BPM</label>
+              <span class="filter-val" id="bpmMinVal">—</span>
+              <input type="range" id="bpmMin" min="60" max="220" value="60" step="1" />
+              <span class="filter-sep">to</span>
+              <input type="range" id="bpmMax" min="60" max="220" value="220" step="1" />
+              <span class="filter-val" id="bpmMaxVal">—</span>
+
+              <span class="filter-sep" style="margin:0 4px">|</span>
+
+              <label>Energy</label>
+              <select id="energyFilter">
+                <option value="">Any</option>
+                <option value="low">Low (&lt;0.4)</option>
+                <option value="mid">Mid (0.4–0.7)</option>
+                <option value="high">High (&gt;0.7)</option>
+              </select>
+
+              <span class="filter-sep" style="margin:0 4px">|</span>
+
+              <label>Genre</label>
+              <select id="genreFilter">
+                <option value="">Any</option>
+              </select>
+
+              <button class="filter-reset" id="filterReset">Reset filters</button>
+              <span class="filter-active-count" id="filterCount" style="display:none"></span>
+            </div>
+
             <div class="track-scroll">
               <table class="track-table">
                 <thead>
@@ -246,10 +321,11 @@
                     <th style="width:80px">Year</th>
                     <th style="width:80px">Time</th>
                     <th style="width:140px">Move Date</th>
+                    <th style="width:40px"></th>
                   </tr>
                 </thead>
                 <tbody id="trackBody">
-                  <tr><td colspan="9" class="loading">Select a style to view tracks...</td></tr>
+                  <tr><td colspan="10" class="loading">Select a style to view tracks...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -291,6 +367,21 @@
     </div><!-- /panel -->
   </div><!-- /main-layout -->
 </div><!-- /container -->
+<!-- Track Metadata Modal -->
+<div class="tm-overlay" id="tmOverlay"></div>
+<div class="tm-modal" id="tmModal" role="dialog">
+  <div class="tm-header">
+    <div>
+      <div class="tm-title" id="tmTitle">—</div>
+      <div class="tm-artist" id="tmArtist">—</div>
+    </div>
+    <button class="tm-close" id="tmClose">&times;</button>
+  </div>
+  <div class="tm-body" id="tmBody">
+    <div class="tm-loading"></div>
+  </div>
+</div>
+
 <!-- Song Search Drawer -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <div class="drawer" id="songDrawer" role="dialog">
@@ -479,7 +570,7 @@ async function loadTracksForStyle(styleId, styleNameText) {
   window.currentStyleName = styleNameText;
   
   styleName.textContent = styleNameText;
-  tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading tracks...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="loading">Loading tracks...</td></tr>';
 
   updateURL(styleId);
 
@@ -505,7 +596,7 @@ function normalizeClassCode(code) {
 }
 
     if (!rows || rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="loading">No rows returned from sim_style_songs for this style_id.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="loading">No rows returned from sim_style_songs for this style_id.</td></tr>`;
       return;
     }
 
@@ -530,9 +621,26 @@ function normalizeClassCode(code) {
           duration: (r.sim_duration_seconds ?? s.run_time_seconds ?? 0),
           styles: s.styles || '',
           class_code: normClass,
-          moved_at: movedAt
+          moved_at: movedAt,
+          attrs: null  // populated below
         };
       });
+
+    // Fetch song attributes for all tracks in this style
+    try {
+      const ids = allTracks.map(t => t.id);
+      const attrsData = await window.api.request(`/songs/attributes?ids=${ids.join(',')}`);
+      if (attrsData && Array.isArray(attrsData)) {
+        const attrsMap = {};
+        attrsData.forEach(a => { attrsMap[a.library_song_id] = a; });
+        allTracks.forEach(t => { t.attrs = attrsMap[t.id] || null; });
+      }
+    } catch(e) {
+      console.warn('Could not load song attributes:', e.message);
+    }
+
+    // Populate genre filter from available attributes
+    populateGenreFilter();
 
     if (showingCapped) {
       const infoDiv = document.querySelector('.info');
@@ -606,6 +714,46 @@ function renderTable() {
     );
   }
 
+  // BPM filter
+  const bpmMin = parseInt(document.getElementById('bpmMin')?.value || 60);
+  const bpmMax = parseInt(document.getElementById('bpmMax')?.value || 220);
+  const energyFilter = document.getElementById('energyFilter')?.value || '';
+  const genreFilter = document.getElementById('genreFilter')?.value || '';
+
+  const bpmActive = bpmMin > 60 || bpmMax < 220;
+  const energyActive = !!energyFilter;
+  const genreActive = !!genreFilter;
+
+  if (bpmActive || energyActive || genreActive) {
+    visible = visible.filter(t => {
+      const a = t.attrs;
+      if (bpmActive) {
+        if (!a || !a.bpm) return false;
+        if (a.bpm < bpmMin || a.bpm > bpmMax) return false;
+      }
+      if (energyActive && a) {
+        const e = a.energy;
+        if (energyFilter === 'low' && e >= 0.4) return false;
+        if (energyFilter === 'mid' && (e < 0.4 || e > 0.7)) return false;
+        if (energyFilter === 'high' && e <= 0.7) return false;
+      }
+      if (genreActive && a) {
+        const raw = a.raw || {};
+        const genres = (raw.genres || []).map(g => g.root);
+        if (!genres.includes(genreFilter)) return false;
+      }
+      return true;
+    });
+  }
+
+  // Update active filter count badge
+  const activeCount = (bpmActive ? 1 : 0) + (energyActive ? 1 : 0) + (genreActive ? 1 : 0);
+  const countBadge = document.getElementById('filterCount');
+  if (countBadge) {
+    countBadge.style.display = activeCount > 0 ? '' : 'none';
+    countBadge.textContent = `${visible.length} shown`;
+  }
+
   const sortField = sortBy.value;
   const normStr = (v) => (v ?? '').toString().toLowerCase().trim();
   const normYear = (v) => {
@@ -640,7 +788,7 @@ function renderTable() {
   });
 
   if (visible.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#7f8c8d">No unassigned tracks found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#7f8c8d">No unassigned tracks found</td></tr>';
     selectAll.checked = false;
     updateUI();
     return;
@@ -651,18 +799,21 @@ function renderTable() {
     const secs = (t.duration % 60).toString().padStart(2, '0');
     const timeStr = `${mins}:${secs}`;
     const movedStr = t.moved_at ? new Date(t.moved_at).toLocaleString() : '';
+    const hasAttrs = !!t.attrs;
+    const bpmStr = hasAttrs && t.attrs.bpm ? Math.round(t.attrs.bpm) + ' BPM' : '';
     
     return `
       <tr data-track-id="${t.id}">
         <td><input type="checkbox" class="rowCheck" /></td>
         <td><img class="art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%233498db' width='40' height='40'/%3E%3C/svg%3E" /></td>
-        <td><strong>${t.title}</strong></td>
+        <td><strong>${t.title}</strong>${bpmStr ? `<span style="font-size:11px;color:#95a5a6;font-weight:700;margin-left:6px">${bpmStr}</span>` : ''}</td>
         <td>${t.artist}</td>
         <td>${t.album}</td>
         <td style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#7f8c8d;" title="${(t.styles||'').replace(/"/g,'&quot;')}">${formatStyles(t.styles||'')}</td>
         <td>${t.year}</td>
-       <td class="num">${timeStr}</td>
-<td style="color:#7f8c8d">${movedStr}</td>
+        <td class="num">${timeStr}</td>
+        <td style="color:#7f8c8d">${movedStr}</td>
+        <td><button class="info-icon-btn" data-track-id="${t.id}" title="View track metadata">ℹ</button></td>
       </tr>
     `;
   }).join('');
@@ -672,6 +823,15 @@ function renderTable() {
       cb.closest('tr').classList.toggle('checked', cb.checked);
       syncSelectAll();
       updateUI();
+    });
+  });
+
+  tbody.querySelectorAll('.info-icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const trackId = btn.dataset.trackId;
+      const track = allTracks.find(t => t.id === trackId);
+      if (track) openTrackModal(track);
     });
   });
 }
@@ -867,6 +1027,204 @@ document.getElementById('backToClassesBtn')?.addEventListener('click', () => {
   const styleId = new URLSearchParams(window.location.search).get('style_id');
   window.location.href = styleId ? `index.html?style_id=${styleId}` : 'index.html';
 });
+
+// ═══════════════════════════════════════════════════════════
+// GENRE FILTER POPULATION
+// ═══════════════════════════════════════════════════════════
+function populateGenreFilter() {
+  const genreSelect = document.getElementById('genreFilter');
+  if (!genreSelect) return;
+  const genres = new Set();
+  allTracks.forEach(t => {
+    if (!t.attrs?.raw?.genres) return;
+    t.attrs.raw.genres.forEach(g => { if (g.root) genres.add(g.root); });
+  });
+  const sorted = [...genres].sort();
+  genreSelect.innerHTML = '<option value="">Any</option>' +
+    sorted.map(g => `<option value="${g}">${g.charAt(0).toUpperCase()+g.slice(1)}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// BPM RANGE LABELS
+// ═══════════════════════════════════════════════════════════
+function updateBpmLabels() {
+  const minVal = document.getElementById('bpmMin')?.value;
+  const maxVal = document.getElementById('bpmMax')?.value;
+  const minLbl = document.getElementById('bpmMinVal');
+  const maxLbl = document.getElementById('bpmMaxVal');
+  if (minLbl) minLbl.textContent = minVal;
+  if (maxLbl) maxLbl.textContent = maxVal;
+}
+document.getElementById('bpmMin')?.addEventListener('input', () => { updateBpmLabels(); renderTable(); });
+document.getElementById('bpmMax')?.addEventListener('input', () => { updateBpmLabels(); renderTable(); });
+document.getElementById('energyFilter')?.addEventListener('change', renderTable);
+document.getElementById('genreFilter')?.addEventListener('change', renderTable);
+document.getElementById('filterReset')?.addEventListener('click', () => {
+  document.getElementById('bpmMin').value = 60;
+  document.getElementById('bpmMax').value = 220;
+  document.getElementById('energyFilter').value = '';
+  document.getElementById('genreFilter').value = '';
+  updateBpmLabels();
+  renderTable();
+});
+updateBpmLabels();
+
+// ═══════════════════════════════════════════════════════════
+// TRACK METADATA MODAL
+// ═══════════════════════════════════════════════════════════
+(function() {
+  const overlay = document.getElementById('tmOverlay');
+  const modal   = document.getElementById('tmModal');
+  const closeBtn = document.getElementById('tmClose');
+  const titleEl = document.getElementById('tmTitle');
+  const artistEl = document.getElementById('tmArtist');
+  const bodyEl  = document.getElementById('tmBody');
+
+  function openModal() {
+    overlay.classList.add('open');
+    modal.classList.add('open');
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    modal.classList.remove('open');
+  }
+
+  closeBtn?.addEventListener('click', closeModal);
+  overlay?.addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  function bar(value, color) {
+    const pct = Math.round((value || 0) * 100);
+    return `<div class="tm-bar-wrap"><div class="tm-bar" style="width:${pct}%;background:${color}"></div></div>`;
+  }
+
+  function keyName(k) {
+    const keys = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+    return keys[k] || k;
+  }
+
+  function renderAttrs(attrs, track) {
+    if (!attrs) {
+      bodyEl.innerHTML = `<div class="tm-no-data">No audio attributes available for this track yet.<br><span style="font-size:11px;color:#bdc3c7;margin-top:6px;display:block">Run the enrichment job to populate data.</span></div>`;
+      return;
+    }
+    const a = attrs;
+    const raw = a.raw || {};
+    const genres = (raw.genres || []).map(g => g.root);
+    const labels = (raw.labels || []).map(l => l.name);
+    const composers = raw.composers || [];
+
+    bodyEl.innerHTML = `
+      <div class="tm-section">
+        <div class="tm-section-title">Tempo & Key</div>
+        <div class="tm-grid-3">
+          <div class="tm-attr">
+            <div class="tm-attr-label">BPM</div>
+            <div class="tm-attr-value">${a.bpm ? Math.round(a.bpm) : '—'}</div>
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Key</div>
+            <div class="tm-attr-value">${a.key !== null && a.key !== undefined ? keyName(parseInt(a.key)) : '—'} <span style="font-size:13px;font-weight:700;color:#7f8c8d">${a.mode || ''}</span></div>
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Time Signature</div>
+            <div class="tm-attr-value">${a.time_signature ? a.time_signature + '/4' : '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tm-section">
+        <div class="tm-section-title">Feel</div>
+        <div class="tm-grid">
+          <div class="tm-attr">
+            <div class="tm-attr-label">Energy</div>
+            <div class="tm-attr-value">${a.energy !== null ? Math.round(a.energy * 100) + '%' : '—'}</div>
+            ${a.energy !== null ? bar(a.energy, '#e74c3c') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Danceability</div>
+            <div class="tm-attr-value">${a.danceability !== null ? Math.round(a.danceability * 100) + '%' : '—'}</div>
+            ${a.danceability !== null ? bar(a.danceability, '#3498db') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Valence (Mood)</div>
+            <div class="tm-attr-value">${a.valence !== null ? Math.round(a.valence * 100) + '%' : '—'}</div>
+            ${a.valence !== null ? bar(a.valence, '#f39c12') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Loudness</div>
+            <div class="tm-attr-value">${a.loudness !== null ? a.loudness + ' dB' : '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tm-section">
+        <div class="tm-section-title">Texture</div>
+        <div class="tm-grid">
+          <div class="tm-attr">
+            <div class="tm-attr-label">Acousticness</div>
+            <div class="tm-attr-value">${a.acousticness !== null ? Math.round(a.acousticness * 100) + '%' : '—'}</div>
+            ${a.acousticness !== null ? bar(a.acousticness, '#27ae60') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Instrumentalness</div>
+            <div class="tm-attr-value">${a.instrumentalness !== null ? Math.round(a.instrumentalness * 100) + '%' : '—'}</div>
+            ${a.instrumentalness !== null ? bar(a.instrumentalness, '#9b59b6') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Speechiness</div>
+            <div class="tm-attr-value">${a.speechiness !== null ? Math.round(a.speechiness * 100) + '%' : '—'}</div>
+            ${a.speechiness !== null ? bar(a.speechiness, '#e67e22') : ''}
+          </div>
+          <div class="tm-attr">
+            <div class="tm-attr-label">Liveness</div>
+            <div class="tm-attr-value">${a.raw?.audio?.liveness !== undefined ? Math.round(a.raw.audio.liveness * 100) + '%' : '—'}</div>
+            ${a.raw?.audio?.liveness !== undefined ? bar(a.raw.audio.liveness, '#1abc9c') : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="tm-section">
+        <div class="tm-section-title">Metadata</div>
+        ${genres.length ? `<div style="margin-bottom:10px"><div class="tm-attr-label" style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#95a5a6;margin-bottom:6px">Genres</div><div class="tm-tags">${genres.map(g=>`<span class="tm-tag">${g}</span>`).join('')}</div></div>` : ''}
+        <div>
+          ${raw.releaseDate || raw.release_date ? `<div class="tm-meta-row"><span class="tm-meta-label">Release Date</span><span class="tm-meta-val">${(raw.releaseDate || raw.release_date || '').split('T')[0]}</span></div>` : ''}
+          ${raw.duration ? `<div class="tm-meta-row"><span class="tm-meta-label">Duration</span><span class="tm-meta-val">${Math.floor(raw.duration/60)}:${String(raw.duration%60).padStart(2,'0')}</span></div>` : ''}
+          ${raw.explicit !== undefined ? `<div class="tm-meta-row"><span class="tm-meta-label">Explicit</span><span class="tm-meta-val">${raw.explicit ? 'Yes' : 'No'}</span></div>` : ''}
+          ${raw.languageCode ? `<div class="tm-meta-row"><span class="tm-meta-label">Language</span><span class="tm-meta-val">${raw.languageCode.toUpperCase()}</span></div>` : ''}
+          ${labels.length ? `<div class="tm-meta-row"><span class="tm-meta-label">Label</span><span class="tm-meta-val">${labels.join(', ')}</span></div>` : ''}
+          ${raw.distributor ? `<div class="tm-meta-row"><span class="tm-meta-label">Distributor</span><span class="tm-meta-val">${raw.distributor}</span></div>` : ''}
+          ${composers.length ? `<div class="tm-meta-row"><span class="tm-meta-label">Composers</span><span class="tm-meta-val">${composers.slice(0,3).join(', ')}</span></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  window.openTrackModal = function(track) {
+    titleEl.textContent = track.title;
+    artistEl.textContent = track.artist;
+    bodyEl.innerHTML = '<div class="tm-loading"></div>';
+    openModal();
+
+    // Use cached attrs if available
+    if (track.attrs !== undefined) {
+      renderAttrs(track.attrs, track);
+    } else {
+      // Fallback: fetch on demand
+      window.api.request(`/songs/attributes?ids=${track.id}`)
+        .then(data => {
+          const attrs = Array.isArray(data) ? data[0] : null;
+          track.attrs = attrs || null;
+          renderAttrs(track.attrs, track);
+        })
+        .catch(err => {
+          bodyEl.innerHTML = `<div class="tm-no-data" style="color:#e74c3c">Error loading attributes: ${err.message}</div>`;
+        });
+    }
+  };
+})();
 
 // ═══════════════════════════════════════════════════════════
 // SONG SEARCH DRAWER
