@@ -539,5 +539,33 @@ export default async function routes(app) {
 
     return reply.send({ ok: true, synced: results.length, results });
   });
+/**
+   * GET /v1/spotify/syncs
+   * Returns all registered playlist syncs.
+   */
+  app.get('/spotify/syncs', async (req, reply) => {
+    const { data, error } = await supabase
+      .from('playlist_syncs')
+      .select('*')
+      .order('created_at', { ascending: false });
 
+    assertNoError(error, 'Failed to fetch syncs');
+    return reply.send({ data });
+  });
+
+  /**
+   * DELETE /v1/spotify/syncs/:playlistId
+   * Removes a registered sync. Does not affect songs already in the style.
+   */
+  app.delete('/spotify/syncs/:playlistId', async (req, reply) => {
+    const { playlistId } = req.params;
+
+    const { error } = await supabase
+      .from('playlist_syncs')
+      .delete()
+      .eq('playlist_id', playlistId);
+
+    assertNoError(error, 'Failed to remove sync');
+    return reply.send({ ok: true });
+  });
 }
