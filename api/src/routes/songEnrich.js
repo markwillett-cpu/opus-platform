@@ -93,6 +93,14 @@ export default async function routes(app) {
     const limit  = Math.min(req.body?.limit  ?? 100, 200); // cap at 200
     const offset = req.body?.offset ?? 0;
 
+    // Get IDs already enriched from soundcharts
+    const { data: alreadyEnriched } = await supabase
+      .from('song_attributes')
+      .select('library_song_id')
+      .eq('source', 'soundcharts');
+
+    const enrichedIds = (alreadyEnriched || []).map(r => r.library_song_id);
+
     // Fetch songs — optionally filtered by style name
     let query = supabase
       .from('library_songs')
@@ -102,10 +110,11 @@ export default async function routes(app) {
           sim_styles!inner(name)
         )
       `)
-      .not('isrc', 'is', null)
-      .not('id', 'in', `(
-        SELECT library_song_id FROM song_attributes WHERE source = 'soundcharts'
-      )`);
+      .not('isrc', 'is', null);
+
+    if (enrichedIds.length > 0) {
+      query = query.not('id', 'in', `(${enrichedIds.map(id => `"${id}"`).join(',')})`);
+    }
 
     if (req.body?.style_name) {
       query = query.eq('sim_style_songs.sim_styles.name', req.body.style_name);
