@@ -43,6 +43,7 @@ All routes are prefixed `/v1` and require `x-api-key`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/v1/styles` | List all styles |
+| POST | `/v1/styles` | Create a new style |
 
 ### Tracks & Assignments
 | Method | Path | Description |
