@@ -9,7 +9,9 @@ export const config = {
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || '',
   SPOTIFY_REFRESH_TOKEN: process.env.SPOTIFY_REFRESH_TOKEN || '',
   SPOTIFY_TARGET_USER_ID: process.env.SPOTIFY_TARGET_USER_ID || '',
-  API_BASE_URL: process.env.API_BASE_URL || 'https://opus-platform.onrender.com'
+  API_BASE_URL: process.env.API_BASE_URL || 'https://opus-platform.onrender.com',
+  SOUNDCHARTS_APP_ID: process.env.SOUNDCHARTS_APP_ID || '',
+  SOUNDCHARTS_API_KEY: process.env.SOUNDCHARTS_API_KEY || '',
 };
 
 function must(value, name) {
