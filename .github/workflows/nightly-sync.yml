@@ -1,0 +1,16 @@
+name: Nightly Spotify Sync
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3am UTC every night
+  workflow_dispatch:       # trigger manually from GitHub Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Spotify sync
+        run: |
+          curl -X POST https://opus-platform.onrender.com/v1/spotify/run-sync \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.API_KEY }}"
