@@ -25,7 +25,8 @@ api/
         ├── stylePlaybackProfile.js # GET /v1/styles/:id/playback-profile
         ├── curatorSchedules.js    # CRUD /v1/curator-schedules
         ├── styleMoods.js          # CRUD /v1/styles/:id/moods
-        └── songSearch.js          # GET /v1/songs/search, POST /v1/styles/:id/songs
+        ├── songSearch.js          # GET /v1/songs/search, POST /v1/styles/:id/songs
+        └── spotifyMatcher.js      # Spotify sync — register, run, list, delete
 ```
 
 ---
@@ -39,6 +40,11 @@ OPUS_INTERNAL_API_KEY=your-key-here
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CORS_ORIGIN=https://markwillett-cpu.github.io
+SPOTIFY_CLIENT_ID=your-spotify-client-id
+SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+SPOTIFY_REFRESH_TOKEN=your-spotify-refresh-token
+SPOTIFY_TARGET_USER_ID=your-spotify-username
+API_BASE_URL=https://opus-platform.onrender.com
 ```
 
 ---
@@ -149,6 +155,41 @@ POST /v1/styles/:styleId/songs   body: { library_song_id: "uuid" }
 Search splits the query into tokens — each token must match somewhere in `title` or `artist` (case-insensitive). So `"petty learning"` matches Tom Petty's "Learning to Fly".
 
 `POST` adds the song to `sim_style_songs` with no class assignment (lands as Uncategorized). Returns `409` if song already in style.
+
+---
+
+### Spotify Sync
+```
+POST   /v1/spotify/register-sync   body: { playlist_url, style_id }
+POST   /v1/spotify/run-sync        body: { playlist_id? }   (omit playlist_id to run all)
+GET    /v1/spotify/syncs
+DELETE /v1/spotify/syncs/:playlistId
+```
+
+**register-sync** — Links a Spotify collaborative playlist to a style. Stores the relationship in `playlist_syncs`. Safe to call again on an existing playlist (upserts).
+
+**run-sync** — Fetches the current playlist from Spotify, matches tracks against the library, adds new matches to the style, and removes tracks that were deleted from the playlist. If `playlist_id` is omitted, runs all registered syncs. Returns per-sync results including `added`, `removed`, `unmatched`, `total_tracks`, and `unmatched_tracks` (full title/artist list).
+
+Matching uses a 4-tier strategy:
+1. Spotify track ID (exact, highest confidence)
+2. Normalized title + artist (lowercased, accents stripped, punctuation removed)
+3. Aggressive normalization (feat/remix/leading "the" stripped)
+4. Fuzzy prefix match for feat/remix variants
+
+**Cron:** `.github/workflows/nightly-sync.yml` calls `run-sync` at 3am UTC nightly via GitHub Actions.
+
+Requires `supabase-migration-playlist-syncs.sql` and Spotify env vars to be set.
+
+---
+
+### Spotify Auth (one-time setup)
+```
+GET /v1/spotify/auth       # redirects to Spotify OAuth — visit in browser once
+GET /v1/spotify/callback   # exchanges code for tokens — copy refresh token to env vars
+GET /v1/spotify/me         # verify authenticated user
+```
+
+These are used once during initial Spotify setup. `/auth` and `/callback` skip the `x-api-key` check.
 
 ---
 
