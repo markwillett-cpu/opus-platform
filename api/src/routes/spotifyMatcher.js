@@ -540,6 +540,15 @@ export default async function routes(app) {
 
     return reply.send({ ok: true, synced: results.length, results });
   });
+  /**
+   * GET /v1/spotify/test-audio-features/:trackId
+   * Temporary — tests whether Spotify audio features API is still accessible.
+   */
+  app.get('/spotify/test-audio-features/:trackId', async (req, reply) => {
+    const token = await getAccessToken();
+    const data = await spotifyGet(`/audio-features/${req.params.trackId}`, token);
+    return reply.send(data);
+  });
 /**
    * GET /v1/spotify/syncs
    * Returns all registered playlist syncs.
