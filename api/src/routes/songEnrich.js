@@ -1,0 +1,132 @@
+import { supabase, assertNoError } from '../supabase.js';
+import { config } from '../config.js';
+
+const SOUNDCHARTS_APP_ID = config.SOUNDCHARTS_APP_ID;
+const SOUNDCHARTS_API_KEY = config.SOUNDCHARTS_API_KEY;
+const SOUNDCHARTS_BASE = 'https://customer.api.soundcharts.com';
+
+async function soundchartsGet(path) {
+  const res = await fetch(`${SOUNDCHARTS_BASE}${path}`, {
+    headers: {
+      'x-app-id': SOUNDCHARTS_APP_ID,
+      'x-api-key': SOUNDCHARTS_API_KEY
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Soundcharts error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+async function enrichSong(song) {
+  const isrc = (song.isrc || '').toUpperCase();
+  if (!isrc) return { id: song.id, ok: false, reason: 'no_isrc' };
+
+  // Step 1: ISRC → Soundcharts UUID
+  let uuid;
+  try {
+    const lookup = await soundchartsGet(`/api/v2.25/song/by-isrc/${isrc}`);
+    uuid = lookup?.object?.uuid;
+    if (!uuid) return { id: song.id, ok: false, reason: 'not_found' };
+  } catch(err) {
+    return { id: song.id, ok: false, reason: err.message };
+  }
+
+  // Step 2: UUID → full metadata + audio features
+  let data;
+  try {
+    const detail = await soundchartsGet(`/api/v2.25/song/${uuid}`);
+    data = detail?.object;
+    if (!data) return { id: song.id, ok: false, reason: 'no_data' };
+  } catch(err) {
+    return { id: song.id, ok: false, reason: err.message };
+  }
+
+  const audio = data.audio || {};
+  const genres = (data.genres || []).map(g => g.root);
+
+  // Upsert into song_attributes
+  const { error } = await supabase
+    .from('song_attributes')
+    .upsert({
+      library_song_id: song.id,
+      source: 'soundcharts',
+      bpm: audio.tempo ?? null,
+      key: audio.key !== undefined ? String(audio.key) : null,
+      mode: audio.mode === 1 ? 'major' : audio.mode === 0 ? 'minor' : null,
+      energy: audio.energy ?? null,
+      danceability: audio.danceability ?? null,
+      valence: audio.valence ?? null,
+      acousticness: audio.acousticness ?? null,
+      instrumentalness: audio.instrumentalness ?? null,
+      speechiness: audio.speechiness ?? null,
+      loudness: audio.loudness ?? null,
+      duration_seconds: data.duration ?? null,
+      time_signature: audio.timeSignature ?? null,
+      raw: data,
+      fetched_at: new Date().toISOString()
+    }, { onConflict: 'library_song_id,source' });
+
+  if (error) return { id: song.id, ok: false, reason: error.message };
+
+  return {
+    id: song.id,
+    ok: true,
+    title: song.title,
+    artist: song.artist,
+    bpm: audio.tempo,
+    energy: audio.energy,
+    genres
+  };
+}
+
+export default async function routes(app) {
+
+  /**
+   * POST /v1/songs/enrich
+   * Enriches a batch of songs from library_songs with audio attributes from Soundcharts.
+   * Body (optional): { limit: 100, offset: 0 }
+   * Fetches songs with ISRC, looks up Soundcharts, upserts into song_attributes.
+   */
+  app.post('/songs/enrich', async (req, reply) => {
+    const limit  = Math.min(req.body?.limit  ?? 100, 100); // cap at 100
+    const offset = req.body?.offset ?? 0;
+
+    // Fetch songs that have ISRC but haven't been enriched from soundcharts yet
+    const { data: songs, error } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, isrc')
+      .not('isrc', 'is', null)
+      .not('id', 'in', `(
+        SELECT library_song_id FROM song_attributes WHERE source = 'soundcharts'
+      )`)
+      .range(offset, offset + limit - 1);
+
+    assertNoError(error, 'Failed to fetch songs for enrichment');
+
+    if (!songs || songs.length === 0) {
+      return reply.send({ ok: true, message: 'No songs left to enrich', enriched: 0 });
+    }
+
+    const results = [];
+    for (const song of songs) {
+      const result = await enrichSong(song);
+      results.push(result);
+      // Small delay to avoid hammering the API
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    const succeeded = results.filter(r => r.ok).length;
+    const failed    = results.filter(r => !r.ok).length;
+
+    return reply.send({
+      ok: true,
+      total: songs.length,
+      enriched: succeeded,
+      failed,
+      results
+    });
+  });
+
+}
