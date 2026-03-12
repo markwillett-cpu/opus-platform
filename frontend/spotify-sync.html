@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Spotify Sync</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50;flex-wrap:wrap}
+    .toolbar-btn{background:#4a6278;color:#fff;border:none;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:13px;font-weight:800;transition:.2s}
+    .toolbar-btn:hover{background:#5a7288}
+    .toolbar-btn.primary{background:var(--accent)}
+    .toolbar-btn.primary:hover{background:#2980b9}
+    .toolbar-btn:disabled{opacity:.5;cursor:not-allowed}
+    .toolbar-sep{width:1px;height:22px;background:#5a7288;margin:0 4px}
+
+    .container{max-width:1400px;margin:0 auto;padding:18px}
+    .main-layout{display:grid;grid-template-columns:360px 1fr;gap:18px}
+
+    .panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column}
+    .panel-header{background:var(--secondary);color:#fff;padding:14px 16px;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+
+    .form-body{padding:18px;display:flex;flex-direction:column;gap:14px}
+    .form-group{display:flex;flex-direction:column;gap:6px}
+    .form-group label{font-size:12px;font-weight:900;color:#7f8c8d;text-transform:uppercase;letter-spacing:.4px}
+    .form-group input,.form-group select{padding:9px 11px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fff;color:var(--primary)}
+    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent)}
+    .form-hint{font-size:11px;color:#95a5a6;margin-top:2px}
+
+    .btn{padding:9px 14px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--primary);cursor:pointer;font-size:13px;font-weight:900;transition:.2s;white-space:nowrap}
+    .btn:hover{background:#f8f9fa}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;width:100%}
+    .btn.primary:hover{background:#2980b9}
+    .btn.primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+
+    .result-box{margin:0 18px 18px;padding:12px 14px;border-radius:6px;font-size:13px;font-weight:700;display:none}
+    .result-box.success{background:#d4edda;color:#155724;border:1px solid #a9dfbf}
+    .result-box.error{background:#f8d7da;color:#721c24;border:1px solid #f0b8b8}
+
+    table{width:100%;border-collapse:collapse}
+    thead{background:var(--secondary);color:#fff}
+    th,td{padding:12px 14px;font-size:13px;text-align:left;border-bottom:1px solid var(--light)}
+    tbody tr:hover{background:#f8f9fa}
+    th{font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+
+    .link-btn{background:transparent;border:1px solid var(--border);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:900;color:var(--primary);transition:.2s}
+    .link-btn:hover{border-color:var(--accent);color:var(--accent);background:#e8f4f8}
+    .link-btn.danger:hover{border-color:var(--danger);color:var(--danger);background:#fdf0f0}
+    .link-btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .empty-state{text-align:center;padding:60px 20px;color:#95a5a6}
+    .empty-state .icon{font-size:48px;margin-bottom:12px}
+    .empty-state p{font-size:14px;font-weight:700}
+
+    .loading-row{padding:20px;color:#95a5a6;font-size:13px;font-weight:700;text-align:center}
+
+    .sync-result{font-size:12px;color:#7f8c8d;margin-top:2px}
+    .sync-result.ok{color:var(--success)}
+    .sync-result.err{color:var(--danger)}
+
+    .stat-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+    .chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:900}
+    .chip-green{background:#d4edda;color:#155724}
+    .chip-red{background:#f8d7da;color:#721c24}
+    .chip-gray{background:#e9ecef;color:#495057}
+
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    .spinner-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--accent)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:12px 18px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;z-index:99999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.error{background:var(--danger)}
+    #toast.success{background:var(--success)}
+
+    @media(max-width:900px){.main-layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+    <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
+    <a class="nav-item active" href="#">Spotify Sync</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <button class="toolbar-btn primary" id="runAllBtn">▶ Run All Syncs Now</button>
+  <div class="toolbar-sep"></div>
+  <button class="toolbar-btn" id="refreshBtn">↻ Refresh</button>
+</div>
+
+<div class="container">
+  <div class="main-layout">
+
+    <!-- LEFT: Register form -->
+    <div class="panel">
+      <div class="panel-header">Register New Sync</div>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Spotify Playlist URL</label>
+          <input type="text" id="playlistUrl" placeholder="https://open.spotify.com/playlist/…" />
+          <div class="form-hint">Paste the full Spotify playlist URL</div>
+        </div>
+        <div class="form-group">
+          <label>Style</label>
+          <select id="styleSelect">
+            <option value="">— Loading styles… —</option>
+          </select>
+        </div>
+        <button class="btn primary" id="registerBtn">Register Sync</button>
+      </div>
+      <div class="result-box" id="registerResult"></div>
+    </div>
+
+    <!-- RIGHT: Registered syncs table -->
+    <div class="panel">
+      <div class="panel-header">
+        Registered Syncs
+        <span id="syncCount" style="font-weight:700;font-size:12px;opacity:.75"></span>
+      </div>
+      <div id="syncsLoading" class="loading-row">Loading…</div>
+      <div id="syncsEmpty" class="empty-state" style="display:none">
+        <div class="icon">🎵</div>
+        <p>No syncs registered yet. Add one using the form.</p>
+      </div>
+      <table id="syncsTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Playlist</th>
+            <th>Style</th>
+            <th>Last Synced</th>
+            <th>Last Result</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="syncsTableBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+
+<script>
+// ─── Toast ───────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+// ─── API helpers ─────────────────────────────────────────
+const BASE = window.OPUS_CONFIG?.API_BASE_URL || 'https://opus-platform.onrender.com/v1';
+const KEY  = window.OPUS_CONFIG?.API_KEY || '';
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(BASE + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': KEY,
+      ...(opts.headers || {})
+    }
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  return data;
+}
+
+// ─── State ───────────────────────────────────────────────
+let allStyles = [];
+let allSyncs  = [];
+
+// ─── Load styles into dropdown ───────────────────────────
+async function loadStyles() {
+  try {
+    const { data } = await apiFetch('/styles');
+    allStyles = data || [];
+    const sel = document.getElementById('styleSelect');
+    sel.innerHTML = '<option value="">— Select a style —</option>' +
+      allStyles.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  } catch(err) {
+    document.getElementById('styleSelect').innerHTML = '<option value="">Failed to load styles</option>';
+    toast('Could not load styles: ' + err.message, 'error');
+  }
+}
+
+// ─── Load and render syncs ───────────────────────────────
+async function loadSyncs() {
+  document.getElementById('syncsLoading').style.display = '';
+  document.getElementById('syncsTable').style.display = 'none';
+  document.getElementById('syncsEmpty').style.display = 'none';
+
+  try {
+    const { data } = await apiFetch('/spotify/syncs');
+    allSyncs = data || [];
+    renderSyncs();
+  } catch(err) {
+    document.getElementById('syncsLoading').textContent = 'Failed to load syncs.';
+    toast('Could not load syncs: ' + err.message, 'error');
+  }
+}
+
+function renderSyncs() {
+  document.getElementById('syncsLoading').style.display = 'none';
+  document.getElementById('syncCount').textContent =
+    `${allSyncs.length} sync${allSyncs.length !== 1 ? 's' : ''}`;
+
+  if (!allSyncs.length) {
+    document.getElementById('syncsEmpty').style.display = '';
+    document.getElementById('syncsTable').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('syncsTable').style.display = '';
+  document.getElementById('syncsEmpty').style.display = 'none';
+
+  const tbody = document.getElementById('syncsTableBody');
+  tbody.innerHTML = allSyncs.map(sync => {
+    const style     = allStyles.find(s => s.id === sync.style_id);
+    const styleName = style?.name || sync.style_id;
+    const lastSynced = sync.last_synced_at
+      ? new Date(sync.last_synced_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
+      : '—';
+
+    const hasResult = sync.last_synced_at;
+    const resultHtml = hasResult
+      ? `<div class="stat-chips">
+          <span class="chip chip-green">+${sync.last_sync_added ?? 0} added</span>
+          <span class="chip chip-red">-${sync.last_sync_removed ?? 0} removed</span>
+          <span class="chip chip-gray">${sync.last_sync_unmatched ?? 0} unmatched</span>
+         </div>`
+      : '<span style="color:#95a5a6;font-size:12px">Not yet synced</span>';
+
+    return `<tr>
+      <td>
+        <div style="font-weight:900;font-size:13px">${sync.playlist_name || sync.playlist_id}</div>
+        <div style="font-size:11px;color:#95a5a6;margin-top:2px">
+          <a href="https://open.spotify.com/playlist/${sync.playlist_id}" target="_blank" style="color:#3498db;text-decoration:none">Open in Spotify ↗</a>
+        </div>
+      </td>
+      <td style="font-weight:700">${styleName}</td>
+      <td style="font-size:12px;color:#7f8c8d">${lastSynced}</td>
+      <td>${resultHtml}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="link-btn run-one-btn" data-playlist-id="${sync.playlist_id}" style="margin-right:6px">▶ Sync Now</button>
+        <button class="link-btn danger remove-btn" data-playlist-id="${sync.playlist_id}">Remove</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.run-one-btn').forEach(btn =>
+    btn.addEventListener('click', () => runSync(btn.dataset.playlistId, btn)));
+
+  tbody.querySelectorAll('.remove-btn').forEach(btn =>
+    btn.addEventListener('click', () => removeSync(btn.dataset.playlistId)));
+}
+
+// ─── Register sync ────────────────────────────────────────
+async function registerSync() {
+  const playlistUrl = document.getElementById('playlistUrl').value.trim();
+  const styleId     = document.getElementById('styleSelect').value;
+  const resultBox   = document.getElementById('registerResult');
+  const btn         = document.getElementById('registerBtn');
+
+  resultBox.style.display = 'none';
+
+  if (!playlistUrl || !styleId) {
+    resultBox.className = 'result-box error';
+    resultBox.textContent = 'Please fill in both fields.';
+    resultBox.style.display = '';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Registering…';
+
+  try {
+    const { sync } = await apiFetch('/spotify/register-sync', {
+      method: 'POST',
+      body: JSON.stringify({ playlist_url: playlistUrl, style_id: styleId })
+    });
+
+    resultBox.className = 'result-box success';
+    resultBox.textContent = `✓ "${sync.playlist_name}" registered successfully.`;
+    resultBox.style.display = '';
+
+    document.getElementById('playlistUrl').value = '';
+    document.getElementById('styleSelect').value = '';
+
+    toast('Sync registered ✓', 'success');
+    await loadSyncs();
+  } catch(err) {
+    resultBox.className = 'result-box error';
+    resultBox.textContent = 'Error: ' + err.message;
+    resultBox.style.display = '';
+    toast('Registration failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Register Sync';
+  }
+}
+
+// ─── Run a single sync ────────────────────────────────────
+async function runSync(playlistId, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner spinner-dark"></span>';
+
+  try {
+    const { results } = await apiFetch('/spotify/run-sync', {
+      method: 'POST',
+      body: JSON.stringify({ playlist_id: playlistId })
+    });
+    const r = results?.[0];
+    if (r?.ok) {
+      toast(`Synced ✓ — +${r.added} added, -${r.removed} removed`, 'success');
+    } else {
+      toast('Sync error: ' + (r?.error || 'Unknown'), 'error');
+    }
+    await loadSyncs();
+  } catch(err) {
+    toast('Sync failed: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '▶ Sync Now';
+  }
+}
+
+// ─── Run all syncs ────────────────────────────────────────
+async function runAllSyncs() {
+  const btn = document.getElementById('runAllBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Syncing…';
+
+  try {
+    const { results } = await apiFetch('/spotify/run-sync', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    const ok  = results.filter(r => r.ok).length;
+    const err = results.filter(r => !r.ok).length;
+    toast(`Done — ${ok} synced${err ? `, ${err} failed` : ''} ✓`, 'success');
+    await loadSyncs();
+  } catch(err) {
+    toast('Run all failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run All Syncs Now';
+  }
+}
+
+// ─── Remove a sync ────────────────────────────────────────
+async function removeSync(playlistId) {
+  const sync = allSyncs.find(s => s.playlist_id === playlistId);
+  if (!confirm(`Remove sync for "${sync?.playlist_name || playlistId}"? This won't affect songs already in the style.`)) return;
+
+  try {
+    await apiFetch('/spotify/syncs/' + playlistId, { method: 'DELETE' });
+    toast('Sync removed', 'success');
+    await loadSyncs();
+  } catch(err) {
+    toast('Remove failed: ' + err.message, 'error');
+  }
+}
+
+// ─── Event wiring ─────────────────────────────────────────
+document.getElementById('registerBtn').addEventListener('click', registerSync);
+document.getElementById('runAllBtn').addEventListener('click', runAllSyncs);
+document.getElementById('refreshBtn').addEventListener('click', loadSyncs);
+
+// ─── Init ─────────────────────────────────────────────────
+loadStyles();
+loadSyncs();
+</script>
+</body>
+</html>
