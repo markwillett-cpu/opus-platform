@@ -48,7 +48,6 @@ async function spotifyGet(path, token) {
 }
 
 function extractPlaylistId(input) {
-  // Accept full URL or bare ID
   const match = input.match(/playlist\/([a-zA-Z0-9]+)/);
   return match ? match[1] : input.trim();
 }
@@ -58,12 +57,10 @@ function extractPlaylistId(input) {
 // external_ids (ISRC) removed in new API — omitted from fields request.
 async function fetchAllPlaylistTracks(playlistId, token) {
   const tracks = [];
-  // /tracks → /items
-let url = `/playlists/${playlistId}/items?limit=100`;
-  
+  let url = `/playlists/${playlistId}/items?limit=100`;
+
   while (url) {
     const data = await spotifyGet(url, token);
-     console.log('RAW SPOTIFY RESPONSE:', JSON.stringify(data).slice(0, 1000));
     const items = data.items || [];
     for (const item of items) {
       const track = item.item;
@@ -74,12 +71,6 @@ let url = `/playlists/${playlistId}/items?limit=100`;
   return tracks;
 }
 
-// Read tracks directly from source playlist (works for public playlists and playlists shared with authenticated user)
-async function copyPlaylist(sourceId, sourceName, token) {
-  const tracks = await fetchAllPlaylistTracks(sourceId, token);
-  return { newPlaylistId: sourceId, tracks };
-}
-
 // ─────────────────────────────────────────────────────────
 // Matching logic
 // ─────────────────────────────────────────────────────────
@@ -87,9 +78,9 @@ async function copyPlaylist(sourceId, sourceName, token) {
 function normalize(str) {
   return (str || '')
     .toLowerCase()
-     .normalize('NFD')                    // ← decompose accented chars
-    .replace(/[\u0300-\u036f]/g, '') // ← strip accent marks
-    .replace(/&/g, 'and') 
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, 'and')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -126,15 +117,14 @@ async function matchTracks(spotifyTracks) {
     const normTitle = normalize(track.name);
     const normArtist = normalize(artistName);
 
-    
-const aggTitle = normalize(track.name)
-  .replace(/\(.*?\)/g, '')
-  .replace(/feat.*/i, '')
-  .replace(/^the\s+/i, '')
-  .trim();
-const aggArtist = normalize(artistName)
-  .replace(/^the\s+/i, '')
-  .trim();
+    const aggTitle = normalize(track.name)
+      .replace(/\(.*?\)/g, '')
+      .replace(/feat.*/i, '')
+      .replace(/^the\s+/i, '')
+      .trim();
+    const aggArtist = normalize(artistName)
+      .replace(/^the\s+/i, '')
+      .trim();
 
     // Tier 2: Exact title_norm + artist_norm
     const { data: exactMatches } = await supabase
@@ -154,30 +144,29 @@ const aggArtist = normalize(artistName)
       continue;
     }
 
-    // Tier 3: Exact title_aggressive + artist_aggressive
- // Tier 3: Exact title_aggressive + artist_aggressive (try with and without leading "the")
-const aggTitlesToTry = [aggTitle, `the ${aggTitle}`];
+    // Tier 3: Exact title_aggressive + artist_aggressive (try with and without leading "the")
+    const aggTitlesToTry = [aggTitle, `the ${aggTitle}`];
 
-let aggExactMatch = null;
-for (const t of aggTitlesToTry) {
-  const { data } = await supabase
-    .from('library_songs')
-    .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
-    .eq('title_aggressive', t)
-    .eq('artist_aggressive', aggArtist)
-    .limit(1);
-  if (data && data.length > 0) { aggExactMatch = data[0]; break; }
-}
+    let aggExactMatch = null;
+    for (const t of aggTitlesToTry) {
+      const { data } = await supabase
+        .from('library_songs')
+        .select('id, title, artist, album, spotify_track_id, isrc, artist_norm, title_norm, artist_aggressive, title_aggressive')
+        .eq('title_aggressive', t)
+        .eq('artist_aggressive', aggArtist)
+        .limit(1);
+      if (data && data.length > 0) { aggExactMatch = data[0]; break; }
+    }
 
-if (aggExactMatch) {
-  matched.push({
-    spotify: { id: track.id, title: track.name, artist: artistName },
-    library: aggExactMatch,
-    match_method: 'exact_aggressive',
-    confidence: 0.85
-  });
-  continue;
-}
+    if (aggExactMatch) {
+      matched.push({
+        spotify: { id: track.id, title: track.name, artist: artistName },
+        library: aggExactMatch,
+        match_method: 'exact_aggressive',
+        confidence: 0.85
+      });
+      continue;
+    }
 
     // Tier 4: feat/remix fuzzy — library title starts with spotify title + qualifier
     const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
@@ -232,6 +221,73 @@ if (aggExactMatch) {
 }
 
 // ─────────────────────────────────────────────────────────
+// Sync logic
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Core sync function — fetches the playlist, matches tracks, and reconciles
+ * additions and removals against the style. Called by both sync endpoints.
+ */
+async function runSync(syncRecord) {
+  const token = await getAccessToken();
+  const tracks = await fetchAllPlaylistTracks(syncRecord.playlist_id, token);
+  const { matched, unmatched } = await matchTracks(tracks);
+
+  const incomingLibraryIds = new Set(matched.map(m => m.library.id));
+
+  // Fetch songs currently in this style
+  const { data: currentSongs } = await supabase
+    .from('sim_style_songs')
+    .select('library_song_id')
+    .eq('style_id', syncRecord.style_id);
+
+  const currentIds = new Set((currentSongs || []).map(r => r.library_song_id));
+
+  // Songs to add — in playlist now, not yet in style
+  const toAdd = [...incomingLibraryIds].filter(id => !currentIds.has(id));
+
+  // Songs to remove — in style but no longer in playlist
+  const toRemove = [...currentIds].filter(id => !incomingLibraryIds.has(id));
+
+  if (toAdd.length > 0) {
+    const rows = toAdd.map(library_song_id => ({
+      style_id: syncRecord.style_id,
+      library_song_id
+    }));
+    const { error } = await supabase.from('sim_style_songs').insert(rows);
+    assertNoError(error, 'Failed to add songs during sync');
+  }
+
+  if (toRemove.length > 0) {
+    const { error } = await supabase
+      .from('sim_style_songs')
+      .delete()
+      .eq('style_id', syncRecord.style_id)
+      .in('library_song_id', toRemove);
+    assertNoError(error, 'Failed to remove songs during sync');
+  }
+
+  // Update sync metadata
+  await supabase
+    .from('playlist_syncs')
+    .update({
+      last_synced_at: new Date().toISOString(),
+      last_sync_added: toAdd.length,
+      last_sync_removed: toRemove.length,
+      last_sync_unmatched: unmatched.length,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', syncRecord.id);
+
+  return {
+    added: toAdd.length,
+    removed: toRemove.length,
+    unmatched: unmatched.length,
+    total_tracks: tracks.length
+  };
+}
+
+// ─────────────────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────────────────
 
@@ -240,22 +296,19 @@ export default async function routes(app) {
   /**
    * GET /v1/spotify/me
    * Returns the authenticated Spotify user's profile.
-   * Temporary debug endpoint — use to find the correct user ID.
    */
+  app.get('/spotify/me', async (req, reply) => {
+    const token = await getAccessToken();
+    const me = await spotifyGet('/me', token);
+    return reply.send({ id: me.id, display_name: me.display_name, email: me.email });
+  });
 
   /**
    * GET /v1/spotify/auth
    * One-time OAuth setup — redirects to Spotify login.
    * Visit in browser once to get a refresh token, then save to SPOTIFY_REFRESH_TOKEN env var.
    */
-
-  app.get('/spotify/me', async (req, reply) => {
-    const token = await getAccessToken();
-    const me = await spotifyGet('/me', token);
-    return reply.send({ id: me.id, display_name: me.display_name, email: me.email });
-  });
-  
-app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
+  app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
     const scopes = [
       'playlist-read-private',
       'playlist-read-collaborative',
@@ -274,204 +327,9 @@ app.get('/spotify/auth', { config: { skipAuth: true } }, async (req, reply) => {
     return reply.redirect(`https://accounts.spotify.com/authorize?${params}`);
   });
 
-  app.get('/spotify/customer-auth', { config: { skipAuth: true } }, async (req, reply) => {
-    const { customer_id } = req.query;
-
-    if (!customer_id) {
-      return reply.code(400).send({ error: 'customer_id is required' });
-    }
-
-    const scopes = [
-      'playlist-read-private',
-      'playlist-read-collaborative',
-    ].join(' ');
-
-    const params = new URLSearchParams({
-      client_id: config.SPOTIFY_CLIENT_ID,
-      response_type: 'code',
-redirect_uri: `${config.API_BASE_URL}/v1/spotify/customer-callback`,
-      scope: scopes,
-      state: customer_id,
-      show_dialog: 'true'
-    });
-
-    return reply.redirect(`https://accounts.spotify.com/authorize?${params}`);
-  });
-/**
-   * GET /v1/spotify/customer-callback
-   * Spotify redirects here after customer login.
-   * Saves their refresh token to Supabase and shows a success page.
-   */
-  app.get('/spotify/customer-callback', { config: { skipAuth: true } }, async (req, reply) => {
-    const { code, error, state: customer_id } = req.query;
-
-    if (error) {
-      return reply.type('text/html').send(`
-        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
-          <h2>Something went wrong</h2>
-          <p>Spotify returned an error: ${error}</p>
-          <p>Please try again or contact support.</p>
-        </body></html>
-      `);
-    }
-
-    if (!customer_id) {
-      return reply.code(400).send({ error: 'Missing customer_id in state' });
-    }
-
-    // Exchange code for tokens
-    const res = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(
-          `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
-        ).toString('base64')
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: `${config.API_BASE_URL}/v1/spotify/customer-callback`
-      })
-    });
-
-    const tokenData = await res.json();
-
-    if (tokenData.error) {
-      return reply.type('text/html').send(`
-        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
-          <h2>Something went wrong</h2>
-          <p>Could not complete Spotify authorization. Please try again.</p>
-        </body></html>
-      `);
-    }
-
-    // Get their Spotify profile
-    const profileRes = await fetch('https://api.spotify.com/v1/me', {
-  headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
-});
-const profileText = await profileRes.text();
-let profile = {};
-try {
-  profile = JSON.parse(profileText);
-} catch (e) {
-  req.log.error('Spotify profile fetch failed: ' + profileText);
-}
-
-    // Save to Supabase
-    const { error: dbError } = await supabase
-      .from('customer_spotify_tokens')
-      .upsert({
-        customer_id,
-        refresh_token: tokenData.refresh_token,
-        spotify_user_id: profile.id,
-        spotify_display_name: profile.display_name,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'customer_id' });
-
-    if (dbError) {
-      return reply.type('text/html').send(`
-        <html><body style="font-family:sans-serif;padding:40px;text-align:center">
-          <h2>Something went wrong</h2>
-          <p>Could not save your authorization. Please try again.</p>
-        </body></html>
-      `);
-    }
-
-    // Show success page
-    return reply.type('text/html').send(`
-      <html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;padding:40px;text-align:center;background:#f9f9f9">
-        <div style="max-width:400px;margin:80px auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
-          <h2 style="color:#1db954">&#10003; You're all set!</h2>
-          <p style="color:#555">Your Spotify account has been connected successfully.</p>
-          <p style="color:#999;font-size:14px">You can close this window.</p>
-        </div>
-      </body></html>
-    `);
-  });
-  /**
-   * POST /v1/spotify/customer-match
-   * Matches a customer's playlist against the library using their stored token.
-   * Body: { customer_id, playlist_url }
-   */
-  app.post('/spotify/customer-match', async (req, reply) => {
-    const { customer_id, playlist_url } = req.body || {};
-
-    if (!customer_id || !playlist_url) {
-      return reply.code(400).send({ error: { message: 'customer_id and playlist_url are required', status: 400 } });
-    }
-
-    // Look up their stored token
-    const { data: customer, error: customerError } = await supabase
-      .from('customer_spotify_tokens')
-      .select('refresh_token, spotify_display_name')
-      .eq('customer_id', customer_id)
-      .single();
-
-    if (customerError || !customer) {
-      return reply.code(404).send({ error: { message: `No Spotify token found for customer_id: ${customer_id}`, status: 404 } });
-    }
-
-    // Exchange refresh token for access token
-    const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(
-          `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
-        ).toString('base64')
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: customer.refresh_token
-      })
-    });
-
-    const tokenData = await tokenRes.json();
-
-    if (tokenData.error) {
-      return reply.code(401).send({ error: { message: `Could not refresh token for customer: ${tokenData.error}`, status: 401 } });
-    }
-
-    const token = tokenData.access_token;
-
-    // Extract playlist ID and fetch metadata
-    const playlistId = extractPlaylistId(playlist_url);
-    if (!playlistId) {
-      return reply.code(400).send({ error: { message: 'Could not extract playlist ID from URL', status: 400 } });
-    }
-
-    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
-    const tracks = await fetchAllPlaylistTracks(playlistId, token);
-    const { matched, unmatched } = await matchTracks(tracks);
-
-    const total = tracks.length;
-    const matchRate = total > 0 ? Math.round((matched.length / total) * 100) : 0;
-
-    return reply.send({
-      customer: {
-        customer_id,
-        spotify_display_name: customer.spotify_display_name
-      },
-      playlist: {
-        id: playlistId,
-        name: playlistMeta.name,
-        owner: playlistMeta.owner?.display_name,
-        total_tracks: total
-      },
-      summary: {
-        total,
-        matched: matched.length,
-        unmatched: unmatched.length,
-        match_rate: matchRate
-      },
-      matched,
-      unmatched
-    });
-  });
   /**
    * GET /v1/spotify/callback
-   * Step 2 — Spotify redirects here after login.
+   * Spotify redirects here after login.
    * Exchanges code for tokens and displays the refresh token.
    */
   app.get('/spotify/callback', { config: { skipAuth: true } }, async (req, reply) => {
@@ -502,7 +360,6 @@ try {
       return reply.send({ error: data.error, description: data.error_description });
     }
 
-    // Show the refresh token — copy this to SPOTIFY_REFRESH_TOKEN env var on Render
     return reply.type('text/html').send(`
       <html><body style="font-family:monospace;padding:40px;background:#1a1a1a;color:#fff">
         <h2 style="color:#1db954">✓ Spotify Auth Successful</h2>
@@ -516,8 +373,8 @@ try {
 
   /**
    * POST /v1/spotify/match-playlist
-   * Main endpoint — matches a Spotify playlist against the library.
-   * Body: { playlist_url: "https://open.spotify.com/playlist/..." }
+   * Matches a Spotify playlist against the library.
+   * Body: { playlist_url }
    */
   app.post('/spotify/match-playlist', async (req, reply) => {
     const { playlist_url } = req.body || {};
@@ -536,14 +393,8 @@ try {
     }
 
     const token = await getAccessToken();
-
-    // Get playlist metadata
     const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
-
-    // Fetch tracks directly (no copy needed for public playlists)
     const tracks = await fetchAllPlaylistTracks(playlistId, token);
-
-    // Match against library
     const { matched, unmatched } = await matchTracks(tracks);
 
     const total = tracks.length;
@@ -556,12 +407,7 @@ try {
         owner: playlistMeta.owner?.display_name,
         total_tracks: total
       },
-      summary: {
-        total,
-        matched: matched.length,
-        unmatched: unmatched.length,
-        match_rate: matchRate
-      },
+      summary: { total, matched: matched.length, unmatched: unmatched.length, match_rate: matchRate },
       matched,
       unmatched
     });
@@ -579,7 +425,6 @@ try {
       return reply.code(400).send({ error: { message: 'style_id and song_ids are required', status: 400 } });
     }
 
-    // Filter out songs already in the style
     const { data: existing } = await supabase
       .from('sim_style_songs')
       .select('library_song_id')
@@ -612,7 +457,6 @@ try {
       return reply.code(400).send({ error: { message: 'name and song_ids are required', status: 400 } });
     }
 
-    // Create the style in our DB (not Spotify)
     const { data: style, error: styleError } = await supabase
       .from('sim_styles')
       .insert({ name })
@@ -621,11 +465,79 @@ try {
 
     assertNoError(styleError, 'Failed to create style');
 
-    // Add songs
     const rows = song_ids.map(library_song_id => ({ style_id: style.id, library_song_id }));
     const { error: songsError } = await supabase.from('sim_style_songs').insert(rows);
     assertNoError(songsError, 'Failed to add songs to new style');
 
     return reply.code(201).send({ ok: true, style, added: song_ids.length });
   });
+
+  /**
+   * POST /v1/spotify/register-sync
+   * Registers a Spotify playlist to sync with a style.
+   * Body: { playlist_url, style_id }
+   */
+  app.post('/spotify/register-sync', async (req, reply) => {
+    const { playlist_url, style_id } = req.body || {};
+
+    if (!playlist_url || !style_id) {
+      return reply.code(400).send({ error: { message: 'playlist_url and style_id are required', status: 400 } });
+    }
+
+    const playlistId = extractPlaylistId(playlist_url);
+    if (!playlistId) {
+      return reply.code(400).send({ error: { message: 'Could not extract playlist ID from URL', status: 400 } });
+    }
+
+    const token = await getAccessToken();
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
+
+    const { data, error } = await supabase
+      .from('playlist_syncs')
+      .upsert({
+        playlist_id: playlistId,
+        playlist_name: playlistMeta.name,
+        style_id,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'playlist_id' })
+      .select('id, playlist_id, playlist_name, style_id, created_at')
+      .single();
+
+    assertNoError(error, 'Failed to register playlist sync');
+
+    return reply.code(201).send({ ok: true, sync: data });
+  });
+
+  /**
+   * POST /v1/spotify/run-sync
+   * Runs a sync for one playlist, or all registered playlists if no playlist_id given.
+   * Body (optional): { playlist_id }
+   * Called manually or by the nightly Render cron job.
+   */
+  app.post('/spotify/run-sync', async (req, reply) => {
+    const { playlist_id } = req.body || {};
+
+    let query = supabase.from('playlist_syncs').select('*');
+    if (playlist_id) query = query.eq('playlist_id', playlist_id);
+
+    const { data: syncs, error } = await query;
+    assertNoError(error, 'Failed to fetch playlist syncs');
+
+    if (!syncs || syncs.length === 0) {
+      return reply.code(404).send({ error: { message: 'No matching playlist syncs found', status: 404 } });
+    }
+
+    const results = [];
+    for (const sync of syncs) {
+      try {
+        const result = await runSync(sync);
+        results.push({ playlist_id: sync.playlist_id, playlist_name: sync.playlist_name, ok: true, ...result });
+      } catch (err) {
+        results.push({ playlist_id: sync.playlist_id, playlist_name: sync.playlist_name, ok: false, error: err.message });
+      }
+    }
+
+    return reply.send({ ok: true, synced: results.length, results });
+  });
+
 }
