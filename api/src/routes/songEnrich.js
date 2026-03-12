@@ -90,18 +90,30 @@ export default async function routes(app) {
    * Fetches songs with ISRC, looks up Soundcharts, upserts into song_attributes.
    */
   app.post('/songs/enrich', async (req, reply) => {
-    const limit  = Math.min(req.body?.limit  ?? 100, 100); // cap at 100
+    const limit  = Math.min(req.body?.limit  ?? 100, 200); // cap at 200
     const offset = req.body?.offset ?? 0;
 
-    // Fetch songs that have ISRC but haven't been enriched from soundcharts yet
-    const { data: songs, error } = await supabase
+    // Fetch songs — optionally filtered by style name
+    let query = supabase
       .from('library_songs')
-      .select('id, title, artist, isrc')
+      .select(`
+        id, title, artist, isrc,
+        sim_style_songs!inner(
+          sim_styles!inner(name)
+        )
+      `)
       .not('isrc', 'is', null)
       .not('id', 'in', `(
         SELECT library_song_id FROM song_attributes WHERE source = 'soundcharts'
-      )`)
-      .range(offset, offset + limit - 1);
+      )`);
+
+    if (req.body?.style_name) {
+      query = query.eq('sim_style_songs.sim_styles.name', req.body.style_name);
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: songs, error } = await query;
 
     assertNoError(error, 'Failed to fetch songs for enrichment');
 
