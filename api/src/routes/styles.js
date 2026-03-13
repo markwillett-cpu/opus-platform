@@ -33,7 +33,21 @@ export default async function routes(app) {
   app.get('/styles/:styleId/dna', async (req, reply) => {
     const { styleId } = req.params;
 
-    // Fetch all song_attributes for songs in this style
+    // Step 1: get all song IDs in this style
+    const { data: styleSongs, error: styleError } = await supabase
+      .from('sim_style_songs')
+      .select('library_song_id')
+      .eq('style_id', styleId);
+
+    assertNoError(styleError, 'Failed to fetch style songs');
+
+    if (!styleSongs || styleSongs.length === 0) {
+      return reply.send({ ok: true, enriched: 0, dna: null });
+    }
+
+    const songIds = styleSongs.map(r => r.library_song_id);
+
+    // Step 2: fetch attributes for those songs
     const { data, error } = await supabase
       .from('song_attributes')
       .select(`
@@ -43,11 +57,7 @@ export default async function routes(app) {
         loudness, key, mode, time_signature, raw
       `)
       .eq('source', 'soundcharts')
-      .in('library_song_id', supabase
-        .from('sim_style_songs')
-        .select('library_song_id')
-        .eq('style_id', styleId)
-      );
+      .in('library_song_id', songIds);
 
     assertNoError(error, 'Failed to fetch style DNA');
 
