@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Style Builder — Opus</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+      --dark:#1a2530;--darker:#131c24;--card:#1e2d3a;--card2:#243444;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    /* ── Header / Nav (matches app) ── */
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    /* ── Page layout ── */
+    .page{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 52px);overflow:hidden}
+
+    /* ── Left panel: filters ── */
+    .filters-panel{background:var(--darker);display:flex;flex-direction:column;overflow:hidden;border-right:1px solid rgba(255,255,255,.06)}
+    .filters-header{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+    .filters-title{color:#fff;font-size:15px;font-weight:900;letter-spacing:.2px;margin-bottom:2px}
+    .filters-subtitle{color:#6b8499;font-size:12px;font-weight:600}
+    .filters-body{overflow-y:auto;flex:1;padding:16px 20px 20px}
+    .filters-body::-webkit-scrollbar{width:4px}
+    .filters-body::-webkit-scrollbar-track{background:transparent}
+    .filters-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+
+    /* ── Filter sections ── */
+    .filter-section{margin-bottom:22px}
+    .filter-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#6b8499;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+    .filter-label .reset-link{font-size:10px;text-transform:none;letter-spacing:0;color:#3498db;cursor:pointer;opacity:.8;font-weight:700}
+    .filter-label .reset-link:hover{opacity:1}
+
+    /* Range slider */
+    .range-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .range-vals{display:flex;gap:6px;margin-bottom:8px}
+    .range-val{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:5px 8px;color:#fff;font-size:12px;font-weight:700;text-align:center;width:100%}
+    .range-val:focus{outline:none;border-color:var(--accent)}
+    .range-track{position:relative;height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin:8px 0 4px}
+    .range-fill{position:absolute;height:100%;background:var(--accent);border-radius:2px;pointer-events:none}
+    input[type=range]{-webkit-appearance:none;appearance:none;position:absolute;width:100%;height:4px;background:transparent;pointer-events:none;top:0;left:0}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);pointer-events:all;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);pointer-events:all;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+    /* Attribute bar sliders */
+    .attr-slider-row{margin-bottom:14px}
+    .attr-slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .attr-slider-name{font-size:12px;color:#b0c4d0;font-weight:700}
+    .attr-slider-range{font-size:11px;color:#6b8499;font-weight:600}
+    .attr-track{position:relative;height:4px;background:rgba(255,255,255,.1);border-radius:2px}
+    .attr-fill{position:absolute;height:100%;border-radius:2px;pointer-events:none}
+    .attr-track input[type=range]{top:0;left:0}
+
+    /* Genre pills */
+    .genre-grid{display:flex;flex-wrap:wrap;gap:6px}
+    .genre-pill{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#b0c4d0;border-radius:20px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;user-select:none}
+    .genre-pill:hover{background:rgba(52,152,219,.2);border-color:rgba(52,152,219,.4);color:#7ec8f0}
+    .genre-pill.selected{background:rgba(52,152,219,.25);border-color:#3498db;color:#7ec8f0}
+    .genre-pill.excluded{background:rgba(231,76,60,.15);border-color:#e74c3c;color:#f0937f;text-decoration:line-through}
+
+    /* Mode toggle */
+    .mode-toggle{display:flex;gap:6px}
+    .mode-btn{flex:1;padding:7px;border-radius:5px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#b0c4d0;font-size:12px;font-weight:800;cursor:pointer;transition:.15s;text-align:center}
+    .mode-btn:hover{background:rgba(255,255,255,.1)}
+    .mode-btn.active{border-color:var(--accent);background:rgba(52,152,219,.2);color:#7ec8f0}
+
+    /* ── Right panel: results ── */
+    .results-panel{display:flex;flex-direction:column;overflow:hidden;background:#f0f2f5}
+
+    /* Save bar */
+    .save-bar{background:#fff;border-bottom:1px solid var(--border);padding:14px 22px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+    .style-name-input{flex:1;max-width:320px;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;color:var(--primary)}
+    .style-name-input:focus{outline:none;border-color:var(--accent)}
+    .style-name-input::placeholder{color:#aab}
+    .count-input-wrap{display:flex;align-items:center;gap:8px;background:var(--light);border:1px solid var(--border);border-radius:6px;padding:7px 12px}
+    .count-input-wrap label{font-size:12px;font-weight:800;color:#7f8c8d;white-space:nowrap}
+    .count-input{width:70px;border:none;background:transparent;font-size:13px;font-weight:900;color:var(--primary);text-align:right}
+    .count-input:focus{outline:none}
+    .save-btn{background:var(--success);color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:13px;font-weight:900;cursor:pointer;transition:.2s;white-space:nowrap}
+    .save-btn:hover{background:#219a52}
+    .save-btn:disabled{background:#95a5a6;cursor:not-allowed}
+    .save-status{font-size:12px;font-weight:700;color:#7f8c8d}
+
+    /* Results header */
+    .results-header{padding:14px 22px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .match-count{font-size:22px;font-weight:1000;color:var(--primary)}
+    .match-label{font-size:13px;color:#7f8c8d;font-weight:700;margin-left:6px}
+    .results-meta{font-size:12px;color:#7f8c8d;font-weight:600}
+
+    /* Song list */
+    .song-list{flex:1;overflow-y:auto;padding:0 22px 22px}
+    .song-list::-webkit-scrollbar{width:5px}
+    .song-list::-webkit-scrollbar-thumb{background:#bdc3c7;border-radius:3px}
+
+    .song-row{background:#fff;border-radius:6px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;border:1px solid transparent;transition:.15s}
+    .song-row:hover{border-color:var(--border)}
+    .song-idx{font-size:11px;color:#bdc3c7;font-weight:700;width:24px;text-align:right;flex-shrink:0}
+    .song-info{flex:1;min-width:0}
+    .song-title{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .song-artist{font-size:12px;color:#7f8c8d;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .song-chips{display:flex;gap:5px;flex-shrink:0}
+    .chip{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:800;white-space:nowrap}
+    .chip-bpm{background:#e8f4f8;color:#2980b9}
+    .chip-energy{background:#fef0e7;color:#d35400}
+    .chip-key{background:#f0f9f4;color:#27ae60}
+
+    /* Empty / loading states */
+    .state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#95a5a6}
+    .state-box .state-icon{font-size:40px;opacity:.4}
+    .state-box .state-msg{font-size:14px;font-weight:700}
+    .state-box .state-sub{font-size:12px;opacity:.7;text-align:center;max-width:260px}
+
+    /* Loading overlay */
+    .loading-bar{height:3px;background:var(--accent);width:0;transition:width .3s;position:fixed;top:0;left:0;z-index:9999}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:.3s;z-index:9999}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{background:var(--success)}
+    .toast.error{background:var(--danger)}
+
+    @media(max-width:900px){.page{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+  </style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+    <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
+    <a class="nav-item" href="./spotify-sync.html">Spotify Sync</a>
+    <a class="nav-item active" href="#">Style Builder</a>
+  </nav>
+</div>
+
+<div class="page">
+
+  <!-- ═══ LEFT: FILTERS ═══ -->
+  <div class="filters-panel">
+    <div class="filters-header">
+      <div class="filters-title">Build a Style</div>
+      <div class="filters-subtitle" id="filterSubtitle">Loading audio library…</div>
+    </div>
+
+    <div class="filters-body">
+
+      <!-- BPM -->
+      <div class="filter-section">
+        <div class="filter-label">
+          Tempo (BPM)
+          <span class="reset-link" data-reset="bpm">Reset</span>
+        </div>
+        <div class="range-vals">
+          <input class="range-val" id="bpmLowVal" type="number" min="40" max="220" value="60" />
+          <input class="range-val" id="bpmHighVal" type="number" min="40" max="220" value="200" />
+        </div>
+        <div class="range-track" id="bpmTrack">
+          <div class="range-fill" id="bpmFill"></div>
+          <input type="range" id="bpmLow" min="40" max="220" value="60" step="1" />
+          <input type="range" id="bpmHigh" min="40" max="220" value="200" step="1" />
+        </div>
+      </div>
+
+      <!-- Key / Mode -->
+      <div class="filter-section">
+        <div class="filter-label">Mode</div>
+        <div class="mode-toggle">
+          <div class="mode-btn active" data-mode="any">Any</div>
+          <div class="mode-btn" data-mode="major">Major only</div>
+          <div class="mode-btn" data-mode="minor">Minor only</div>
+        </div>
+      </div>
+
+      <!-- Energy -->
+      <div class="filter-section">
+        <div class="filter-label">
+          Feel
+          <span class="reset-link" data-reset="feel">Reset</span>
+        </div>
+        <div class="attr-slider-row">
+          <div class="attr-slider-label">
+            <span class="attr-slider-name">Energy</span>
+            <span class="attr-slider-range" id="energyRangeLabel">0 – 100%</span>
+          </div>
+          <div class="attr-track" id="energyTrack">
+            <div class="attr-fill" id="energyFill" style="background:#3498db"></div>
+            <input type="range" id="energyLow" min="0" max="100" value="0" step="1" />
+            <input type="range" id="energyHigh" min="0" max="100" value="100" step="1" />
+          </div>
+        </div>
+        <div class="attr-slider-row">
+          <div class="attr-slider-label">
+            <span class="attr-slider-name">Danceability</span>
+            <span class="attr-slider-range" id="danceRangeLabel">0 – 100%</span>
+          </div>
+          <div class="attr-track" id="danceTrack">
+            <div class="attr-fill" id="danceFill" style="background:#9b59b6"></div>
+            <input type="range" id="danceLow" min="0" max="100" value="0" step="1" />
+            <input type="range" id="danceHigh" min="0" max="100" value="100" step="1" />
+          </div>
+        </div>
+        <div class="attr-slider-row">
+          <div class="attr-slider-label">
+            <span class="attr-slider-name">Valence (mood)</span>
+            <span class="attr-slider-range" id="valenceRangeLabel">0 – 100%</span>
+          </div>
+          <div class="attr-track" id="valenceTrack">
+            <div class="attr-fill" id="valenceFill" style="background:#f39c12"></div>
+            <input type="range" id="valenceLow" min="0" max="100" value="0" step="1" />
+            <input type="range" id="valenceHigh" min="0" max="100" value="100" step="1" />
+          </div>
+        </div>
+        <div class="attr-slider-row">
+          <div class="attr-slider-label">
+            <span class="attr-slider-name">Acousticness</span>
+            <span class="attr-slider-range" id="acousticRangeLabel">0 – 100%</span>
+          </div>
+          <div class="attr-track" id="acousticTrack">
+            <div class="attr-fill" id="acousticFill" style="background:#27ae60"></div>
+            <input type="range" id="acousticLow" min="0" max="100" value="0" step="1" />
+            <input type="range" id="acousticHigh" min="0" max="100" value="100" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Genres -->
+      <div class="filter-section">
+        <div class="filter-label">
+          Genre
+          <span class="reset-link" data-reset="genre">Reset</span>
+        </div>
+        <div class="genre-grid" id="genreGrid">
+          <div style="color:#6b8499;font-size:12px">Loading genres…</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#6b8499">Click to include · Click again to exclude · Click again to clear</div>
+      </div>
+
+    </div><!-- /filters-body -->
+  </div><!-- /filters-panel -->
+
+  <!-- ═══ RIGHT: RESULTS ═══ -->
+  <div class="results-panel">
+
+    <!-- Save bar -->
+    <div class="save-bar">
+      <input class="style-name-input" id="styleNameInput" type="text" placeholder="Style name…" />
+      <div class="count-input-wrap">
+        <label for="targetCount">Add top</label>
+        <input class="count-input" id="targetCount" type="number" min="1" max="5000" value="500" />
+        <label for="targetCount">songs</label>
+      </div>
+      <button class="save-btn" id="saveBtn" disabled>Create Style</button>
+      <span class="save-status" id="saveStatus"></span>
+    </div>
+
+    <!-- Results header -->
+    <div class="results-header">
+      <div>
+        <span class="match-count" id="matchCount">—</span>
+        <span class="match-label" id="matchLabel">songs match your filters</span>
+      </div>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+
+    <!-- Song list -->
+    <div class="song-list" id="songList">
+      <div class="state-box">
+        <div class="state-icon">🎛️</div>
+        <div class="state-msg">Set your filters</div>
+        <div class="state-sub">Adjust the sliders and genre pills on the left to build your style.</div>
+      </div>
+    </div>
+
+  </div><!-- /results-panel -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG + CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const CONFIG = window.OPUS_CONFIG || {};
+const API_BASE = CONFIG.API_BASE_URL || '';
+const API_KEY  = CONFIG.API_KEY || '';
+
+const PREVIEW_LIMIT = 200; // rows shown in list (performance cap)
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let allSongs = [];       // enriched songs loaded once
+let filteredSongs = [];  // result of current filters
+let genreState = {};     // genre -> 'include' | 'exclude' | null
+let filterState = {
+  bpmLow: 40, bpmHigh: 220,
+  energyLow: 0, energyHigh: 100,
+  danceLow: 0, danceHigh: 100,
+  valenceLow: 0, valenceHigh: 100,
+  acousticLow: 0, acousticHigh: 100,
+  mode: 'any'
+};
+
+// ═══════════════════════════════════════════════════════════
+// LOADING BAR
+// ═══════════════════════════════════════════════════════════
+const loadingBar = document.getElementById('loadingBar');
+function setLoading(pct) {
+  loadingBar.style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => { loadingBar.style.width = '0'; }, 400);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DUAL RANGE SLIDER HELPERS
+// ═══════════════════════════════════════════════════════════
+function initDualRange(lowId, highId, fillId, onChange) {
+  const low  = document.getElementById(lowId);
+  const high = document.getElementById(highId);
+  const fill = document.getElementById(fillId);
+
+  function update() {
+    const lo = Math.min(+low.value, +high.value);
+    const hi = Math.max(+low.value, +high.value);
+    const min = +low.min, max = +low.max;
+    const loPct = ((lo - min) / (max - min)) * 100;
+    const hiPct = ((hi - min) / (max - min)) * 100;
+    fill.style.left  = loPct + '%';
+    fill.style.width = (hiPct - loPct) + '%';
+    onChange(lo, hi);
+  }
+
+  low.addEventListener('input', () => {
+    if (+low.value > +high.value) low.value = high.value;
+    update();
+  });
+  high.addEventListener('input', () => {
+    if (+high.value < +low.value) high.value = low.value;
+    update();
+  });
+
+  update();
+  return update;
+}
+
+// ═══════════════════════════════════════════════════════════
+// BPM RANGE (with number inputs)
+// ═══════════════════════════════════════════════════════════
+const bpmLowSlider  = document.getElementById('bpmLow');
+const bpmHighSlider = document.getElementById('bpmHigh');
+const bpmLowVal     = document.getElementById('bpmLowVal');
+const bpmHighVal    = document.getElementById('bpmHighVal');
+const bpmFill       = document.getElementById('bpmFill');
+
+function updateBpmFill() {
+  const lo = +bpmLowSlider.value, hi = +bpmHighSlider.value;
+  const min = 40, max = 220;
+  const loPct = ((lo - min) / (max - min)) * 100;
+  const hiPct = ((hi - min) / (max - min)) * 100;
+  bpmFill.style.left  = loPct + '%';
+  bpmFill.style.width = (hiPct - loPct) + '%';
+}
+
+function syncBpm() {
+  let lo = Math.min(+bpmLowSlider.value, +bpmHighSlider.value);
+  let hi = Math.max(+bpmLowSlider.value, +bpmHighSlider.value);
+  bpmLowVal.value = lo;
+  bpmHighVal.value = hi;
+  filterState.bpmLow = lo;
+  filterState.bpmHigh = hi;
+  updateBpmFill();
+  scheduleFilter();
+}
+
+bpmLowSlider.addEventListener('input', syncBpm);
+bpmHighSlider.addEventListener('input', syncBpm);
+bpmLowVal.addEventListener('change', () => {
+  bpmLowSlider.value = bpmLowVal.value;
+  syncBpm();
+});
+bpmHighVal.addEventListener('change', () => {
+  bpmHighSlider.value = bpmHighVal.value;
+  syncBpm();
+});
+updateBpmFill();
+
+// ═══════════════════════════════════════════════════════════
+// ATTRIBUTE SLIDERS
+// ═══════════════════════════════════════════════════════════
+function initAttr(lowId, highId, fillId, labelId, stateLoKey, stateHiKey) {
+  const low  = document.getElementById(lowId);
+  const high = document.getElementById(highId);
+  const fill = document.getElementById(fillId);
+  const lbl  = document.getElementById(labelId);
+
+  function update() {
+    let lo = Math.min(+low.value, +high.value);
+    let hi = Math.max(+low.value, +high.value);
+    fill.style.left  = lo + '%';
+    fill.style.width = (hi - lo) + '%';
+    if (lbl) lbl.textContent = `${lo} – ${hi}%`;
+    filterState[stateLoKey] = lo;
+    filterState[stateHiKey] = hi;
+    scheduleFilter();
+  }
+
+  low.addEventListener('input', () => { if (+low.value > +high.value) low.value = high.value; update(); });
+  high.addEventListener('input', () => { if (+high.value < +low.value) high.value = low.value; update(); });
+  update();
+}
+
+initAttr('energyLow',  'energyHigh',  'energyFill',  'energyRangeLabel',  'energyLow',  'energyHigh');
+initAttr('danceLow',   'danceHigh',   'danceFill',   'danceRangeLabel',   'danceLow',   'danceHigh');
+initAttr('valenceLow', 'valenceHigh', 'valenceFill', 'valenceRangeLabel', 'valenceLow', 'valenceHigh');
+initAttr('acousticLow','acousticHigh','acousticFill','acousticRangeLabel','acousticLow','acousticHigh');
+
+// ═══════════════════════════════════════════════════════════
+// MODE TOGGLE
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterState.mode = btn.dataset.mode;
+    scheduleFilter();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// RESET LINKS
+// ═══════════════════════════════════════════════════════════
+document.querySelectorAll('.reset-link').forEach(link => {
+  link.addEventListener('click', () => {
+    const which = link.dataset.reset;
+    if (which === 'bpm') {
+      bpmLowSlider.value = 40; bpmHighSlider.value = 220;
+      syncBpm();
+    }
+    if (which === 'feel') {
+      ['energy','dance','valence','acoustic'].forEach(name => {
+        document.getElementById(name+'Low').value  = 0;
+        document.getElementById(name+'High').value = 100;
+        document.getElementById(name+'Low').dispatchEvent(new Event('input'));
+        document.getElementById(name+'High').dispatchEvent(new Event('input'));
+      });
+    }
+    if (which === 'genre') {
+      genreState = {};
+      renderGenrePills();
+      scheduleFilter();
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// GENRE PILLS
+// ═══════════════════════════════════════════════════════════
+function buildGenreList(songs) {
+  const counts = {};
+  songs.forEach(s => {
+    (s.genres || []).forEach(g => { counts[g] = (counts[g] || 0) + 1; });
+  });
+  return Object.entries(counts)
+    .filter(([,c]) => c >= 3)
+    .sort((a,b) => b[1] - a[1])
+    .map(([g]) => g);
+}
+
+function renderGenrePills() {
+  const grid = document.getElementById('genreGrid');
+  const genres = Object.keys(genreState).length
+    ? [...new Set([...Object.keys(genreState), ...allGenres])]
+    : allGenres;
+
+  grid.innerHTML = allGenres.map(g => {
+    const state = genreState[g] || null;
+    const cls = state === 'include' ? 'selected' : state === 'exclude' ? 'excluded' : '';
+    return `<div class="genre-pill ${cls}" data-genre="${g}">${g}</div>`;
+  }).join('');
+
+  grid.querySelectorAll('.genre-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const g = pill.dataset.genre;
+      const cur = genreState[g] || null;
+      if (!cur)              genreState[g] = 'include';
+      else if (cur === 'include') genreState[g] = 'exclude';
+      else                   delete genreState[g];
+      renderGenrePills();
+      scheduleFilter();
+    });
+  });
+}
+
+let allGenres = [];
+
+// ═══════════════════════════════════════════════════════════
+// FILTER ENGINE
+// ═══════════════════════════════════════════════════════════
+let filterTimer = null;
+function scheduleFilter() {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(runFilter, 80);
+}
+
+function runFilter() {
+  if (!allSongs.length) return;
+
+  const s = filterState;
+  const includes = Object.entries(genreState).filter(([,v]) => v === 'include').map(([g]) => g);
+  const excludes = Object.entries(genreState).filter(([,v]) => v === 'exclude').map(([g]) => g);
+
+  filteredSongs = allSongs.filter(song => {
+    const bpm = song.bpm;
+    if (bpm != null && (bpm < s.bpmLow || bpm > s.bpmHigh)) return false;
+
+    const energy = song.energy != null ? song.energy * 100 : null;
+    if (energy != null && (energy < s.energyLow || energy > s.energyHigh)) return false;
+
+    const dance = song.danceability != null ? song.danceability * 100 : null;
+    if (dance != null && (dance < s.danceLow || dance > s.danceHigh)) return false;
+
+    const valence = song.valence != null ? song.valence * 100 : null;
+    if (valence != null && (valence < s.valenceLow || valence > s.valenceHigh)) return false;
+
+    const acoustic = song.acousticness != null ? song.acousticness * 100 : null;
+    if (acoustic != null && (acoustic < s.acousticLow || acoustic > s.acousticHigh)) return false;
+
+    if (s.mode === 'major' && song.mode !== 'major') return false;
+    if (s.mode === 'minor' && song.mode !== 'minor') return false;
+
+    if (includes.length) {
+      const hasInclude = includes.some(g => (song.genres || []).includes(g));
+      if (!hasInclude) return false;
+    }
+    if (excludes.length) {
+      const hasExclude = excludes.some(g => (song.genres || []).includes(g));
+      if (hasExclude) return false;
+    }
+
+    return true;
+  });
+
+  renderResults();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════════════════════
+function renderResults() {
+  const countEl  = document.getElementById('matchCount');
+  const labelEl  = document.getElementById('matchLabel');
+  const metaEl   = document.getElementById('resultsMeta');
+  const listEl   = document.getElementById('songList');
+  const saveBtn  = document.getElementById('saveBtn');
+
+  const total = filteredSongs.length;
+  countEl.textContent = total.toLocaleString();
+  labelEl.textContent = total === 1 ? 'song matches your filters' : 'songs match your filters';
+
+  const target = Math.min(+document.getElementById('targetCount').value || 500, total);
+  metaEl.textContent = total > target ? `Showing first ${PREVIEW_LIMIT} of ${total} · ${target} will be saved` : '';
+
+  saveBtn.disabled = total === 0 || !document.getElementById('styleNameInput').value.trim();
+
+  if (total === 0) {
+    listEl.innerHTML = `
+      <div class="state-box">
+        <div class="state-icon">🎚️</div>
+        <div class="state-msg">No songs match</div>
+        <div class="state-sub">Try widening your filters — some combinations may have limited coverage in the current library.</div>
+      </div>`;
+    return;
+  }
+
+  const preview = filteredSongs.slice(0, PREVIEW_LIMIT);
+  listEl.innerHTML = preview.map((s, i) => {
+    const bpmChip    = s.bpm    != null ? `<span class="chip chip-bpm">${Math.round(s.bpm)} BPM</span>` : '';
+    const energyChip = s.energy != null ? `<span class="chip chip-energy">E:${Math.round(s.energy*100)}%</span>` : '';
+    const keyChip    = s.key    != null ? `<span class="chip chip-key">${s.key}${s.mode === 'major' ? '' : ' m'}</span>` : '';
+    return `
+      <div class="song-row">
+        <span class="song-idx">${i+1}</span>
+        <div class="song-info">
+          <div class="song-title">${esc(s.title)}</div>
+          <div class="song-artist">${esc(s.artist || '')}</div>
+        </div>
+        <div class="song-chips">${bpmChip}${energyChip}${keyChip}</div>
+      </div>`;
+  }).join('');
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAVE / CREATE STYLE
+// ═══════════════════════════════════════════════════════════
+document.getElementById('styleNameInput').addEventListener('input', () => {
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = !document.getElementById('styleNameInput').value.trim() || filteredSongs.length === 0;
+});
+
+document.getElementById('targetCount').addEventListener('change', renderResults);
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const name = document.getElementById('styleNameInput').value.trim();
+  if (!name) return;
+
+  const target = Math.min(+document.getElementById('targetCount').value || 500, filteredSongs.length);
+  const songs = filteredSongs.slice(0, target);
+
+  const saveBtn = document.getElementById('saveBtn');
+  const statusEl = document.getElementById('saveStatus');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Creating…';
+  statusEl.textContent = '';
+  setLoading(20);
+
+  try {
+    // 1. Create the style
+    const createRes = await fetch(`${API_BASE}/styles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ name })
+    });
+    if (!createRes.ok) throw new Error(`Create style failed: ${createRes.status}`);
+    const { style } = await createRes.json();
+    const styleId = style.id;
+    setLoading(40);
+
+    // 2. Add songs in batches of 50
+    const BATCH = 50;
+    let added = 0;
+    for (let i = 0; i < songs.length; i += BATCH) {
+      const batch = songs.slice(i, i + BATCH);
+      await Promise.allSettled(batch.map(s =>
+        fetch(`${API_BASE}/styles/${styleId}/songs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ library_song_id: s.library_song_id })
+        })
+      ));
+      added += batch.length;
+      const pct = 40 + Math.round((added / songs.length) * 55);
+      setLoading(pct);
+      statusEl.textContent = `Adding songs… ${added} / ${songs.length}`;
+    }
+
+    setLoading(100);
+    toast(`Style "${name}" created with ${added} songs`, 'success');
+    statusEl.textContent = `✓ ${added} songs added`;
+    saveBtn.textContent = 'View Style';
+    saveBtn.disabled = false;
+    saveBtn.onclick = () => {
+      window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(styleId)}`;
+    };
+
+  } catch (err) {
+    console.error(err);
+    toast('Failed to create style: ' + err.message, 'error');
+    statusEl.textContent = '';
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Create Style';
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// LOAD ENRICHED SONGS
+// ═══════════════════════════════════════════════════════════
+async function loadEnrichedSongs() {
+  const subtitle = document.getElementById('filterSubtitle');
+  subtitle.textContent = 'Loading audio library…';
+  setLoading(10);
+
+  try {
+    // Fetch all enriched songs via search with a broad query, paginated
+    // We use the attributes endpoint — fetch all library songs that have attributes
+    // Strategy: use song search with empty q to get enriched songs, paginated
+    // Since there's no dedicated "all enriched" endpoint, we query Supabase directly
+    // via the API. For now use a large search result via the search endpoint.
+    // Better: add a dedicated endpoint later. For now fetch styles list and 
+    // pull tracks from enriched styles, or use a direct Supabase call.
+    
+    // Practical approach: fetch all songs from song_attributes via a 
+    // dedicated call. We'll use the existing /songs/search with no query
+    // and paginate, or fetch from Supabase. Use the API pattern.
+    
+    // The cleanest path with current API: call GET /songs/search?q=&limit=5000
+    // This returns enriched attributes inline per our updated songSearch.js
+    
+    let page = 0;
+    const pageSize = 1000;
+    const collected = [];
+
+    while (true) {
+      setLoading(10 + Math.min(page * 8, 60));
+      subtitle.textContent = `Loading… ${collected.length.toLocaleString()} songs`;
+
+      const url = `${API_BASE}/songs/search?q=&limit=${pageSize}&offset=${page * pageSize}&enriched_only=true`;
+      const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
+      if (!res.ok) break;
+
+      const json = await res.json();
+      const rows = json.data || json.songs || json || [];
+      if (!Array.isArray(rows) || rows.length === 0) break;
+
+      // Only keep songs that have attribute data
+      const enriched = rows.filter(r => r.bpm != null || r.energy != null);
+      collected.push(...enriched);
+
+      if (rows.length < pageSize) break;
+      page++;
+
+      // Safety cap — don't hammer the API
+      if (page > 20) break;
+    }
+
+    allSongs = collected;
+    setLoading(90);
+
+    // Build genre list from raw jsonb if available, else from genres field
+    allSongs.forEach(s => {
+      if (!s.genres) {
+        // try to extract from raw
+        try {
+          const raw = typeof s.raw === 'string' ? JSON.parse(s.raw) : s.raw;
+          s.genres = (raw?.genres || []).map(g => (typeof g === 'string' ? g : g.name || g.slug)).filter(Boolean);
+        } catch {
+          s.genres = [];
+        }
+      }
+    });
+
+    allGenres = buildGenreList(allSongs);
+    renderGenrePills();
+
+    const enrichedCount = allSongs.length;
+    subtitle.textContent = `${enrichedCount.toLocaleString()} enriched songs`;
+
+    setLoading(100);
+    runFilter();
+
+  } catch (err) {
+    console.error('Failed to load enriched songs:', err);
+    subtitle.textContent = 'Failed to load library';
+    setLoading(100);
+    toast('Could not load audio library: ' + err.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+loadEnrichedSongs();
+</script>
+</body>
+</html>
