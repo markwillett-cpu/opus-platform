@@ -89,6 +89,33 @@
     .mix-lbl{font-size:12px;font-weight:1000;min-width:40px}
     .mix-in input{margin-left:auto;width:64px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:900;text-align:right;background:#fff}
     .mix-note{margin-top:10px;font-size:12px;color:#7f8c8d;font-weight:800;line-height:1.35}
+
+    /* ── Style DNA Card ── */
+    .dna-card{background:#1e2d3a;border-radius:8px;padding:16px 18px;margin-bottom:14px;display:none}
+    .dna-card.visible{display:block}
+    .dna-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .dna-card-title{color:#fff;font-weight:900;font-size:13px;letter-spacing:.3px;display:flex;align-items:center;gap:7px}
+    .dna-enriched{font-size:11px;color:#7f9aad;font-weight:700}
+    .dna-grid{display:grid;grid-template-columns:160px 1fr 1fr 1fr 1fr;gap:10px;align-items:start}
+    @media(max-width:1300px){.dna-grid{grid-template-columns:160px 1fr 1fr 1fr}}
+    .dna-block{background:rgba(255,255,255,.06);border-radius:6px;padding:10px 12px}
+    .dna-block-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7f9aad;font-weight:800;margin-bottom:6px}
+    .dna-bpm-range{color:#fff;font-size:20px;font-weight:1000;line-height:1}
+    .dna-bpm-sub{font-size:11px;color:#7f9aad;margin-top:4px;font-weight:700}
+    .dna-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+    .dna-bar-row:last-child{margin-bottom:0}
+    .dna-bar-label{font-size:11px;color:#b0c4d0;font-weight:700;width:70px;flex-shrink:0}
+    .dna-bar-track{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+    .dna-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+    .dna-bar-val{font-size:11px;color:#7f9aad;font-weight:700;width:30px;text-align:right;flex-shrink:0}
+    .dna-genre-pill{display:inline-block;background:rgba(52,152,219,.18);color:#7ec8f0;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;margin:2px 2px 0 0}
+    .dna-key-pill{display:inline-block;background:rgba(255,255,255,.08);color:#b0c4d0;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:800;margin:2px 2px 0 0}
+    .dna-mode-row{display:flex;gap:6px;margin-top:8px}
+    .dna-mode-seg{flex:1;text-align:center;padding:5px 4px;border-radius:4px;font-size:11px;font-weight:900}
+    .dna-mode-major{background:rgba(39,174,96,.2);color:#6ee0a0}
+    .dna-mode-minor{background:rgba(231,76,60,.15);color:#f0937f}
+    .dna-loading{color:#7f9aad;font-size:12px;font-weight:700;padding:4px 0}
+
     @media (max-width:1100px){.mix-inputs{grid-template-columns:repeat(2,1fr)}}
     @media (max-width:1100px){.main-layout{grid-template-columns:1fr;height:auto}.stats-banner{grid-template-columns:repeat(2,1fr)}}
   </style>
@@ -125,11 +152,10 @@
         <div class="category-header">
           <div>
             <h2>Select a style to manage Playback Classes</h2>
-<div class="subtext">Classes are labeled A, B, C, and Rest. Labels can be customized per style. The class mix sets target class distribution for the playback algorithm.</div>
+            <div class="subtext">Classes are labeled A, B, C, and Rest. Labels can be customized per style. The class mix sets target class distribution for the playback algorithm.</div>
           </div>
           <div class="header-actions">
-        <button class="btn" id="editLabelsBtn">Edit class labels</button>
-            
+            <button class="btn" id="editLabelsBtn">Edit class labels</button>
             <button class="btn primary" id="viewUncatBtn">View Uncategorized</button>
           </div>
         </div>
@@ -173,6 +199,19 @@
             </div>
           </div>
 
+          <!-- ── Style DNA Card ── -->
+          <div class="dna-card" id="dnaCard">
+            <div class="dna-card-head">
+              <div class="dna-card-title">
+                <span>🧬</span> Style DNA
+              </div>
+              <span class="dna-enriched" id="dnaEnrichedLabel"></span>
+            </div>
+            <div id="dnaCardBody">
+              <div class="dna-loading">Loading audio profile…</div>
+            </div>
+          </div>
+
           <table class="category-table">
             <thead>
               <tr>
@@ -186,38 +225,28 @@
               <tr data-class="A">
                 <td><div class="cat-name"><span class="dot" style="background:var(--power)"></span> <span class="class-code" data-class-code="A">A</span> <span class="class-alias" data-class-code="A"></span></div></td>
                 <td class="col-tracks" id="count-A">—</td><td class="num" id="pct-A">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
+                <td class="col-action"><button class="link-btn view-class">View songs</button></td>
               </tr>
               <tr data-class="B">
                 <td><div class="cat-name"><span class="dot" style="background:var(--core)"></span> <span class="class-code" data-class-code="B">B</span> <span class="class-alias" data-class-code="B"></span></div></td>
                 <td class="col-tracks" id="count-B">—</td><td class="num" id="pct-B">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
+                <td class="col-action"><button class="link-btn view-class">View songs</button></td>
               </tr>
               <tr data-class="C">
                 <td><div class="cat-name"><span class="dot" style="background:var(--library)"></span> <span class="class-code" data-class-code="C">C</span> <span class="class-alias" data-class-code="C"></span></div></td>
                 <td class="col-tracks" id="count-C">—</td><td class="num" id="pct-C">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
+                <td class="col-action"><button class="link-btn view-class">View songs</button></td>
               </tr>
               <tr data-class="Rest">
                 <td><div class="cat-name"><span class="dot" style="background:var(--rest)"></span> <span class="class-code" data-class-code="REST">Rest</span> <span class="class-alias" data-class-code="REST"></span></div></td>
                 <td class="col-tracks" id="count-REST">—</td><td class="num" id="pct-REST">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
+                <td class="col-action"><button class="link-btn view-class">View songs</button></td>
               </tr>
               <tr data-class="Uncategorized">
-                <td><div class="cat-name"><span class="dot" style="background: #ffffff; border: 1px solid var(--border)"></span> Uncategorized</div></td>
+                <td><div class="cat-name"><span class="dot" style="background:#ffffff;border:1px solid var(--border)"></span> Uncategorized</div></td>
                 <td class="num" id="count-Uncategorized">—</td>
                 <td class="num" id="pct-Uncategorized">—</td>
-<td class="col-action">
-  <button class="link-btn view-class">View songs</button>
-</td>
+                <td class="col-action"><button class="link-btn view-class">View songs</button></td>
               </tr>
             </tbody>
           </table>
@@ -225,51 +254,49 @@
 
         <div class="footer">
           <div class="footer-note">Tip: The class mix defines target distribution. The algorithm maintains these proportions while applying separation rules.</div>
-          
-          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="labelsModal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
-  <div class="modal" style="max-width:520px; margin:7vh auto; background:#fff; border-radius:10px; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden;">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);">
-      <div>
-        <div style="font-weight:1000; font-size:16px;">Edit class labels</div>
-        <div style="font-size:12px; color:#7f8c8d; font-weight:700; margin-top:4px;">Labels are style-specific. Classes remain A, B, C, and Rest.</div>
+    <div class="modal" style="max-width:520px; margin:7vh auto; background:#fff; border-radius:10px; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:1000; font-size:16px;">Edit class labels</div>
+          <div style="font-size:12px; color:#7f8c8d; font-weight:700; margin-top:4px;">Labels are style-specific. Classes remain A, B, C, and Rest.</div>
+        </div>
+        <button class="btn" id="closeLabelsModal" style="padding:8px 10px;">Close</button>
       </div>
-      <button class="btn" id="closeLabelsModal" style="padding:8px 10px;">Close</button>
-    </div>
-    <div style="padding:18px; display:grid; gap:12px;">
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">A</div>
-        <input id="labelA" type="text" placeholder="Optional label (e.g., Power)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
-      </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">B</div>
-        <input id="labelB" type="text" placeholder="Optional label (e.g., Core)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
-      </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">C</div>
-        <input id="labelC" type="text" placeholder="Optional label (e.g., Library)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
-      </div>
-      <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
-        <div style="font-weight:1000;">Rest</div>
-        <input id="labelR" type="text" placeholder="Optional label (e.g., Hold)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
-      </div>
-      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
-        <button class="btn" id="resetLabels">Reset</button>
-        <button class="btn primary" id="saveLabels">Save labels</button>
+      <div style="padding:18px; display:grid; gap:12px;">
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+          <div style="font-weight:1000;">A</div>
+          <input id="labelA" type="text" placeholder="Optional label (e.g., Power)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+          <div style="font-weight:1000;">B</div>
+          <input id="labelB" type="text" placeholder="Optional label (e.g., Core)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+          <div style="font-weight:1000;">C</div>
+          <input id="labelC" type="text" placeholder="Optional label (e.g., Library)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:10px; align-items:center;">
+          <div style="font-weight:1000;">Rest</div>
+          <input id="labelR" type="text" placeholder="Optional label (e.g., Hold)" style="padding:10px 12px; border:1px solid var(--border); border-radius:8px;">
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
+          <button class="btn" id="resetLabels">Reset</button>
+          <button class="btn primary" id="saveLabels">Save labels</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 <script src="config.js"></script>
 <script src="api-client.js"></script>
 <script src="class-labels.js"></script>
 <script>
-
 
 // ═══════════════════════════════════════════════════════════
 // CLASS MIX WEIGHTS (sim_style_class_weights)
@@ -278,35 +305,17 @@ const DEFAULT_WEIGHTS = OPUS_CONFIG.DEFAULT_CLASS_MIX || { A: 30, B: 40, C: 30, 
 
 async function fetchWeights(styleId) {
   const data = await window.api.getStyleWeights(styleId);
-
   const out = { ...DEFAULT_WEIGHTS };
   (data || []).forEach(r => {
     const code = (r.class_code || '').toUpperCase();
     if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
   });
-
   return normalizeWeights(out);
 }
-
-
-async function fetchWeights(styleId) {
-  const data = await window.api.getStyleWeights(styleId);
-
-  const out = { ...DEFAULT_WEIGHTS };
-  (data || []).forEach(r => {
-    const code = (r.class_code || '').toUpperCase();
-    if (out[code] !== undefined) out[code] = Number(r.weight_pct) || 0;
-  });
-
-  return normalizeWeights(out);
-}
-
 
 async function upsertWeights(styleId, weights) {
   return await window.api.updateStyleWeights(styleId, weights);
 }
-
-
 
 function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
 
@@ -314,17 +323,13 @@ function normalizeWeights(w) {
   const codes = ['A','B','C','REST'];
   const raw = codes.map(c => clamp(Math.round(Number(w[c]||0)), 0, 100));
   let sum = raw.reduce((a,b)=>a+b,0);
-
   if (sum === 100) return { A: raw[0], B: raw[1], C: raw[2], REST: raw[3] };
   if (sum === 0) return { ...DEFAULT_WEIGHTS };
-
   const scaled = raw.map(v => (v / sum) * 100);
   const ints = scaled.map(v => Math.floor(v));
   let remain = 100 - ints.reduce((a,b)=>a+b,0);
-
   const fracs = scaled.map((v,i)=>({i, frac: v - Math.floor(v)})).sort((a,b)=>b.frac-a.frac);
   for (let k=0; k<remain; k++) ints[fracs[k % fracs.length].i] += 1;
-
   return { A: ints[0], B: ints[1], C: ints[2], REST: ints[3] };
 }
 
@@ -353,24 +358,17 @@ function labelFor(code){
 
 function renderMix() {
   if (!mixBarEl) return;
-
   const a = currentWeights.A, b = currentWeights.B, c = currentWeights.C, r = currentWeights.REST;
-
   const segA = mixBarEl.querySelector('.mix-seg.seg-a');
   const segB = mixBarEl.querySelector('.mix-seg.seg-b');
   const segC = mixBarEl.querySelector('.mix-seg.seg-c');
   const segR = mixBarEl.querySelector('.mix-seg.seg-r');
-
   if (segA) segA.style.width = `${a}%`;
   if (segB) segB.style.width = `${b}%`;
   if (segC) segC.style.width = `${c}%`;
   if (segR) segR.style.width = `${r}%`;
-
   const handles = [...mixBarEl.querySelectorAll('.mix-handle')];
-  const cumA = a;
-  const cumAB = a + b;
-  const cumABC = a + b + c;
-
+  const cumA = a, cumAB = a + b, cumABC = a + b + c;
   handles.forEach(h => {
     const key = h.dataset.boundary || '';
     let pct = 0;
@@ -379,17 +377,13 @@ function renderMix() {
     if (key === 'C|REST') pct = cumABC;
     h.style.left = `${pct}%`;
   });
-
   if (inA) inA.value = a;
   if (inB) inB.value = b;
   if (inC) inC.value = c;
   if (inR) inR.value = r;
-
   document.querySelectorAll('.mix-lbl[data-code]').forEach(el=>{
-    const code = el.getAttribute('data-code');
-    el.textContent = labelFor(code);
+    el.textContent = labelFor(el.getAttribute('data-code'));
   });
-
   if (mixSummaryEl) {
     mixSummaryEl.textContent =
       `${labelFor('A')}: ${a}% • ${labelFor('B')}: ${b}% • ${labelFor('C')}: ${c}% • ${labelFor('REST')}: ${r}%`;
@@ -399,7 +393,6 @@ function renderMix() {
 function scheduleSave() {
   const styleId = window.selectedStyleId;
   if (!styleId) return;
-
   mixDirty = true;
   if (mixSaveT) clearTimeout(mixSaveT);
   mixSaveT = setTimeout(async () => {
@@ -428,7 +421,6 @@ function setSingle(code, val) {
   const v = clamp(val, 0, 100);
   const other = ['A','B','C','REST'].filter(c=>c!==code);
   let remaining = 100 - v;
-
   const curSum = other.reduce((s,c)=>s + (currentWeights[c] ?? 0), 0);
   const next = { ...currentWeights, [code]: v };
   if (curSum <= 0) {
@@ -438,7 +430,6 @@ function setSingle(code, val) {
   } else {
     other.forEach(c => next[c] = Math.round(((currentWeights[c] ?? 0) / curSum) * remaining));
   }
-
   currentWeights = normalizeWeights(next);
   renderMix();
   scheduleSave();
@@ -478,28 +469,23 @@ function wireHandle(handle){
     if (!window.selectedStyleId) return;
     ev.preventDefault();
     handle.setPointerCapture(ev.pointerId);
-
     const boundary = handle.dataset.boundary;
     const [left, right] = boundary.split('|');
-
     const barRect = mixBarEl.getBoundingClientRect();
     const startX = ev.clientX;
     const startLeft = currentWeights[left] ?? 0;
     const startRight = currentWeights[right] ?? 0;
     const pairSum = startLeft + startRight;
-
     const onMove = (mv) => {
       const dx = mv.clientX - startX;
       const pctDelta = Math.round((dx / barRect.width) * 100);
       const nextLeft = clamp(startLeft + pctDelta, 0, pairSum);
       setPair(boundary, nextLeft);
     };
-
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
   });
@@ -512,6 +498,99 @@ if (mixBarEl) {
 window.refreshMixUI = function() { renderMix(); };
 
 // ═══════════════════════════════════════════════════════════
+// STYLE DNA CARD
+// ═══════════════════════════════════════════════════════════
+const dnaCard = document.getElementById('dnaCard');
+const dnaCardBody = document.getElementById('dnaCardBody');
+const dnaEnrichedLabel = document.getElementById('dnaEnrichedLabel');
+
+function dnaBar(label, value, color) {
+  const pct = Math.round((value || 0) * 100);
+  return `
+    <div class="dna-bar-row">
+      <span class="dna-bar-label">${label}</span>
+      <div class="dna-bar-track">
+        <div class="dna-bar-fill" style="width:${pct}%; background:${color}"></div>
+      </div>
+      <span class="dna-bar-val">${pct}%</span>
+    </div>`;
+}
+
+function renderDNA(dna) {
+  if (!dna || !dna.enrichedCount || dna.enrichedCount === 0) {
+    dnaCard.classList.remove('visible');
+    return;
+  }
+
+  dnaCard.classList.add('visible');
+  dnaEnrichedLabel.textContent = `${dna.enrichedCount} of ${dna.totalCount} songs enriched`;
+
+  const bpm = dna.bpm || {};
+  const genres = (dna.genres || []).slice(0, 4);
+  const keys = (dna.keys || []).slice(0, 4);
+  const majorPct = dna.majorPct ?? 50;
+  const minorPct = 100 - majorPct;
+
+  dnaCardBody.innerHTML = `
+    <div class="dna-grid">
+      <!-- BPM block -->
+      <div class="dna-block">
+        <div class="dna-block-label">Tempo</div>
+        <div class="dna-bpm-range">${Math.round(bpm.outlierLow ?? bpm.min ?? 0)}–${Math.round(bpm.outlierHigh ?? bpm.max ?? 0)}</div>
+        <div class="dna-bpm-sub">avg ${Math.round(bpm.avg ?? 0)} BPM ± ${Math.round(bpm.std ?? 0)}</div>
+        <div class="dna-mode-row">
+          <div class="dna-mode-seg dna-mode-major">Major ${majorPct}%</div>
+          <div class="dna-mode-seg dna-mode-minor">Minor ${minorPct}%</div>
+        </div>
+      </div>
+
+      <!-- Feel block -->
+      <div class="dna-block">
+        <div class="dna-block-label">Feel</div>
+        ${dnaBar('Energy', dna.energy, '#3498db')}
+        ${dnaBar('Dance', dna.danceability, '#9b59b6')}
+        ${dnaBar('Valence', dna.valence, '#f39c12')}
+        ${dnaBar('Acoustic', dna.acousticness, '#27ae60')}
+      </div>
+
+      <!-- Genres block -->
+      <div class="dna-block">
+        <div class="dna-block-label">Top Genres</div>
+        ${genres.length
+          ? genres.map(g => `<span class="dna-genre-pill">${g.genre} <span style="opacity:.7">${g.pct}%</span></span>`).join('')
+          : '<span style="color:#7f9aad;font-size:12px">No genre data</span>'}
+      </div>
+
+      <!-- Keys block -->
+      <div class="dna-block">
+        <div class="dna-block-label">Common Keys</div>
+        ${keys.length
+          ? keys.map(k => `<span class="dna-key-pill">${k}</span>`).join('')
+          : '<span style="color:#7f9aad;font-size:12px">No key data</span>'}
+      </div>
+    </div>`;
+}
+
+async function loadDNA(styleId) {
+  if (!styleId) return;
+  dnaCard.classList.add('visible');
+  dnaCardBody.innerHTML = '<div class="dna-loading">Loading audio profile…</div>';
+  dnaEnrichedLabel.textContent = '';
+
+  try {
+    const res = await fetch(`${window.OPUS_CONFIG.API_BASE_URL}/styles/${styleId}/dna`, {
+      headers: { 'x-api-key': window.OPUS_CONFIG.API_KEY }
+    });
+    if (!res.ok) throw new Error(`DNA fetch failed: ${res.status}`);
+    const dna = await res.json();
+    renderDNA(dna);
+  } catch (e) {
+    console.warn('DNA load failed:', e);
+    dnaCard.classList.remove('visible');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // STYLES LIST
 // ═══════════════════════════════════════════════════════════
 const styleListEl = document.getElementById('styleList');
@@ -520,39 +599,15 @@ const styleSearchEl = document.getElementById('styleSearch');
 const urlParams = new URLSearchParams(window.location.search);
 const initialStyleId = urlParams.get('style_id') || null;
 
-function renderStyleList(styles) {
-  if (!styleListEl) return;
-
-  styleListEl.innerHTML = (styles || []).map(style => `
-    <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
-      <div class="style-name">${style.name}</div>
-      <div class="style-meta">
-        <span id="style-track-count-${style.id}">— tracks</span>
-        <span class="badge b-warn" id="style-badge-${style.id}">—</span>
-      </div>
-    </div>
-  `).join('');
-
-  styleListEl.querySelectorAll('.style-item').forEach(item => {
-    item.addEventListener('click', () => {
-      selectStyle(item.dataset.styleId, item.dataset.styleName);
-    });
-  });
-}
-
 async function loadStyleStats(styleId) {
   try {
     const tracks = await window.api.getStyleTracks(styleId);
     const totalTracks = (tracks || []).length;
-
     const assignments = await window.api.getStyleAssignments(styleId);
     const assignedCount = (assignments || []).length;
-
     const pct = totalTracks > 0 ? Math.round((assignedCount / totalTracks) * 100) : 0;
-
     const countEl = document.getElementById(`style-track-count-${styleId}`);
     const badgeEl = document.getElementById(`style-badge-${styleId}`);
-
     if (countEl) countEl.textContent = `${totalTracks} tracks`;
     if (badgeEl) {
       badgeEl.textContent = `${pct}% assigned`;
@@ -563,68 +618,57 @@ async function loadStyleStats(styleId) {
   }
 }
 
-
 async function loadAllStyleStats(styles) {
-  const results = await Promise.allSettled(
-    styles.map(style => loadStyleStats(style.id))
-  );
-  
+  const results = await Promise.allSettled(styles.map(style => loadStyleStats(style.id)));
   results.forEach((result, idx) => {
-    if (result.status === 'rejected') {
-      console.error(`Failed to load stats for ${styles[idx].name}:`, result.reason);
-    }
+    if (result.status === 'rejected') console.error(`Failed to load stats for ${styles[idx].name}:`, result.reason);
   });
 }
 
 async function selectStyle(styleId, styleName) {
   if (!styleId) return;
-
   document.querySelectorAll('.style-item').forEach(i => i.classList.remove('active'));
   const active = document.querySelector(`.style-item[data-style-id="${styleId}"]`);
   if (active) active.classList.add('active');
-
   window.selectedStyleId = styleId;
-
   const h2 = document.querySelector('.category-header h2');
   if (h2 && styleName) h2.textContent = `Playback Classes for "${styleName}"`;
   document.getElementById('editLabelsBtn')?.removeAttribute('disabled');
-document.getElementById('viewUncatBtn')?.removeAttribute('disabled');
-
+  document.getElementById('viewUncatBtn')?.removeAttribute('disabled');
   if (typeof window.reloadClassLabelsForCurrentStyle === 'function') {
     window.reloadClassLabelsForCurrentStyle();
   }
-
-  await loadWeights(styleId);
-  await loadClassStats(styleId);
+  await Promise.all([
+    loadWeights(styleId),
+    loadClassStats(styleId),
+    loadDNA(styleId)
+  ]);
 }
 
 async function loadStyles() {
   try {
     if (!styleListEl) return;
-
     styleListEl.innerHTML = `<div class="loading">Loading styles...</div>`;
+    const styles = await window.api.getStyles();
+    const exclude = Array.isArray(CONFIG.STYLES_TO_EXCLUDE) ? CONFIG.STYLES_TO_EXCLUDE : [];
+    const list = (styles || []).filter(s => !exclude.includes(s.name));
 
-  const styles = await window.api.getStyles();
-const exclude = Array.isArray(CONFIG.STYLES_TO_EXCLUDE) ? CONFIG.STYLES_TO_EXCLUDE : [];
-const list = (styles || []).filter(s => !exclude.includes(s.name));
+    styleListEl.innerHTML = list.map(style => `
+      <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
+        <div class="style-name">${style.name}</div>
+        <div class="style-meta">
+          <span id="style-track-count-${style.id}">— tracks</span>
+          <span id="style-badge-${style.id}" class="badge">—% assigned</span>
+        </div>
+      </div>
+    `).join('');
 
-styleListEl.innerHTML = list.map(style => `
-  <div class="style-item" data-style-id="${style.id}" data-style-name="${style.name}">
-    <div class="style-name">${style.name}</div>
-    <div class="style-meta">
-      <span id="style-track-count-${style.id}">— tracks</span>
-      <span id="style-badge-${style.id}" class="badge">—% assigned</span>
-    </div>
-  </div>
-`).join('');
-
-styleListEl.querySelectorAll('.style-item').forEach(el => {
-  el.addEventListener('click', () => {
-    selectStyle(el.dataset.styleId, el.dataset.styleName);
-    if (typeof updateURL === 'function') updateURL(el.dataset.styleId);
-  });
-});
-
+    styleListEl.querySelectorAll('.style-item').forEach(el => {
+      el.addEventListener('click', () => {
+        selectStyle(el.dataset.styleId, el.dataset.styleName);
+        if (typeof updateURL === 'function') updateURL(el.dataset.styleId);
+      });
+    });
 
     await loadAllStyleStats(list);
 
@@ -632,12 +676,12 @@ styleListEl.querySelectorAll('.style-item').forEach(el => {
       const el = document.querySelector(`.style-item[data-style-id="${initialStyleId}"]`);
       if (el) el.click();
     }
-
   } catch (err) {
     console.error('Error loading styles:', err);
     if (styleListEl) styleListEl.innerHTML = `<div class="error">Error loading styles: ${err.message}</div>`;
   }
 }
+
 function debounce(fn, delay) {
   let timer;
   return function (...args) {
@@ -645,6 +689,7 @@ function debounce(fn, delay) {
     timer = setTimeout(() => fn.apply(this, args), delay);
   };
 }
+
 const CONFIG = window.OPUS_CONFIG || window.CONFIG || {};
 
 if (styleSearchEl) {
@@ -655,7 +700,6 @@ if (styleSearchEl) {
       el.style.display = (!q || name.includes(q)) ? '' : 'none';
     });
   }, CONFIG.SEARCH_DEBOUNCE ?? 200));
-
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -663,42 +707,30 @@ if (styleSearchEl) {
 // ═══════════════════════════════════════════════════════════
 async function loadClassStats(styleId) {
   if (!styleId) return;
-
   const rows = await window.api.getStyleTracks(styleId);
-const total = Array.isArray(rows) ? rows.length : 0;
-
-const assignments = await window.api.getStyleAssignments(styleId);
-
-// assignments might be an object map or an array; support both
-let assignmentMap = {};
-if (Array.isArray(assignments)) {
-  // if API returns array rows like [{library_song_id, class_code}, ...]
-  assignments.forEach(a => {
-    if (a && a.library_song_id) assignmentMap[a.library_song_id] = a;
-  });
-} else if (assignments && typeof assignments === 'object') {
-  assignmentMap = assignments;
-}
-
-const assignedCount = Object.keys(assignmentMap).length;
-
+  const total = Array.isArray(rows) ? rows.length : 0;
+  const assignments = await window.api.getStyleAssignments(styleId);
+  let assignmentMap = {};
+  if (Array.isArray(assignments)) {
+    assignments.forEach(a => { if (a && a.library_song_id) assignmentMap[a.library_song_id] = a; });
+  } else if (assignments && typeof assignments === 'object') {
+    assignmentMap = assignments;
+  }
+  const assignedCount = Object.keys(assignmentMap).length;
   const unassignedCount = Math.max(0, total - assignedCount);
   const assignedPct = total ? ((assignedCount / total) * 100).toFixed(1) : '0.0';
   const unassignedPct = total ? ((unassignedCount / total) * 100).toFixed(1) : '0.0';
-
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statAssigned').textContent = assignedCount;
   document.getElementById('statAssignedPct').textContent = `${assignedPct}%`;
   document.getElementById('statUnassigned').textContent = unassignedCount;
   document.getElementById('statUnassignedPct').textContent = `${unassignedPct}%`;
-
   const counts = { A: 0, B: 0, C: 0, REST: 0 };
   Object.entries(assignmentMap).forEach(([songId, a]) => {
     const cls = a.class_code;
     const code = (cls === 'Rest') ? 'REST' : cls;
     if (counts[code] !== undefined) counts[code] += 1;
   });
-
   function setRow(codeKey, n) {
     const countEl = document.getElementById(`count-${codeKey}`);
     const pctEl = document.getElementById(`pct-${codeKey}`);
@@ -712,7 +744,6 @@ const assignedCount = Object.keys(assignmentMap).length;
   setRow('B', counts.B);
   setRow('C', counts.C);
   setRow('REST', counts.REST);
-
   const uncatEl = document.getElementById('count-Uncategorized');
   const uncatPctEl = document.getElementById('pct-Uncategorized');
   if (uncatEl) uncatEl.textContent = unassignedCount;
@@ -722,15 +753,9 @@ const assignedCount = Object.keys(assignmentMap).length;
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.view-class');
   if (!btn) return;
-
   const row = btn.closest('tr[data-class]');
   if (!row) return;
-
-  if (!window.selectedStyleId) {
-    console.warn('Select a style first');
-    return;
-  }
-
+  if (!window.selectedStyleId) { console.warn('Select a style first'); return; }
   const cls = row.dataset.class;
   if (cls === 'Uncategorized') {
     window.location.href = `uncategorized-detail.html?style_id=${encodeURIComponent(window.selectedStyleId)}`;
@@ -747,9 +772,8 @@ document.getElementById('viewUncatBtn')?.addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// INIT - This must come after ClassLabels definition
+// INIT
 // ═══════════════════════════════════════════════════════════
-// Expose for legacy compatibility
 window.reloadClassLabelsForCurrentStyle = function () {
   ClassLabels.apply(ClassLabels.load());
 };
