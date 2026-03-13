@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Custom Channels — Music Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#b8956a;
+  --gold-dark:#9a7a55;
+  --bg:#f7f6f2;
+  --card:#ffffff;
+  --text:#1c1b18;
+  --muted:#7a7870;
+  --border:#e2e0d8;
+  --border-dark:#ccc9be;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+.nav{background:#fff;border-bottom:0.5px solid var(--border);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{height:32px;width:auto}
+.demo-btn{background:var(--gold);color:#fff;border:none;padding:9px 20px;border-radius:4px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;letter-spacing:0.02em;transition:background 0.15s}
+.demo-btn:hover{background:var(--gold-dark)}
+
+/* HERO */
+.hero{padding:3.5rem 2rem 2.5rem;text-align:center;max-width:700px;margin:0 auto}
+.eyebrow{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:0.8rem;font-weight:500}
+.headline{font-family:'Lora',Georgia,serif;font-style:italic;font-size:2.4rem;color:var(--text);line-height:1.25;margin-bottom:0.75rem}
+.subline{font-size:15px;color:var(--muted);line-height:1.6}
+
+/* CONTROLS */
+.controls-wrap{max-width:960px;margin:0 auto;padding:0 2rem 1rem}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap input{
+  width:100%;border:0.5px solid var(--border);border-radius:4px;
+  padding:9px 12px 9px 34px;font-size:14px;background:#fff;color:var(--text);
+  outline:none;font-family:'DM Sans',sans-serif;transition:border-color 0.15s
+}
+.search-wrap input:focus{border-color:var(--gold)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search-icon svg{width:15px;height:15px;display:block}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.pill{
+  background:transparent;border:0.5px solid var(--border);border-radius:20px;
+  padding:7px 15px;font-size:12px;cursor:pointer;color:var(--muted);
+  font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.15s;white-space:nowrap
+}
+.pill:hover{border-color:var(--gold);color:var(--gold)}
+.pill.active{background:var(--gold);border-color:var(--gold);color:#fff}
+.count{font-size:12px;color:var(--muted);letter-spacing:0.02em}
+
+/* GRID */
+.grid-wrap{max-width:960px;margin:0 auto;padding:0 2rem}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+  gap:1px;background:var(--border);
+  border:0.5px solid var(--border);border-radius:4px;overflow:hidden
+}
+.card{background:var(--card);display:flex;flex-direction:column;cursor:pointer;position:relative;overflow:hidden}
+.card:hover .overlay{opacity:1}
+.card:hover .art{transform:scale(1.05)}
+.art-wrap{width:100%;aspect-ratio:1/1;overflow:hidden;background:#ede9e2;position:relative}
+.art{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.35s ease}
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(20,18,14,0.32);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 0.2s
+}
+.card.is-playing .overlay{opacity:1}
+.play-btn{
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(255,255,255,0.93);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.15s
+}
+.play-btn:hover{transform:scale(1.08)}
+.play-icon{
+  width:0;height:0;border-style:solid;
+  border-width:9px 0 9px 16px;
+  border-color:transparent transparent transparent #1c1b18;
+  margin-left:4px
+}
+.pause-bars{display:flex;gap:4px;align-items:center}
+.pause-bars span{width:4px;height:17px;background:#1c1b18;border-radius:1px;display:block}
+.no-sample .play-btn{opacity:0.4;cursor:default}
+.card-info{padding:11px 13px 14px}
+.card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-desc{font-size:11.5px;color:var(--muted);line-height:1.55;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* NOW PLAYING BAR */
+.now-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#1c1b18;color:#fff;
+  padding:0 2rem;height:64px;
+  display:flex;align-items:center;gap:14px;
+  z-index:200;
+  transform:translateY(100%);transition:transform 0.28s ease
+}
+.now-bar.visible{transform:translateY(0)}
+.now-art{width:40px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0;background:#333}
+.now-info{flex:1;min-width:0}
+.now-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-tag{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px}
+.now-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.stop-btn{
+  background:transparent;border:0.5px solid rgba(255,255,255,0.25);
+  color:rgba(255,255,255,0.8);padding:7px 16px;border-radius:4px;
+  font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:border-color 0.15s,color 0.15s;white-space:nowrap
+}
+.stop-btn:hover{border-color:rgba(255,255,255,0.5);color:#fff}
+.loading{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
+
+/* STYLE MODAL */
+.style-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:300;
+}
+.style-modal.open{display:flex}
+.modal-inner{
+  background:#fff;
+  max-width:520px;
+  width:90%;
+  padding:28px;
+  border-radius:6px;
+  position:relative;
+  font-family:'DM Sans',sans-serif;
+}
+.modal-inner img{width:100%;margin-bottom:16px;border-radius:3px}
+.modal-inner h2{margin-bottom:10px;font-size:20px}
+.modal-inner p{font-size:14px;line-height:1.6;margin-bottom:10px;color:#444}
+.modal-desc-text{font-size:14px;line-height:1.65;color:#555;margin-bottom:16px}
+.modal-featuring{margin-top:14px}
+.modal-featuring-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#b8956a;font-weight:500;margin-bottom:10px}
+.artist-chips{display:flex;flex-wrap:wrap;gap:6px}
+.artist-chip{
+  display:inline-block;
+  background:#f7f6f2;
+  border:0.5px solid #e2e0d8;
+  border-radius:20px;
+  padding:5px 11px;
+  font-size:12px;
+  color:#1c1b18;
+  font-family:'DM Sans',sans-serif;
+  white-space:nowrap;
+}
+.modal-close{
+  position:absolute;
+  top:10px;
+  right:12px;
+  background:none;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
+}
+.modal-play{
+  margin-top:10px;
+  background:var(--gold);
+  color:#fff;
+  border:none;
+  padding:10px 16px;
+  border-radius:4px;
+  cursor:pointer;
+}
+.modal-play:hover{background:var(--gold-dark)}
+
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <img src="https://www.custom-channels.com/wp-content/uploads/2025/05/logo2.svg" alt="Custom Channels" onerror="this.style.display='none'">
+  </div>
+  <button class="demo-btn" onclick="window.open('https://www.custom-channels.com/contact/','_blank')">Book a Demo</button>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">Music for Business</div>
+  <h1 class="headline">Curated sound for every kind of space.</h1>
+  <p class="subline">Browse our full library of music channels below. Click any channel to hear a sample.</p>
+</div>
+
+<div class="controls-wrap">
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M14.5 14.5l3 3"/></svg>
+      </span>
+      <input type="text" id="searchInput" placeholder="Search channels&hellip;" oninput="filterCards()">
+    </div>
+    <div class="filters" id="filterPills"></div>
+  </div>
+  <div class="count" id="countLabel"></div>
+</div>
+
+<div class="grid-wrap">
+  <div id="gridContainer"><div class="loading">Loading&hellip;</div></div>
+</div>
+
+<div class="now-bar" id="nowBar">
+  <div class="now-dot"></div>
+  <img class="now-art" id="nowArt" src="" alt="">
+  <div class="now-info">
+    <div class="now-name" id="nowName"></div>
+    <div class="now-tag" id="nowTag">Now playing</div>
+  </div>
+  <button class="stop-btn" onclick="stopAll()">&#9632;&nbsp; Stop</button>
+</div>
+
+<script>
+const GENRES = {
+  Pop:    ['pop','chart','bright','sunny','taylor','lite pop','bubblegum'],
+  Rock:   ['rock','punk','grunge','metal','alt rock','indie rock','yacht','power','modern rock'],
+  Country:['country','texas','americana'],
+  Jazz:   ['jazz','smooth jazz','jazzy','blues','swingin','lounge','bistro','new orleans','bossa'],
+  'R&B':  ['r&b','soul','hip hop','uptown','funk','vibe','funky'],
+  Chill:  ['chill','lofi','lo-fi','electro lounge','ambient','indie vibes','over easy'],
+  Spa:    ['spa','nature','zen','meditation','spirit','luna','sol','guitar','piano'],
+  Decades:['60s','70s','80s','90s','2000s','10s','oldies','classic rock','classic country','classic r&b','kool'],
+  Holiday:['holiday','christmas','winter songs','halloween','valentine','pumpkin','st. patrick','cinco','pride','seasonal'],
+  Eclectic:['eclectic','shuffle','variety','island','reggae','latin','euro','french','italian','new orleans','jam band','classical','christian','sports','energy','alternative deep','adult rock','indie electro']
+};
+
+let allStyles = [];
+let currentAudio = null;
+let currentIdx = null;
+let activeGenre = 'All';
+let searchTerm = '';
+
+function genreFor(name) {
+  const n = name.toLowerCase();
+  for (const [g, keys] of Object.entries(GENRES)) {
+    if (keys.some(k => n.includes(k))) return g;
+  }
+  return 'Other';
+}
+
+function stripHtml(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return d.textContent || '';
+}
+
+const DATA = [{"name":"Blues","description":"<p>Soulful genre characterized by its expressive lyrics, emotional guitar riffs, and a sense of longing and resilience, from legendary blues greats to newer, modern artists. </p><p>Featuring: Muddy Waters, Eric Clapton, B.B. King, Mavis Staples, Buddy Guy, John Lee Hooker, Susan Tedeschi, Keb\u2019 Mo\u2019, Stevie Ray Vaughn, and Bonnie Raitt.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c88293aef193bd10d28f4.png"},{"name":"80s New Wave","description":"<p>An upbeat mix of \u201880s synth-pop and modern rock hits from iconic stars and one-hit wonders.</p><p>Featuring: The B-52\u2019s, Blondie, The Cars, The Cure, The Eurythmics, Howard Jones, The Go-Go\u2019s, New Order, Men At Work, and The Smiths.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c88293aef193bd10d28f2.png"},{"name":"Adult Rock Crossroads","description":"<p>A fusion of rock genres that spans classic rock, Americana, singer-songwriters, roots rock, and jam bands, from the mid-\u201960s to today. </p><p>Featuring: Eric Clapton, Alabama Shakes, Brandi Carlile, Grateful Dead, Wilco, Tom Petty, Bruce Springsteen, The Eagles, The Jayhawks, and Nathaniel Rateliff and The Night Sweats.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c88293aef193bd10d28f3.png"},{"name":"Chill Pop","description":"<p>Weaving of contemporary midtempo indie pop, R&amp;B, and chill electronic leaning music, with dreamy vocals and smooth synths. </p><p>Featuring: Billie Eilish, Khalid, SZA, Conan Gray, Halsey, Lana Del Rey, Two Door Cinema Club, The Weeknd, Sigrid, and Cautious Clay.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/67b75e4d633863000b6df363.jpg"},{"name":"Contemporary Christian","description":"<p>Inspirational contemporary Christian pop, rock, country, and alternative, from the \u201800s to today.</p><p>Featuring: Switchfoot, NEEDTOBREATHE, Jars of Clay, Almost, Carrie Underwood, For King and Country, Lauren Daigle, Michael W. Smith, Steven Curtis Chapman, and Britt Nicole.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c88293aef193bd10d28f5.png"},{"name":"Eclectic","description":"<p>A diverse blend of easygoing midtempo folk, pop, rock, indie, chill electronic, R&amp;B, reggae, and jazz from the \u201850s to today.</p><p>Featuring: Norah Jones, Amy Winehouse, Bob Marley, Charles Bradley, Death Cab For Cutie, Diana Krall, Jungle, Khruangbin, Mac DeMarco, and Nathaniel Rateliff & The Night Sweats.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28f9.jpg"},{"name":"Classical","description":"<p>Elegant instrumental overtures, concertos, sonatas and symphonies.</p><p>;Featuring: music composed by Bach, Mozart, Chopin, Debussy, Beethoven, Brahms, Stravinsky, Schubert, Tchaikovsky, and Vivaldi.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28f7.png"},{"name":"All 10s","description":"<p>The best music of the \u201810s from the top artists of the decade across pop, alternative, indie rock, Americana, Hip-Hop, and R&amp;B.</p><p>Featuring: Taylor Swift, One Direction, HAIM, Bruno Mars, Vampire Weekend, Ariana Grande, Rihanna, The 1975, Flo Rida, Mumford &amp; Sons, and The Weeknd.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/6824bd11633863000bf18df8.png"},{"name":"Chill Indie Vibes","description":"<p>Atmospheric, chill, and groovy, with elements of soul, funk, and surf rock, including both instrumentals and vocals. </p><p>Featuring: Khruangbin, Hermanos Gutierrez, La Lom, Ikebe Shakedown, Allah-Las, Arc De Soleil, Badbadnotgood, Goodge, El Michels Affair, and Glass Beams.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/68598c5e633863000a21c3ce.png"},{"name":"Holiday Blend","description":"<p>Celebrate the season by blending Holiday Oldies with Holiday Contemporary, a timeless mix of festive favorites from legendary pop, rock, R&B, and country artists. </p><p>Featuring: Taylor Swift, Coldplay, Straight No Chaser, Justin Bieber, Carole King, Jimmy Buffett, Martina McBride, N\u2019 Sync, Bing Crosby, and Wilson Phillips.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28fd.png"},{"name":"Smooth Jazz","description":"<p>A polished blend of easy listening with softer-sounding contemporary jazz and vocals, from the \u201870s to today.</p><p>Featuring: Sade, Al Jarreau, Boney James, Paul Hardcastle, Dave Koz, David Sanborn, Kenny G, George Benson, Norah Jones, and Lee Ritenour.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Smooth%20Jazz%20n%20Vocals.jpg"},{"name":"Kool Oldies","description":"<p>Instantly recognizable songs and sounds from rock \u2018n\u2019 roll\u2019s innovators, with popular music that topped the charts from the \u201850s to the \u201870s.</p><p>Featuring: Aretha Franklin, The Beach Boys, The Beatles, Chuck Berry, Diana Ross and The Supremes, Elvis Presley, The Jackson 5, The Mamas and The Papas, Roy Orbison, and The Who.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2903.png"},{"name":"Pride Icons","description":"<p>Celebrate Pride with timeless tracks from legendary artists who shaped generations, from pop, rock, R&amp;B, country, and disco.</p><p>Featuring: Elton John, Cher, Beyonc\u00e9, David Bowie, Queen, Lady Gaga, George Michael, Madonna, Katy Perry, and Taylor Swift.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/6827524f633863000bd4aa63.png"},{"name":"Jazzy Vibes","description":"<p>Chill beats with a jazzy feel, modern electronic instrumentals.</p><p>Featuring: DJ Grumble, Dosi, Flo Badabum, Jazz Jousters, Konteks, Lenny B, Maple Syrup, Oilix, Thelonius Coltrane, and Xander.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/67bdf733633863000bff1788.jpg"},{"name":"Holiday Contemporary","description":"<p>Celebrate the season with a timeless mix of festive contemporary holiday songs from pop, rock, R&B, and country artists, from the \u201890s to today.</p><p>Featuring: Mariah Carey, Wham!, Pentatonix, Kelly Clarkson, John Legend, Meghan Trainor, Train, Sia, Justin Bieber, and Teddy Swims.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2918.png"},{"name":"Jazz","description":"<p>Traditional and popular jazz, including vocals and instrumentals, with improvisation, rhythm, harmony, and call-and-response techniques, from the \u201830s to today.</p><p>Featuring: Miles Davis, Chet Baker, Diana Krall, Billie Holiday, Frank Sinatra, Duke Ellington, Ella Fitzgerald, Harry Connick, Jr., McCoy Tyner, and Herbie Hancock.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28ff.png"},{"name":"Shuffle Variety","description":"<p>A dynamic playlist blending various genres into one exciting mix with a lineup of pop and rock, from the \u201860s to today. </p><p>Featuring: Maroon 5, Elton John, Stevie Wonder, Madonna, The Beatles, Taylor Swift, ABBA, Rod Stewart, Bruno Mars, and Bruce Springsteen.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2905.png"},{"name":"Indie Rock","description":"<p>Genre-defining indie-rock artists from the late \u201880s to today.</p><p>Featuring: Feist, LCD Soundsystem, MGMT, Modest Mouse, St. Vincent, Radiohead, Pixies, Santigold, The Strokes, and TV On The Radio.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28fe.jpg"},{"name":"Modern Rock","description":"<p>The current sounds of mainstream modern rock spun beside familiar bands and hits, from the \u201800s to today. </p><p>Featuring: Black Keys, Billie Eilish, Bleachers, Gorillaz, Yeah Yeah Yeahs, Kings of Leon, Phoenix, Twenty One Pilots, Wet Leg, and The XX.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2901.png"},{"name":"Pumpkin Spice","description":"<p>Cozy, relaxed, easy-going midtempo songs across genres that feel autumnal, from the \u201860s to today.</p><p>Featuring: Taylor Swift, Fleetwood Mac, Band of Horses, Jamie Cullum, Ray LaMontagne, Kacey Musgraves, Lana Del Rey, Lord Huron, Mazzy Star, and Van Morrison.\r\n\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/68cc43a0323261000c8232d5.png"},{"name":"Smooth Jazz Instrumentals","description":"<p>A beautiful blend of contemporary instrumental smooth jazz from the \u201870s to today.</p><p>Featuring: Chris Botti, Boney James, Fourplay, David Benoit, Grover Washington, Jr., Gipsy Kings, Herb Alpert, Pat Metheny, Tim Bowman, and Acoustic Alchemy.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2910.png"},{"name":"Reggae Roots","description":"<p>Classic reggae\u2019s legendary uptempo anthems, hits, and album cuts from the biggest names in reggae, from the \u201860s to today.</p><p>Featuring: Bob Marley &amp; The Wailers, Ziggy Marley, Jimmy Cliff, Gregory Isaacs, Steel Pulse, Inner Circle, Toots & The Maytals, UB40, Desmond Dekker, and Easy Star All-Stars.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d290f.jpg"},{"name":"Holiday Oldies","description":"<p>Celebrate the season with a timeless mix of festive, traditional, and nostalgic holiday carols and standards from legendary pop, rock, R&B, and country artists.</p><p>Featuring: Bing Crosby, Andy Williams, Brenda Lee, Ella Fitzgerald, Johnny Mathis, The Carpenters, Nat King Cole, Perry Como, The Jackson 5, and Elvis Presley.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2919.png"},{"name":"Spa Sol","description":"<p>Tranquil and gentle melodic instrumental music featuring piano and woodwinds, evoking the serene beauty of a sunrise. (No drums).</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2911.jpg"},{"name":"Bright Mix","description":"<p>A vibrant blend of midtempo adult contemporary singles and deep cuts from pop, rock, Americana, alternative, new wave, and R&amp;B, from the \u201880s to today. </p><p>Featuring: Adele, Andy Grammar, Ed Sheeran, Haim, Imagine Dragons, Jack Johnson, Leon Bridges, Train, The Police, Talking Heads, and Tracy Chapman.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2912.png"},{"name":"Alt Rock Now & Then","description":"<p>Icons of college radio, pop-punk, Britpop, modern rock, and grunge come together to create the ultimate alternative rock channel, from the late \u201870s to today.</p><p>Featuring: Nirvana, Arctic Monkeys, Beck, Blur, The Cure, The Cranberries, Florence and the Machine, Garbage, Jimmy Eat World, and The Replacements.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Alt%20Rock%20NT.jpg"},{"name":"St. Patrick's Day","description":"<p>Irish artists and Celtic sounds to celebrate St. Patrick\u2019s Day.</p><p>;Featuring: The Pogues, The Chieftains, The Proclaimers, Celtic Woman, Clannad, The Irish Rovers, Great Big Sea, Two Tap Trio, Eileen Ivers, and Gaelic Storm.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d291e.png"},{"name":"Island Time","description":"<p>Tropical island flavors, laid back, relaxed, and chill, with traditional and contemporary songs intermixed, from the \u201860s to today.</p><p>Featuring: Jimmy Buffett, Jack Johnson, Eddie Vedder, Bob Marley, Inner Circle, Beach Boys, Ziggy Marley &amp; The Melody Makers, Taj Mahal, Anuhea, and Bobby Alu.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2917.png"},{"name":"Pride Classics","description":"<p>Celebrate Pride with fan-favorite anthems from artists across pop, rock, R&amp;B, country, and disco, from the 70s to today.</p><p>Featuring: Mariah Carey, Kylie Minogue, Gloria Gaynor, Robyn, Ricky Martin, Culture Club, Britney Spears, Erasure, ABBA, and Wham!\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/682ca04d6338638348f771d5.png"},{"name":"Taylor and Friends","description":"<p>Celebrate the release of Taylor Swift\u2019s new album with hits from Taylor and artists she\u2019s toured and recorded with.</p><p>Featuring: Taylor Swift, Post Malone, Sabrina Carpenter, Gracie Abrams, Bleachers, Maren Morris, Ed Sheeran, HAIM, Panic! At the Disco, and Florence + The Machine. \r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/68dab76e323261000c9ac275.jpg"},{"name":"Spa Nature","description":"<p>Relaxing and soothing sounds of nature such as birdsong, ocean waves, and rain.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2926.png"},{"name":"All 70s","description":"<p>The best music of the \u201870s from the top artists of the decade across pop, rock, country, folk, soul, disco, singer-songwriter, soft rock, R&B, and pop-punk.</p><p>Featuring: Al Green, Bee Gees, Blondie, Carole King, Steve Miller Band, Chic, David Bowie, Earth, Wind and Fire, Fleetwood Mac, and Lynyrd Skynyrd. </p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d291a.png"},{"name":"Cinco De Mayo","description":"<p>Upbeat traditional Mexican mariachi music with trademark violins, guitars, and trumpets.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d291f.png"},{"name":"Pride LGTBQ+ Artists","description":"<p>Celebrate Pride with powerful songs from LGBTQ+ legends to rising stars, across pop, rock, R&amp;B, country, and disco, from the 70s to today.</p><p>Featuring: Chappell Roan, Miley Cyrus, Brandi Carlile, Sam Smith, Melissa Etheridge, Mika, Pet Shop Boys, Tegan and Sara, Janelle Mon\u00e1e, and Rufus Wainwright.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/682ca07f63386383488a44ce.png"},{"name":"Certified Hip Hop","description":"<p>A mix of lyrically non-explicit old-school and contemporary hip-hop jams with strong, rhythmic beats from legendary MCs, DJs, and groups, from the \u201880s to today. (We feature edited versions of songs, but please note that edgy and suggestive lyrics may make Certified Hip Hop unsuitable for some business settings.)</p><p>Featuring: A Tribe Called Quest, Beastie Boys, Salt-N-Pepa, De La Soul, Busta Rhymes, The Fugees, Jay-Z, LL Cool J, Run-D.M.C., and Faith Evans.<p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2915.png"},{"name":"Electro Lounge Instrumentals","description":"<p>Calming and energetic instrumental electropop interwoven with loungey jazz-inflected grooves, from the \u201800s to today.</p><p>Featuring: Jazzinuf, moow, Nujabes, Idealism, Brockbeats, Joey Pecoraro, Kontecks, Soul Chef, Ford and Blue Wednesday.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2914.jpg"},{"name":"Latin Hits","description":"<p>Upbeat Spanish language pop hits fusing traditional Latin music with hip-hop, R&amp;B, pop, and dance, from the \u201800s to today.</p><p> Featuring: Bad Bunny, KAROL G, Rosal\u00eda, Prince Royce, Shakira, Daddy Yankee, Enrique Iglesias, J. Balvin, Juanes, and Maluma.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Latin%20Heat.jpg"},{"name":"All 80s","description":"<p>The best music of the \u201880s from the top artists of the decade across pop, rock, R&amp;B, old school Hip-Hop, new wave, and pop-punk.</p><p>Featuring: Whitney Houston, Prince, Madonna, Duran Duran, Michael Jackson, Journey, INXS, Run-D.M.C., Depeche Mode, and Kenny Loggins.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/All%2080s-Police.jpg"},{"name":"Alternative Deep End","description":"<p>A mix of album cuts, post-punk rock, and college radio staples from the defining days of alternative rock, from the \u201870s to the early \u201800s. </p><p>Featuring: Elvis Costello, Kate Bush, Bjork, Cake, Echo and The Bunnymen, Depeche Mode, Joe Jackson, Liz Phair, Simple Minds, and Squeeze.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d292b.png"},{"name":"All 90s","description":"<p>The best music of the \u201890s from the top artists of the decade across pop, alternative, rock, R&B, Britpop, teen-pop, and grunge.</p><p>Featuring: Alanis Morissette, Britney Spears, Oasis, George Michael, Hootie &amp; The Blowfish, Janet Jackson, Nirvana, Mariah Carey, Red Hot Chili Peppers, and No Doubt.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2920.png"},{"name":"Vibe","description":"<p>A collection of new jack swing, neo-soul, hip-hop soul, and contemporary R&B, from the \u201880s to today.</p><p>Featuring: Janet Jackson, Tony! Toni! Ton\u00e9!, Rihanna, SWV, The Weeknd, Usher, Aaliyah, Bel Biv DeVoe, Jody Watley, and Guy.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d292c.png"},{"name":"Jam Bands","description":"<p>The ultimate list of free-form jams that fuse rock, blues, psychedelic, jazz, and bluegrass, from the late \u201860s to today.</p><p>Featuring: Grateful Dead, Phish, Bela Fleck and The Flecktones, Dave Matthews Band, Frank Zappa, Gov\u2019t Mule, moe., My Morning Jacket, The String Cheese Incident, and Widespread Panic.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2928.png"},{"name":"Spa Luna","description":"<p>New age, ambient, and ethereal instrumental sounds that are reminiscent of a peaceful sunset, meditative and atmospheric, to encourage blissful relaxation.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Spa%20Luna-.jpg"},{"name":"Indie Electro","description":"<p>Feel good contemporary electronic indie pop, danceable midtempo songs, from the \u201800s to today. </p><p>Featuring: LCD Soundsystem, Hot Chip, Tame Impala, Lana Del Rey, Cannons, Glass Animals, Phoenix, Little Dragon, M83, and Goldfrapp.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Indie%20Electro.jpg"},{"name":"Adult Rock Arrival","description":"<p>A blend of mid to uptempo guitar-based songs from adult alternative bands and Americana artists, from the \u201800s to today.</p><p> Featuring: Beck, Cage the Elephant, The Revivalists, Rilo Kiley, Gomez, Death Cab for Cutie, The Lumineers, The Goo Goo Dolls, The Head and The Heart, and Michigander.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2927.png"},{"name":"Winter Songs","description":"<p>Cozy winter tunes that glow with warmth. Designed to blend with Holiday playlists or as a standalone, from the \u201860s to today.</p><p>Featuring:  Nick Drake, Norah Jones, Ingrid Michaelson, John Mayer, Elton John, Taylor Swift, Calexico, Michael Kiwanuka, Sting, and Joni Mitchell.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/690a47df323261000c90f6af.jpg"},{"name":"Piano Instrumentals","description":"<p>An elegant, relaxed, and harmonious soundtrack of solo pianists. </p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d2931.png"},{"name":"Summer","description":"<p>Upbeat songs that harness the energy of sunshine, pools, and the beach, mixing pop, rock, country, reggae, and R&B, from the \u201860s to today.</p><p> Featuring: The Beach Boys, Kenny Chesney, Sheryl Crow, Bob Marley, Jan and Dean, John Mellencamp, Little Big Town, Martha Reeves and The Vandellas, Weezer, and Bananarama.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5d0295284c124308b95860b2.png"},{"name":"All 60s","description":"<p>The best music of the \u201860s from the top artists of the decade across pop, rock, Motown, surf rock, the British Invasion, doo-wop, folk, soul, and country. </p><p>Featuring: The Beach Boys, The Beatles, The Supremes, Donovan, Smokey Robinson &amp; The Miracles, Johnny Cash, The Lovin\u2019 Spoonful, The Rascals, The Rolling Stones, and Dusty Springfield.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5dae274467627205ce54a172.png"},{"name":"Yacht Rock","description":"<p>Soft rock with bouncy rhythms, smooth and mellow sounds, blending pop, rock, R&B, and jazz, from the late \u201870s to the early \u201880s.</p><p>Featuring: Steely Dan, Kenny Loggins, America, Boz Scaggs, Chicago, Christopher Cross, Little River Band, Fleetwood Mac, Dan Fogelberg, and Carly Simon.</p>","image":"https://customchannels-style-samples.s3.amazonaws.com/images/Yacht%20Rock.jpg"},{"name":"Lite Pop & Soft Rock","description":"<p>A blend of easy-listening, melodic, adult contemporary pop and rock songs from the \u201860s to today. </p><p>Featuring: Anita Baker, Beatles, Fleetwood Mac, Bee Gees, Billy Joel, Bonnie Raitt, Bob Seger, Carole King, Lionel Richie, and Michael Bubl\u00e9.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2900.png"},{"name":"Holiday Instrumentals","description":"<p>Celebrate the season with a timeless mix of festive holiday instrumentals, piano, guitar, and light jazz, from the \u201860s to today.</p><p> Featuring: Mannheim Steamroller, John Tesh, Kenny G, Vince Guaraldi Trio, Boney James, Beegie Adair and Friends, Antherius, Brian Fechino, Chris Botti, and Jim Brickman.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5daa10278aa7e20bd2131b62.png"},{"name":"Chill House","description":"<p>Dreamy chill house, electronic music with a slower tempo, a mellow, relaxed vibe incorporating instrumentals and vocals, from the \u201800s to today.</p><p> Featuring: R\u00dcF\u00dcS DU SOL, Bob Moses, Tycho, SG Lewis, Claptone, Satin Jackets, Lane8, Modd, Elderbrook and Marian Hill.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5dc1aa748d4ed475a81ffea2.jpg"},{"name":"Holiday MixMas","description":"<p>Celebrate the season with holiday remixes that breathe new life into favorite classics, from the \u201800s to today. </p><p>Featuring: Duke Ellington, Ella Fitzgerald, Ariana Grande, Bing Crosby, Jose Feliciano, Billy Paul Williams, Mel Torm\u00e9, Sia, Sufjan Stevens and Jobii.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777f452ded76396561176e.png"},{"name":"French Bistro","description":"<p>An elegant blend of French-language songs and instrumental pieces that evokes the romance and charm of French culture.</p><p>Featuring: Edith Piaf, Carla Bruni, Serge Gainsbourg, Francoise Hardy, Vanessa Paradis, Brigitte Bardot, Alma Sinti, Celine Dion, Alma Sinti, and Le Petit Orchestre de Cafe Paris.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5e29ec8514558046e616cb89.png"},{"name":"Holiday R&B","description":"<p>Celebrate the season with a timeless mix of festive holiday songs from R&B artists, from the \u201860s to today.</p><p> Featuring: Whitney Houston, Luther Vandross, Alicia Keys, James Brown, The Supremes, Vanessa Williams, CeeLo Green, Earth, Wind & Fire, Brandy, and Sharon Jones & The Dap-Kings.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777f6ecb2054416909e818.png"},{"name":"Holiday Contemporary Christian","description":"<p>Celebrate the season with a festive mix of holiday songs from contemporary Christian artists, from the '80s to today.</p><p> Featuring: Amy Grant, Matthew West, Mercy Me, Michael W. Smith, Lauren Daigle, Stephen Curtis Chapman, Casting Crowns, Danny Gokey, Phil Whickman, and Tasha Layton.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777f2ed574e366ef22f7f3.png"},{"name":"Valentine's Day","description":"<p>A bouquet of classic and contemporary multi-genre love songs, ballads to midtempo, from the \u201860s to today.</p><p>Featuring: Ed Sheeran, Celine Dion, Adele, Barry White, Bryan Adams, Dan + Shay, Elvis Presley, Elton John, Whitney Houston, and Frank Sinatra.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/6283cb7b2e40f1631265ce2a.jpg"},{"name":"Modern Reggae","description":"<p>Contemporary reggae all-stars, rooted in traditional rhythms, from the \u201800s to today.</p><p> Featuring: Stick Figure, Rebelution, SOJA, Citizen Cope, Hollie Cook, Slightly Stoopid, Long Beach Dub Allstars, Collie Buddz, Matisyahu, and Pachyman.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/62881396653210437a6c1be4.jpg"},{"name":"Texas Country","description":"<p>Classic Texas country\u2019s legendary anthems, hits, and album cuts from the biggest names, from the late \u201860s to the \u201820s.</p><p>Featuring: The Charlie Daniels Band, Willie Nelson, Cross Canadian Ragweed, Joe Ely, Midland, Miranda Lambert, Robert Earl Keen, Sarah Hobbs, Sunny Sweeney, and William Clark Green.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/634f307db5baf80113305444.png"},{"name":"Power Punk","description":"<p>A survey of blistering, high-energy punk rock anthems - tight, quick songs with simple melodies rooted in rock, from the \u201870s to today.</p><p> Featuring: Bad Religion, Blink-182, The Clash, Iggy Pop, Offspring, Paramore, The Ramones, Rancid, Social Distortion, and The Linda Lindas.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/62702f5361af92264a638932.png"},{"name":"Spa Guitar","description":"<p>Peaceful, soft, and restful acoustic guitar without vocals.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/63505092b5baf80113305446.png"},{"name":"90s Country","description":"<p>The greatest \u201890s country songs from the top artists in new country, country-pop, stadium country, and neo-traditional country.</p><p> Featuring: Brooks &amp; Dunn, Faith Hill, George Strait, Mary Chapin Carpenter, Randy Travis, Tim McGraw, Travis Tritt, Trisha Yearwood, Garth Brooks, Vince Gill, and Clay Walker</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/63adeeee81c9af5b95452923.png"},{"name":"Spa Zen Garden","description":"<p>Meditative, relaxing, healing sounds with an Asian influence.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/65fb0c31ee0bea18b9482944.jpg"},{"name":"Holiday Jazz Instrumentals","description":"<p>Celebrate the season with a timeless mix of festive holiday jazz instrumentals, from the \u201860s to today.</p><p>Featuring: Vince Guaraldi Trio, Herb Alpert, Count Basie Orchestra, Chet Baker, Dave Koz, Ramsey Lewis Trio, Dave Brubeck, Wynton Marsalis, Grover Washington Jr., and George Winston.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/6914c7cc323261000cca62b8.jpg"},{"name":"90s Rock","description":"<p>The greatest \u201890s rock songs from the top artists in pop-punk, alternative, grunge, Britpop, and indie rock.</p><p> Featuring: Green Day, Gin Blossoms, Pearl Jam, The Offspring, Sheryl Crow, Stone Temple Pilots, Lenny Kravitz, The Wallflowers, The Cranberries and Blur.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/6390d5b2b9b68354dc4a3c03.png"},{"name":"Sports Bar","description":"<p>Energetic, uptempo mix of classic rock anthems, hip-hop bangers, pop hits, and alternative/indie crowd-pleasers, from the 60s to today.</p><p>Featuring: Journey, The Killers, AC/DC, Imagine Dragons, Joan Jett and the Blackhearts, INXS, Kendrick Lamar, Queen, Tag Team, and U2.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/64495cf1331eac065f786783.png"},{"name":"Country Now & Then","description":"<p>Country music\u2019s biggest hits from the genre\u2019s greatest stars, from the \u201890s to today.</p><p>Featuring: Alan Jackson, Garth Brooks, The Chicks, Blake Shelton, Carrie Underwood, Brad Paisley, Brothers Osborne, Dierks Bentley, Lady A, and Keith Urban.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28f8.png"},{"name":"Pop!","description":"<p>A collection of family-friendly, familiar pop hits and catchy album tracks from the \u201800s to today.</p><p> Featuring: 5 Seconds of Summer, BTS, Carly Rae Jepsen, Charlie Puth, Dua Lipa, Halsey, John Legend, Lady Gaga, Meghan Trainor, and Lizzo.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2904.png"},{"name":"Today's Pop","description":"<p>Today\u2019s hottest pop hits. Current chart-toppers and viral anthems. </p><p>Featuring: Olivia Dean, Taylor Swift, Alex Warren, Saja Boys, Ed Sheeran, HUNTR X, Justin Bieber, Kehlani, Raye, and sombr.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d290b.png"},{"name":"Soul Revival","description":"<p>A fresh take on a classic sound, contemporary soul songs with a decidedly retro feel, from the \u201800s to today.</p><p>Featuring: Alabama Shakes, Joss Stone, Black Pumas, Lake Street Dive, Leon Bridges, Jamie Lidell, St. Paul & The Broken Bones, Anderson East, Susan Tedeschi, and Bamboos.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5e1e34463a02c200ad337904.png"},{"name":"Electro Fusion","description":"<p>An eclectic collection of midtempo sophisticated, global sounds from electronic dance, funk, and jazz-influenced beats, from the \u201890s to today.</p><p>Featuring: Groove Armada, Jungle, Thievery Corporation, Zero 7, Caribou, Miguel Migs, Bonobo, Royksopp, Little Dragon and Rhye.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28fc.jpg"},{"name":"Today's Indie","description":"<p>The hottest new indie rock releases from bands that exemplify DIY with authentic storytelling and an independent spirit, from the late \u201810s to today.</p><p>Featuring: Glass Animals, Alt-J, Phoebe Bridgers, Spoon, Clairo, Jungle, The National, Sharon Van Etten, beabadoobee, and Vampire Weekend.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/627c3eb6cff8e00c775d5785.jpg"},{"name":"Millennium Soft Rock","description":"<p>A blend of lighter guitar-leaning rock subgenres such as pop-rock, indie-rock, and singer-songwriters, from the late \u201880s to the early \u201810s. </p><p>Featuring: Coldplay, John Mayer, Dave Matthews Band, Goo Goo Dolls, KT Tunstall, Matchbox Twenty, R.E.M, Sarah McLachlan, Train, and Sheryl Crow.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/63504eedb5baf80113305445.png"},{"name":"Sunny","description":"<p>A mix of uptempo, upbeat, and energetic feel-good music from pop, dance, pop-rock, R&amp;B, pop-country, and indie, from the \u201800s to today. </p><p>Featuring: Ariana Grande, Beyonc\u00e9, Jonas Brothers, Coldplay, Dua Lipa, Elton John, Justin Bieber, One Direction, Keith Urban, and Khalid.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d290a.png"},{"name":"Classic Rock That Rocks","description":"<p>Classic rock's legendary uptempo anthems, hits, and album cuts from the biggest names in classic rock from the \u201860s to the \u201890s.</p><p>Featuring: The Beatles, Jimi Hendrix, Aerosmith, Blondie, Bruce Springsteen, The Cars, David Bowie, Fleetwood Mac, Genesis, and Heart.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c88293aef193bd10d28f6.png"},{"name":"Pop Drop","description":"<p>The best mainstream, high-energy, electronic dance-pop hits with strong beats and catchy hooks from the \u201810s to today. </p><p>Featuring: Ava Max, Avicii, Clean Bandit, David Guetta, Ellie Goulding, Galantis, Goldfrapp, Kygo, Romy, and Zedd.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d292d.png"},{"name":"Chart Toppers","description":"<p>The ultimate mix of iconic chart-defining hits from the biggest names in pop, R&amp;B, dance, alternative, and rock, from the \u201800s to today. </p><p>Featuring: Alicia Keys, Britney Spears, Bruno Mars, The Killers, Coldplay, Harry Styles, Justin Timberlake, Katy Perry, Kelly Clarkson, and Maroon 5.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2929.png"},{"name":"Euro Cafe","description":"<p>Midtempo songs sung in French, Italian, Spanish, Portuguese, and English, with bossa nova grooves, including instrumentals and vocals, from the \u201820s to today. </p><p>Featuring: Eartha Kitt, Josephine Baker, Serge Gainsbourg, Carla Bruni, Pink Martini, Vanessa Paradis, Bebel Gilberto, Antonio Carlos Jobin, Brigitte Bardot, and Gianluca Sulli Group.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28fb.png"},{"name":"Over Easy","description":"<p>A relaxed mix of mellow, midtempo light rock hits and album tracks, paired with acoustic renditions of familiar pop songs, from the late \u201860s to today. </p><p>Featuring: David Gray, Brandi Carlile, The Beatles, Bob Dylan, Nick Drake, Emmylou Harris, Ed Sheeran, Iron &amp; Wine, Beck, and Kasey Musgraves.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d290c.png"},{"name":"Funky Town","description":"<p>An upbeat mix of funkadelic soul and R&B, danceable and rhythmic with a strong bass line, from the \u201860s to the \u201890s.</p><p>Featuring: James Brown, Earth, Wind & Fire, Chaka Khan, Parliament, Sly and The Family Stone, Cheryl Lynn, Rick James, The Gap Band, Cameo, and Curtis Mayfield.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d291b.png"},{"name":"All 2000s","description":"<p>The best music of the \u201800s from the top artists of the decade across pop, alternative, rock, R&B, and dance-pop.</p><p>Featuring: Alicia Keys, Coldplay, Destiny\u2019s Child, Incubus, Foo Fighters, John Mayer, Justin Timberlake, Lady Gaga, Kelly Clarkson, and Maroon 5.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5d0295e24c124308b95860b3.png"},{"name":"Hard Classic Rock","description":"<p>Classic rock\u2019s harder edge, high energy rock, hair bands, and heavy metal with bluesy electric guitars and thundering drums, from the \u201860s to the \u201890s.</p><p>Featuring:  AC/DC, Black Sabbath, Led Zeppelin, Guns N\u2019 Roses, Joan Jett and The Blackhearts, KISS, Van Halen, Pat Benatar, Bon Jovi, and Judas Priest.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d2930.png"},{"name":"On The Patio","description":"<p>A mix of midtempo acoustic pop, country, rock, and singer-songwriter songs with a laid-back summer vibe, breezy, and melodic, from the late \u201860s to today.</p><p> Featuring: Jack Johnson, Colbie Caillat, Jason Mraz, John Mayer, Michael Franti and Spearhead, Paul McCartney, Vance Joy, Zac Brown Band, Jimmy Buffett, and Sheryl Crow.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/62729ea9ae81b929f3170ea4.jpg"},{"name":"Today's Country","description":"<p>Today\u2019s hottest country hits and recent chart-toppers.</p><p>Featuring: Russell Dickerson, Jelly Roll, Ella Langley, Jordan Davis, Megan Moroney, Morgan Wallen, Thomas Rhett, Lainey Wilson, Brett Young, and Parker McCollum.\r\n</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2921.png"},{"name":"Classic R&B and Soul","description":"<p>Legendary uptempo anthems, hits, and album cuts from the biggest names in soul, R&amp;B, and disco, from the \u201850s to the \u201880s.</p><p>Featuring: Stevie Wonder, Aretha Franklin, Marvin Gaye and Tammi Terrell, Al Green, Donna Summer, Wilson Pickett, Kool &amp; The Gang, Little Richard, The O\u2019Jays and The Pointer Sisters.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2908.png"},{"name":"Americana","description":"<p>The latest and greatest Americana music, blending elements of folk, country, bluegrass, blues, singer-songwriter, and roots music, from the \u201870s to today.</p><p> Featuring: Brandi Carlile, Alison Krauss, Bob Dylan, Avett Brothers, Jason Isbell, The Jayhawks, John Prine, Lumineers, Lucinda Williams, and Lukas Nelson and Promise of the Real. </p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d292a.png"},{"name":"Classic Country","description":"<p>Classic country\u2019s legendary anthems, hits, and album cuts from the biggest names in country music from the \u201850s to the \u201880s.</p><p>Featuring: Dolly Parton, Alabama, Charley Pride, George Jones, Johnny Cash, Hank Williams, Loretta Lynn, Randy Travis, Patsy Cline, and Willie Nelson.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2916.png"},{"name":"Uptown R&B","description":"<p>Feel-good R&amp;B and soul, upbeat and uplifting, melodic, from the mid-'80s to today.</p><p>Featuring: Mary J. Blige, Raphael Saadiq, RAYE, Sharon Jones &amp; The Dap-Kings, SAULT, Mayer Hawthorne, Janelle Mon\u00e1e, D\u2019Angelo, Boyz II Men, and The Brand New Heavies.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d290d.png"},{"name":"Today's Hip Hop and R&B","description":"<p>Today\u2019s hottest non-explicit hip-hop and R&amp;B tracks, from the \u201810s to today. (We feature edited versions of songs, but please note that edgy and suggestive lyrics may make Today's Hip Hop and R&amp;B unsuitable for some business settings.) </p><p>Featuring: Kendrick Lamar, Mariah Carey, PinkPantheress, Ty Dolla Sign, Doechii, Tyga, Amber Mark, Kehlani, The Weeknd, and Drake. </p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/60d25625b2f973426b0950da.png"},{"name":"Spa Spirit","description":"<p>Melodic and syncopating Native American flute music that stimulates stress relief and relaxation.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/65fb0c17f6d75848584839f2.png"},{"name":"Jazz Instrumentals","description":"<p>Refined jazz instrumentals from established icons to emerging artists, from the \u201850s to today.</p><p>Featuring: John Coltrane, Sonny Rollins, Ray Charles, The Dave Brubeck Quartet, Cannonball Adderley, Wynton Marsalis, Count Basie, Allen Toussaint, Vince Guaraldi, and Bill Evans.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/627177557a4fd57948648b79.jpg"},{"name":"Italian Restaurant","description":"<p>Traditional Italian songs, classic ballads, crooners, and modern Italian pop, from the \u201850s to today.</p><p>Featuring: Frank Sinatra, Doris Day, Dean Martin, Claudio Villa, Andrea Bocelli, Luciano Pavarotti, Louis Prima, Connie Francis, Italian Social Club, and Dalida.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d2933.png"},{"name":"Swingin' Lounge","description":"<p>Mid to uptempo, timeless swing standards made famous in the \u201830s and \u201840s, weaving originals with contemporary covers.</p><p>Featuring: Frank Sinatra, Tony Bennett, Michael Bubl\u00e9, Dean Martin, Nat King Cole, Peggy Lee, Robbie Williams, Rod Stewart, Ella Fitzgerald, and Sammy Davis, Jr.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882b3aef193bd10d2909.png"},{"name":"Energy","description":"<p>High-energy electronic dance music, joining ambient, drum and bass, house, electro, techno, and trance, merging instrumentals and vocals, from the \u201800s to today. </p><p>Featuring: Tiesto, Deadmau5, Calvin Harris, Disclosure, Acraze, Paul Oakenfold, Republica, PNAU, Fisher, and Steve Aoki</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d28fa.png"},{"name":"Holiday Country","description":"<p>Celebrate the season with a timeless mix of festive holiday songs from country artists, from the \u201880s to today.</p><p>Featuring: Brett Eldredge, George Strait, Martina McBride, Blake Shelton, Alan Jackson, Kacey Musgraves, Garth Brooks, Carrie Underwood, Darius Rucker, and Jon Pardi.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5daa10428aa7e20c1f476662.png"},{"name":"Holiday Modern Rock","description":"<p>Celebrate the season with a timeless mix of festive holiday songs from alternative, indie, and rock artists, from the \u201880s to today.</p><p> Featuring: The Killers, Billy Idol, Weezer, The Bird and The Bee, Barenaked Ladies, Echosmith, The Brian Setzer Orchestra, Sufjan Stevens, Cocteau Twins, and Fountains of Wayne.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777f5bfcb046292a56e731.png"},{"name":"Holiday Acoustic/Mellow","description":"<p>Celebrate the season with a timeless mix of mellow holiday songs, both new and reimagined versions of favorites, from the \u201870s to today.</p><p> Featuring: James Taylor, She and Him, Christina Perri, Jack Johnson, Indigo Girls, Coldplay, The Fray, Maddie & Tae, Alessia Cara, and Kenny Chesney.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777effdf238c36b827b9f4.png"},{"name":"Holiday Rhapsody","description":"<p>Celebrate the season with a timeless mix of festive classical holiday songs, elegant instrumental overtures, and chorale works.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/655e31b09c1b5531a547607b.png"},{"name":"Halloween","description":"<p>A spooktacular, bewitching brew of classic and contemporary Halloween songs from film, TV, pop, rock, country, and R&amp;B, from the \u201860s to today.</p><p>Featuring: Lady Gaga, Ray Parker, Jr., Oingo Boingo, Echo & the Bunnymen, Rob Zombie, MC Hammer, Billie Eilish, Bobby \u201cBoris\u201d Pickett and The Crypt-Kickers, and The Hooters.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882c3aef193bd10d2924.png"},{"name":"New Orleans","description":"<p>The music of New Orleans is revered for its recognizable brass instruments, marching percussion, and joyous vocals, mixing jazz, blues, and mambo.</p><p>Featuring: Louis Armstrong, Jon Batiste, Aaron Neville, Buckwheat Zydeco, Dr. John, The Preservation Hall Jazz Band, Marcia Ball, The Dirty Dozen Brass Band, Trombone Shorty, and Marcia Ball. </p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2902.png"},{"name":"LoFi Instrumentals","description":"<p>Chill, blissed-out instrumental infused with elements of dream pop, hip-hop, drum loops, and jazz beats, also known as chill hop, from the \u201800s to today.</p><p>Featuring: Tom Misch, Jazzinuff, moow, Nujabes, Iamalex, Idealism, SoulChef, Konteks, Brockbeats, and Re um.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882d3aef193bd10d2932.png"},{"name":"Soft Classic Rock","description":"<p>Classic rock\u2019s lighter side, midtempo hit singles and album cuts from the era\u2019s icons, from the \u201860s to the \u201890s.</p><p>Featuring: America, Billy Joel, Bonnie Raitt, Carly Simon, Chicago, Elton John, James Taylor, Journey, Rod Stewart, and Steely Dan.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5c5c882a3aef193bd10d2907.png"},{"name":"Holiday Bright Mix","description":"<p>Ease into the season with a delightful blend of adult contemporary hits and festive holiday favorites, from the \u201880s to today. </p><p>Featuring: Gwen Stefani, Mariah Carey, Gavin DeGraw, OneRepublic, Colbie Caillat, Michael Bubl\u00e9, Ingrid Michaelson, Sarah McLachlan, The Pretenders, and Lady A.</p>","image":"https://s3-us-west-2.amazonaws.com/customchannels-style-samples/images/5f777f16daeb355ed939669f.png"}];
+
+function init() {
+  // Try live fetch first, fall back to embedded data
+  fetch('https://customchannels.s3.amazonaws.com/remix_styles.json')
+    .then(r => r.json())
+    .then(data => {
+      allStyles = data.map((s,i) => ({
+        idx: i,
+        name: s.display_name || s.name,
+        description: (s.description && s.description.includes('Featuring'))
+          ? s.description
+          : (DATA.find(d => d.name === (s.display_name || s.name))?.description || s.description || ''),
+        image: s.image_url || s.image || '',
+        sample: s.sample_path ? 'https://customchannels-style-samples.s3.amazonaws.com/' + s.sample_path : null,
+        _genre: genreFor(s.display_name || s.name || '')
+      }));
+      buildPage();
+    })
+    .catch(() => {
+      // Fall back to embedded styles.json (no audio samples)
+      allStyles = DATA.map((s,i) => ({
+        idx: i,
+        name: s.name,
+        description: (s.description && s.description.includes('Featuring'))
+          ? s.description
+          : (DATA.find(d => d.name === (s.display_name || s.name))?.description || s.description || ''),
+        image: s.image || '',
+        sample: null,
+        _genre: genreFor(s.name || '')
+      }));
+      buildPage();
+    });
+}
+
+function buildPage() {
+  buildPills();
+  renderGrid();
+}
+
+function buildPills() {
+  const counts = {All: allStyles.length};
+  allStyles.forEach(s => { counts[s._genre] = (counts[s._genre]||0)+1; });
+  const order = ['All','Pop','Rock','Country','Jazz','R&B','Chill','Spa','Decades','Holiday','Eclectic','Other'];
+  const container = document.getElementById('filterPills');
+  container.innerHTML = '';
+  order.filter(g => counts[g]).forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (g==='All'?' active':'');
+    btn.textContent = g + (g!=='All' ? ' (' + counts[g] + ')' : '');
+    btn.onclick = () => {
+      activeGenre = g;
+      document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      renderGrid();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function renderGrid() {
+  const q = searchTerm.toLowerCase();
+  const filtered = allStyles.filter(s => {
+    const matchGenre = activeGenre==='All' || s._genre===activeGenre;
+    const matchSearch = !q || s.name.toLowerCase().includes(q) || stripHtml(s.description).toLowerCase().includes(q);
+    return matchGenre && matchSearch;
+  });
+
+  document.getElementById('countLabel').textContent = filtered.length + ' channels';
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  filtered.forEach(s => {
+    const isPlaying = currentIdx === s.idx;
+    const hasAudio = !!s.sample;
+    const card = document.createElement('div');
+    card.onclick = () => openModal(s.idx);
+    card.className = 'card' + (isPlaying?' is-playing':'') + (!hasAudio?' no-sample':'');
+    card.id = 'card-' + s.idx;
+
+    const btnContent = isPlaying
+      ? '<div class="pause-bars"><span></span><span></span></div>'
+      : '<div class="play-icon"></div>';
+
+    card.innerHTML = `
+      <div class="art-wrap">
+        <img class="art" src="${s.image}" alt="${s.name}" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="overlay">
+          <button class="play-btn" onclick="event.stopPropagation(); togglePlay(${s.idx})" title="${hasAudio?'Play sample':'No sample available'}">${btnContent}</button>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${s.name}</div>
+        <div class="card-desc">${stripHtml(descriptionPreview(s.description))}</div>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  const container = document.getElementById('gridContainer');
+  container.innerHTML = '';
+  container.appendChild(grid);
+}
+
+function togglePlay(idx) {
+  const s = allStyles.find(x => x.idx === idx);
+  if (!s || !s.sample) return;
+
+  if (currentIdx === idx) { stopAll(); return; }
+
+  stopAll(true);
+
+  currentAudio = new Audio(s.sample);
+  currentIdx = idx;
+  currentAudio.play();
+  currentAudio.onended = () => stopAll();
+
+  document.getElementById('nowArt').src = s.image;
+  document.getElementById('nowName').textContent = s.name;
+  document.getElementById('nowTag').textContent = s._genre + ' · Now playing';
+  document.getElementById('nowBar').classList.add('visible');
+
+  renderGrid();
+}
+
+function stopAll(silent) {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  currentIdx = null;
+  if (!silent) {
+    document.getElementById('nowBar').classList.remove('visible');
+    renderGrid();
+  }
+}
+
+function filterCards() {
+  searchTerm = document.getElementById('searchInput').value;
+  renderGrid();
+}
+
+
+
+function descriptionPreview(desc){
+  if(!desc) return '';
+  const match = desc.match(/<p>(.*?)<\/p>/i);
+  if(match) return match[0];
+  return desc;
+}
+
+function formatArtists(desc){
+  if(!desc) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = desc;
+  const paras = tmp.querySelectorAll('p');
+  
+  let descText = '';
+  let artists = [];
+  
+  paras.forEach(p => {
+    const text = p.textContent.trim();
+    if(/Featuring:/i.test(text)){
+      const raw = text.replace(/^[;\s]*Featuring:\s*/i,'');
+      artists = raw.split(',').map(a => a.trim().replace(/^and /, '').replace(/\.$/, '').trim()).filter(Boolean);
+    } else if(text) {
+      descText = text;
+    }
+  });
+  
+  let out = '';
+  if(descText) out += '<p class="modal-desc-text">' + descText + '</p>';
+  if(artists.length){
+    out += '<div class="modal-featuring"><div class="modal-featuring-label">Featuring</div>';
+    out += '<div class="artist-chips">' + artists.map(a => '<span class="artist-chip">' + a + '</span>').join('') + '</div></div>';
+  }
+  return out;
+}
+
+function openModal(idx){
+  const s = allStyles.find(x => x.idx === idx);
+  if(!s) return;
+
+  document.getElementById('modalArt').src = s.image;
+  document.getElementById('modalTitle').textContent = s.name;
+  
+document.getElementById('modalDesc').innerHTML = formatArtists(s.description);
+
+
+  document.getElementById('modalPlay').onclick = () => togglePlay(idx);
+
+  document.getElementById('styleModal').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('styleModal').classList.remove('open');
+}
+
+
+
+
+init();
+</script>
+
+<div class="style-modal" id="styleModal" onclick="closeModal()">
+  <div class="modal-inner" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <img id="modalArt" src="">
+    <h2 id="modalTitle"></h2>
+    <div id="modalDesc"></div>
+    <button class="modal-play" id="modalPlay">Play Sample</button>
+  </div>
+</div>
+
+</body>
+</html>
