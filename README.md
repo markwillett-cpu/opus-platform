@@ -28,7 +28,7 @@ Auth is a static `x-api-key` header checked on every request. The service role k
 |------|---------|
 | `index.html` | Playback class manager — assign tracks to A/B/C/Rest |
 | `class-detail.html` | Per-class track view |
-| `uncategorized-detail.html` | Unassigned tracks view + song search drawer |
+| `uncategorized-detail.html` | Unassigned tracks view + song search drawer + audio attribute filters |
 | `curator-dashboard.html` | Curator scheduling — cadence, overdue alerts, CSV export |
 | `mood-tagging.html` | Tag styles with up to 6 ordered moods |
 | `spotify-sync.html` | Spotify playlist sync — register playlists, view sync status, export unmatched songs |
@@ -44,6 +44,7 @@ All routes are prefixed `/v1` and require `x-api-key`.
 |--------|------|-------------|
 | GET | `/v1/styles` | List all styles |
 | POST | `/v1/styles` | Create a new style |
+| GET | `/v1/styles/:styleId/dna` | Aggregate audio profile — BPM stats, energy/danceability/valence averages, top genres, key distribution, outlier thresholds |
 
 ### Tracks & Assignments
 | Method | Path | Description |
@@ -81,11 +82,13 @@ All routes are prefixed `/v1` and require `x-api-key`.
 | PUT | `/v1/styles/:styleId/moods` | Full replace moods (ordered, max 6) |
 | DELETE | `/v1/styles/:styleId/moods` | Clear all moods for a style |
 
-### Song Search
+### Song Search & Attributes
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/v1/songs/search?q=` | Fuzzy search by title + artist |
+| GET | `/v1/songs/search?q=` | Fuzzy search by title + artist — includes BPM, energy, key, mode if enriched |
 | POST | `/v1/styles/:styleId/songs` | Add a song to a style (lands as Uncategorized) |
+| GET | `/v1/songs/attributes?ids=` | Batch fetch audio attributes by library_song_id (comma-separated) |
+| POST | `/v1/songs/enrich` | Enrich a batch of unenriched songs via Soundcharts (`{ limit, offset, style_name? }`) |
 
 ### Spotify Sync
 | Method | Path | Description |
@@ -112,12 +115,78 @@ Unmatched songs (tracks in the playlist with no library match) are available via
 
 ---
 
+## Audio Attributes System
+
+Songs can be enriched with audio attributes from external APIs and stored in `song_attributes`. The table is keyed by `(library_song_id, source)` so multiple enrichment sources can coexist without conflict.
+
+### Attributes stored
+
+| Attribute | Description |
+|-----------|-------------|
+| `bpm` | Tempo in beats per minute |
+| `key` | Musical key (C, C♯, D … B) |
+| `mode` | `major` or `minor` |
+| `energy` | 0–1 intensity and activity |
+| `danceability` | 0–1 suitability for dancing |
+| `valence` | 0–1 musical positiveness (mood) |
+| `acousticness` | 0–1 confidence the track is acoustic |
+| `instrumentalness` | 0–1 prediction of no vocals |
+| `speechiness` | 0–1 presence of spoken words |
+| `loudness` | Average loudness in dB |
+| `duration_seconds` | Track length |
+| `time_signature` | Beats per bar |
+| `raw` | Full raw API response (JSONB) — preserves genres, labels, composers, credits |
+
+### Current enrichment source: Soundcharts
+
+Soundcharts is queried via ISRC (2 API calls per song: ISRC → UUID, then UUID → full metadata). The library has ~122k songs with 94.5% ISRC coverage.
+
+**Required environment variables:**
+```
+SOUNDCHARTS_APP_ID=
+SOUNDCHARTS_API_KEY=
+```
+
+**Running enrichment:**
+```bash
+# Enrich next 100 unenriched songs across the whole library
+POST /v1/songs/enrich
+{ "limit": 100 }
+
+# Enrich songs from a specific style first
+POST /v1/songs/enrich
+{ "style_name": "Bubbakoo B", "limit": 100 }
+```
+
+### Style DNA
+
+`GET /v1/styles/:styleId/dna` computes an aggregate audio profile across all enriched songs in a style:
+
+- **BPM:** avg, std dev, min, max, and outlier thresholds (±1.5 SD)
+- **Feel averages:** energy, danceability, valence, acousticness
+- **Top genres:** ranked by song count with percentages
+- **Key distribution:** top 4 keys
+- **Mode split:** major vs. minor percentage
+
+Outlier thresholds are pre-computed server-side and used by the frontend to highlight tracks that fall outside the style's normal sonic range.
+
+### Where attributes surface in the UI
+
+- **Track rows** — inline `122 BPM · E:86% · C maj` chips under each track title
+- **Track metadata modal** — full attribute breakdown (tempo/key, feel bars, texture, credits)
+- **BPM / Energy / Genre filter bar** — range sliders and dropdowns to filter the track list
+- **Style DNA sidebar card** — BPM range, energy/danceability/valence bars, top genres, key distribution, outlier count
+- **Outlier highlighting** — BPM outliers get a yellow border + `⚡ BPM` badge; energy outliers get red + `⚡ E`; both get purple
+- **Add Songs drawer** — search result chips are green (fits style DNA) or yellow (outlier) based on the current style's BPM and energy thresholds
+
+---
+
 ## Database Tables
 
 ### Core (existing)
 - `sim_styles` — style/playlist records
 - `sim_style_songs` — songs linked to a style
-- `library_songs` — full song library
+- `library_songs` — full song library (~122k songs, 94.5% ISRC coverage)
 - `sim_style_song_classes` — class assignments (A/B/C/Rest)
 - `sim_style_class_weights` — weight distribution per style
 
@@ -125,11 +194,13 @@ Unmatched songs (tracks in the playlist with no library match) are available via
 - `opus_curator_schedules` — curator cadence schedules (weekly/biweekly/monthly/quarterly)
 - `opus_style_moods` — ordered mood tags per style (up to 6, position matters)
 - `playlist_syncs` — registered Spotify playlist → style sync relationships
+- `song_attributes` — audio attributes per song per source (BPM, energy, key, genres, etc.)
 
 Migrations:
 - `supabase-migration.sql` — curator schedules table
 - `supabase-migration-moods.sql` — style moods table
 - `supabase-migration-playlist-syncs.sql` — playlist syncs table
+- `supabase-migration-song-attributes.sql` — song attributes table
 
 ---
 
