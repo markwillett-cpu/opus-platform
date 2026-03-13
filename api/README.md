@@ -18,7 +18,7 @@ api/
     ├── supabase.js        # Supabase client + assertNoError helper
     ├── normalize.js       # normalizeStyleId, normalizeClassCode
     └── routes/
-        ├── styles.js              # GET /v1/styles
+        ├── styles.js              # GET /v1/styles, POST /v1/styles, GET /v1/styles/:id/dna
         ├── styleTracks.js         # GET /v1/styles/:id/tracks
         ├── styleAssignments.js    # CRUD /v1/styles/:id/assignments
         ├── styleWeights.js        # CRUD /v1/styles/:id/weights
@@ -26,6 +26,7 @@ api/
         ├── curatorSchedules.js    # CRUD /v1/curator-schedules
         ├── styleMoods.js          # CRUD /v1/styles/:id/moods
         ├── songSearch.js          # GET /v1/songs/search, POST /v1/styles/:id/songs
+        ├── songEnrich.js          # GET /v1/songs/attributes, POST /v1/songs/enrich
         └── spotifyMatcher.js      # Spotify sync — register, run, list, delete
 ```
 
@@ -45,6 +46,8 @@ SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 SPOTIFY_REFRESH_TOKEN=your-spotify-refresh-token
 SPOTIFY_TARGET_USER_ID=your-spotify-username
 API_BASE_URL=https://opus-platform.onrender.com
+SOUNDCHARTS_APP_ID=your-soundcharts-app-id
+SOUNDCHARTS_API_KEY=your-soundcharts-api-key
 ```
 
 ---
@@ -63,8 +66,29 @@ No auth. Returns `{ ok: true }`.
 ```
 GET  /v1/styles
 POST /v1/styles   body: { name }
+GET  /v1/styles/:styleId/dna
 ```
-Returns `{ data: [{ id, name }] }` for GET. Returns `{ ok: true, style: { id, name } }` for POST.
+
+`GET /v1/styles` returns `{ data: [{ id, name }] }`.  
+`POST /v1/styles` returns `{ ok: true, style: { id, name } }`.  
+`GET /v1/styles/:styleId/dna` returns an aggregate audio profile for all enriched songs in the style:
+
+```json
+{
+  "bpm": { "avg": 112, "std": 14.2, "min": 75, "max": 190, "outlierLow": 90.7, "outlierHigh": 133.3 },
+  "energy": 0.72,
+  "danceability": 0.68,
+  "valence": 0.54,
+  "acousticness": 0.18,
+  "genres": [{ "genre": "hip-hop", "count": 48, "pct": 52 }, ...],
+  "keys": ["C", "F", "G", "A"],
+  "majorPct": 64,
+  "enrichedCount": 93,
+  "totalCount": 93
+}
+```
+
+Outlier thresholds are ±1.5 standard deviations from the BPM mean and are used by the frontend to flag tracks outside the style's normal sonic range.
 
 ---
 
@@ -147,15 +171,33 @@ Requires `supabase-migration-moods.sql` to be run first.
 
 ---
 
-### Song Search
+### Song Search & Attributes
 ```
 GET  /v1/songs/search?q=petty+learning&limit=20
 POST /v1/styles/:styleId/songs   body: { library_song_id: "uuid" }
+GET  /v1/songs/attributes?ids=uuid1,uuid2,...
+POST /v1/songs/enrich            body: { limit, offset?, style_name? }
 ```
 
-Search splits the query into tokens — each token must match somewhere in `title` or `artist` (case-insensitive). So `"petty learning"` matches Tom Petty's "Learning to Fly".
+**Search** splits the query into tokens — each token must match somewhere in `title` or `artist` (case-insensitive). Results include audio attributes (`bpm`, `energy`, `key`, `mode`, `danceability`, `valence`) when available, left-joined from `song_attributes`. If multiple sources exist for a song, the `soundcharts` row is preferred.
 
-`POST` adds the song to `sim_style_songs` with no class assignment (lands as Uncategorized). Returns `409` if song already in style.
+**POST songs** adds the song to `sim_style_songs` with no class assignment (lands as Uncategorized). Returns `409` if song already in style.
+
+**GET attributes** returns a batch of full attribute records for the given `library_song_id` list.
+
+**POST enrich** fetches audio attributes from Soundcharts for songs not yet in `song_attributes`. Uses a 2-step lookup: ISRC → UUID, then UUID → full metadata. Processes up to `limit` songs with a 200ms delay between requests to respect rate limits. Optionally scoped to a specific style via `style_name`.
+
+```json
+// POST /v1/songs/enrich response
+{
+  "enriched": 87,
+  "skipped": 6,
+  "errors": 0,
+  "total": 93
+}
+```
+
+Requires `supabase-migration-song-attributes.sql` and `SOUNDCHARTS_APP_ID` / `SOUNDCHARTS_API_KEY` env vars.
 
 ---
 
