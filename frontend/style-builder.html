@@ -311,6 +311,7 @@ const PREVIEW_LIMIT = 200; // rows shown in list (performance cap)
 let allSongs = [];       // enriched songs loaded once
 let filteredSongs = [];  // result of current filters
 let genreState = {};     // genre -> 'include' | 'exclude' | null
+let filterTimer = null;  // debounce handle — must be declared before any slider init
 let filterState = {
   bpmLow: 40, bpmHigh: 220,
   energyLow: 0, energyHigh: 100,
@@ -524,7 +525,6 @@ let allGenres = [];
 // ═══════════════════════════════════════════════════════════
 // FILTER ENGINE
 // ═══════════════════════════════════════════════════════════
-let filterTimer = null;
 function scheduleFilter() {
   clearTimeout(filterTimer);
   filterTimer = setTimeout(runFilter, 80);
