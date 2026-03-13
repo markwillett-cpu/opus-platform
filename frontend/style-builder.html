@@ -702,70 +702,33 @@ async function loadEnrichedSongs() {
   setLoading(10);
 
   try {
-    // Fetch all enriched songs via search with a broad query, paginated
-    // We use the attributes endpoint — fetch all library songs that have attributes
-    // Strategy: use song search with empty q to get enriched songs, paginated
-    // Since there's no dedicated "all enriched" endpoint, we query Supabase directly
-    // via the API. For now use a large search result via the search endpoint.
-    // Better: add a dedicated endpoint later. For now fetch styles list and 
-    // pull tracks from enriched styles, or use a direct Supabase call.
-    
-    // Practical approach: fetch all songs from song_attributes via a 
-    // dedicated call. We'll use the existing /songs/search with no query
-    // and paginate, or fetch from Supabase. Use the API pattern.
-    
-    // The cleanest path with current API: call GET /songs/search?q=&limit=5000
-    // This returns enriched attributes inline per our updated songSearch.js
-    
-    let page = 0;
-    const pageSize = 1000;
+    const PAGE = 1000;
     const collected = [];
+    let offset = 0;
 
     while (true) {
-      setLoading(10 + Math.min(page * 8, 60));
+      setLoading(10 + Math.min(Math.floor(offset / 100), 60));
       subtitle.textContent = `Loading… ${collected.length.toLocaleString()} songs`;
 
-      const url = `${API_BASE}/songs/search?q=&limit=${pageSize}&offset=${page * pageSize}&enriched_only=true`;
-      const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
-      if (!res.ok) break;
+      const res = await fetch(`${API_BASE}/songs/enriched?limit=${PAGE}&offset=${offset}`, {
+        headers: { 'x-api-key': API_KEY }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const json = await res.json();
-      const rows = json.data || json.songs || json || [];
-      if (!Array.isArray(rows) || rows.length === 0) break;
+      const rows = json.data || [];
+      if (!rows.length) break;
 
-      // Only keep songs that have attribute data
-      const enriched = rows.filter(r => r.bpm != null || r.energy != null);
-      collected.push(...enriched);
-
-      if (rows.length < pageSize) break;
-      page++;
-
-      // Safety cap — don't hammer the API
-      if (page > 20) break;
+      collected.push(...rows);
+      if (rows.length < PAGE) break;
+      offset += PAGE;
     }
 
     allSongs = collected;
-    setLoading(90);
-
-    // Build genre list from raw jsonb if available, else from genres field
-    allSongs.forEach(s => {
-      if (!s.genres) {
-        // try to extract from raw
-        try {
-          const raw = typeof s.raw === 'string' ? JSON.parse(s.raw) : s.raw;
-          s.genres = (raw?.genres || []).map(g => (typeof g === 'string' ? g : g.name || g.slug)).filter(Boolean);
-        } catch {
-          s.genres = [];
-        }
-      }
-    });
-
     allGenres = buildGenreList(allSongs);
     renderGenrePills();
 
-    const enrichedCount = allSongs.length;
-    subtitle.textContent = `${enrichedCount.toLocaleString()} enriched songs`;
-
+    subtitle.textContent = `${allSongs.length.toLocaleString()} enriched songs`;
     setLoading(100);
     runFilter();
 
