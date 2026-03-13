@@ -144,6 +144,10 @@
     .song-add-btn:disabled{border-color:var(--success);color:var(--success);cursor:default;background:#fff}
     .song-add-btn.adding{opacity:.6;cursor:wait}
     .drawer-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0;text-align:center}
+    .song-attrs{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+    .song-attr-chip{font-size:10px;font-weight:900;padding:1px 6px;border-radius:3px;background:var(--light);color:#7f8c8d}
+    .song-attr-chip.fit{background:#d4edda;color:#155724}
+    .song-attr-chip.outlier{background:#fff3cd;color:#856404}
     .add-songs-btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;border-radius:4px;font-size:13px;font-weight:900;cursor:pointer;transition:.2s}
     .add-songs-btn:hover{background:#2980b9}
     .add-songs-btn:disabled{opacity:.4;cursor:not-allowed}
@@ -427,6 +431,9 @@
       placeholder="e.g. Petty Learning, Fleetwood Dreams, Purple Rain…"
       autocomplete="off" spellcheck="false" />
     <div class="drawer-search-hint">Search by title, artist, or any combo of words</div>
+    <div id="drawerDnaHint" style="display:none;margin-top:6px;font-size:11px;font-weight:700;color:#7f8c8d">
+      Style avg: <span id="drawerDnaBpm">—</span> BPM · Energy <span id="drawerDnaEnergy">—</span> · <span style="color:#155724">green = fits</span> · <span style="color:#856404">yellow = outlier</span>
+    </div>
   </div>
   <div class="drawer-results" id="drawerResults">
     <div class="drawer-empty">
@@ -1397,6 +1404,19 @@ updateBpmLabels();
     drawerStyleNameEl.textContent = currentStyleName || 'Current Style';
     // Snapshot current song IDs
     songsInStyle = new Set(allTracks.map(t => t.id));
+
+    // Show DNA context hint if available
+    const hintEl = document.getElementById('drawerDnaHint');
+    const bpmEl  = document.getElementById('drawerDnaBpm');
+    const engEl  = document.getElementById('drawerDnaEnergy');
+    if (hintEl && styleDna) {
+      if (bpmEl) bpmEl.textContent = `${styleDna.bpm.avg} (${styleDna.bpm.outlierLow}–${styleDna.bpm.outlierHigh})`;
+      if (engEl) engEl.textContent = `${Math.round(styleDna.energy.avg * 100)}%`;
+      hintEl.style.display = '';
+    } else if (hintEl) {
+      hintEl.style.display = 'none';
+    }
+
     overlay.classList.add('open');
     drawer.classList.add('open');
     setTimeout(() => searchInput.focus(), 80);
@@ -1455,14 +1475,40 @@ updateBpmLabels();
       return;
     }
 
+    const keyNames = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+
     resultsEl.innerHTML = songs.map(s => {
       const alreadyIn = songsInStyle.has(s.id);
-      const mins = Math.floor((s.run_time_seconds || 0) / 60);
-      const secs = ((s.run_time_seconds || 0) % 60).toString().padStart(2, '0');
+
+      // Build attribute chips with DNA fit coloring
+      const chips = [];
+      if (s.bpm !== null && s.bpm !== undefined) {
+        let cls = '';
+        if (styleDna?.bpm) {
+          const inRange = s.bpm >= styleDna.bpm.outlierLow && s.bpm <= styleDna.bpm.outlierHigh;
+          cls = inRange ? 'fit' : 'outlier';
+        }
+        chips.push(`<span class="song-attr-chip ${cls}">${Math.round(s.bpm)} BPM</span>`);
+      }
+      if (s.energy !== null && s.energy !== undefined) {
+        let cls = '';
+        if (styleDna?.energy) {
+          const inRange = s.energy >= styleDna.energy.outlierLow && s.energy <= styleDna.energy.outlierHigh;
+          cls = inRange ? 'fit' : 'outlier';
+        }
+        chips.push(`<span class="song-attr-chip ${cls}">E:${Math.round(s.energy * 100)}%</span>`);
+      }
+      if (s.key !== null && s.key !== undefined) {
+        const keyStr = keyNames[parseInt(s.key)] || s.key;
+        chips.push(`<span class="song-attr-chip">${keyStr} ${s.mode === 'major' ? 'maj' : s.mode === 'minor' ? 'min' : ''}</span>`);
+      }
+      const attrsHtml = chips.length ? `<div class="song-attrs">${chips.join('')}</div>` : '';
+
       return `<div class="song-result ${alreadyIn ? 'already-in' : ''}" data-song-id="${s.id}">
         <div class="song-info">
           <div class="song-title">${esc(s.title)}</div>
           <div class="song-artist">${esc(s.artist)}${s.album ? ' · ' + esc(s.album) : ''}</div>
+          ${attrsHtml}
         </div>
         <span class="song-year">${s.peak_year || ''}</span>
         <button class="song-add-btn" data-song-id="${s.id}"
