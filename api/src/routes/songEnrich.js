@@ -108,9 +108,79 @@ export default async function routes(app) {
   });
 
   /**
+   * GET /v1/songs/enriched?limit=1000&offset=0
+   * Returns all library songs that have audio attributes, paginated.
+   * Used by the Style Builder to load the full enriched library client-side.
+   *
+   * Response shape per song:
+   *   { library_song_id, title, artist, bpm, energy, danceability, valence,
+   *     acousticness, key, mode, genres[] }
+   *
+   * genres is extracted from raw->genres in song_attributes.
+   * Only returns soundcharts-sourced rows. Requires bpm to be non-null.
+   */
+  app.get('/songs/enriched', async (req, reply) => {
+    const limit  = Math.min(parseInt(req.query.limit)  || 1000, 2000);
+    const offset = parseInt(req.query.offset) || 0;
+
+    const { data, error } = await supabase
+      .from('song_attributes')
+      .select(`
+        library_song_id,
+        bpm,
+        energy,
+        danceability,
+        valence,
+        acousticness,
+        key,
+        mode,
+        raw,
+        library_songs!inner(title, artist)
+      `)
+      .eq('source', 'soundcharts')
+      .not('bpm', 'is', null)
+      .order('library_song_id')
+      .range(offset, offset + limit - 1);
+
+    assertNoError(error, 'Failed to fetch enriched songs');
+
+    const results = (data || []).map(row => {
+      // Extract genres from raw jsonb — stored as [{ root, ... }]
+      let genres = [];
+      try {
+        const rawObj = typeof row.raw === 'string' ? JSON.parse(row.raw) : row.raw;
+        genres = (rawObj?.genres || [])
+          .map(g => (typeof g === 'string' ? g : g.root || g.name || g.slug))
+          .filter(Boolean);
+      } catch { /* leave genres empty */ }
+
+      return {
+        library_song_id: row.library_song_id,
+        title:           row.library_songs?.title  ?? '',
+        artist:          row.library_songs?.artist ?? '',
+        bpm:             row.bpm,
+        energy:          row.energy,
+        danceability:    row.danceability,
+        valence:         row.valence,
+        acousticness:    row.acousticness,
+        key:             row.key,
+        mode:            row.mode,
+        genres,
+      };
+    });
+
+    return reply.send({
+      data:   results,
+      total:  results.length,
+      offset,
+      limit,
+    });
+  });
+
+  /**
    * POST /v1/songs/enrich
    * Enriches a batch of songs from library_songs with audio attributes from Soundcharts.
-   * Body (optional): { limit: 100, offset: 0 }
+   * Body (optional): { limit: 100, offset: 0, style_name?: string }
    * Fetches songs with ISRC, looks up Soundcharts, upserts into song_attributes.
    */
   app.post('/songs/enrich', async (req, reply) => {
