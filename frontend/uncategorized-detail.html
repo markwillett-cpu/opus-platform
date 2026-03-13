@@ -193,6 +193,30 @@
     .filter-bar .filter-reset{background:none;border:none;color:var(--accent);font-size:11px;font-weight:900;cursor:pointer;padding:0;margin-left:4px}
     .filter-bar .filter-reset:hover{text-decoration:underline}
     .filter-active-count{background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:900;margin-left:4px}
+
+    /* ── Outlier Row Highlighting ────────────────────── */
+    .track-table tbody tr.outlier-bpm td:first-child{box-shadow:inset 3px 0 0 #f39c12}
+    .track-table tbody tr.outlier-energy td:first-child{box-shadow:inset 3px 0 0 #e74c3c}
+    .track-table tbody tr.outlier-bpm.outlier-energy td:first-child{box-shadow:inset 3px 0 0 #9b59b6}
+    .outlier-badge{display:inline-block;font-size:10px;font-weight:900;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle}
+    .outlier-badge.bpm{background:#fff3cd;color:#856404}
+    .outlier-badge.energy{background:#f8d7da;color:#721c24}
+
+    /* ── Style DNA Card ──────────────────────────────── */
+    .dna-loading{text-align:center;padding:16px;color:#95a5a6;font-size:12px;font-weight:700}
+    .dna-loading::before{content:'';display:block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 6px}
+    .dna-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+    .dna-row:last-child{border-bottom:none}
+    .dna-label{color:#7f8c8d;font-weight:700}
+    .dna-val{font-weight:900;color:var(--primary)}
+    .dna-bar-row{padding:5px 0;border-bottom:1px solid var(--border)}
+    .dna-bar-row:last-child{border-bottom:none}
+    .dna-bar-label{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#7f8c8d;margin-bottom:3px}
+    .dna-bar-outer{height:5px;background:#dde1e7;border-radius:3px;overflow:hidden}
+    .dna-bar-inner{height:100%;border-radius:3px;transition:width .5s}
+    .dna-genres{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+    .dna-genre-tag{background:#fff;border:1px solid var(--border);color:#555;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:900;text-transform:capitalize}
+    .dna-outlier-note{font-size:10px;color:#856404;background:#fff3cd;border-radius:4px;padding:4px 7px;margin-top:8px;font-weight:700;line-height:1.4}
 </style>
 </head>
 <body>
@@ -332,7 +356,13 @@
           </div>
 
           <div class="sidebar">
-          
+
+            <div class="card" id="dnaSidebarCard">
+              <h3>Style DNA</h3>
+              <div class="dna-loading" id="dnaLoading"></div>
+              <div id="dnaContent" style="display:none"></div>
+            </div>
+
             <div class="card">
               <h3>Assign to Class</h3>
               <button class="assign-btn cls-primary" data-class="A">
@@ -422,6 +452,7 @@ let currentStyleId = null;
 let currentStyleName = '';
 let allTracks = [];
 let classCounts = { A: 0, B: 0, C: 0, REST: 0 };
+let styleDna = null;
 
 // ═══════════════════════════════════════════════════════════
 // DOM REFS
@@ -642,6 +673,18 @@ function normalizeClassCode(code) {
     // Populate genre filter from available attributes
     populateGenreFilter();
 
+    // Fetch Style DNA
+    styleDna = null;
+    renderDnaCard(null, true); // show loading
+    try {
+      const dnaResp = await window.api.request(`/styles/${styleId}/dna`);
+      styleDna = dnaResp?.dna || null;
+      renderDnaCard(styleDna, false);
+    } catch(e) {
+      console.warn('Could not load style DNA:', e.message);
+      renderDnaCard(null, false);
+    }
+
     if (showingCapped) {
       const infoDiv = document.querySelector('.info');
       if (infoDiv) {
@@ -799,14 +842,41 @@ function renderTable() {
     const secs = (t.duration % 60).toString().padStart(2, '0');
     const timeStr = `${mins}:${secs}`;
     const movedStr = t.moved_at ? new Date(t.moved_at).toLocaleString() : '';
-    const hasAttrs = !!t.attrs;
-    const bpmStr = hasAttrs && t.attrs.bpm ? Math.round(t.attrs.bpm) + ' BPM' : '';
-    
+    const a = t.attrs;
+
+    // Inline attribute chips under title
+    const chips = [];
+    if (a?.bpm) chips.push(`${Math.round(a.bpm)} BPM`);
+    if (a?.energy !== null && a?.energy !== undefined) chips.push(`E:${Math.round(a.energy * 100)}%`);
+    if (a?.key !== null && a?.key !== undefined) {
+      const keyNames = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+      const keyStr = keyNames[parseInt(a.key)] || a.key;
+      chips.push(`${keyStr} ${a.mode === 'major' ? 'maj' : a.mode === 'minor' ? 'min' : ''}`);
+    }
+    const chipsHtml = chips.length
+      ? `<span style="font-size:11px;color:#95a5a6;font-weight:700;margin-left:6px">${chips.join(' · ')}</span>`
+      : '';
+
+    // Outlier detection
+    let outlierBpm = false, outlierEnergy = false;
+    const outlierBadges = [];
+    if (styleDna && a) {
+      if (a.bpm && styleDna.bpm.outlierLow !== null && (a.bpm < styleDna.bpm.outlierLow || a.bpm > styleDna.bpm.outlierHigh)) {
+        outlierBpm = true;
+        outlierBadges.push(`<span class="outlier-badge bpm" title="BPM outlier (style avg: ${styleDna.bpm.avg})">⚡ BPM</span>`);
+      }
+      if (a.energy !== null && styleDna.energy.outlierLow !== null && (a.energy < styleDna.energy.outlierLow || a.energy > styleDna.energy.outlierHigh)) {
+        outlierEnergy = true;
+        outlierBadges.push(`<span class="outlier-badge energy" title="Energy outlier (style avg: ${Math.round(styleDna.energy.avg * 100)}%)">⚡ E</span>`);
+      }
+    }
+    const outlierClass = [outlierBpm ? 'outlier-bpm' : '', outlierEnergy ? 'outlier-energy' : ''].filter(Boolean).join(' ');
+
     return `
-      <tr data-track-id="${t.id}">
+      <tr data-track-id="${t.id}" class="${outlierClass}">
         <td><input type="checkbox" class="rowCheck" /></td>
         <td><img class="art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%233498db' width='40' height='40'/%3E%3C/svg%3E" /></td>
-        <td><strong>${t.title}</strong>${bpmStr ? `<span style="font-size:11px;color:#95a5a6;font-weight:700;margin-left:6px">${bpmStr}</span>` : ''}</td>
+        <td><strong>${t.title}</strong>${outlierBadges.join('')}${chipsHtml}</td>
         <td>${t.artist}</td>
         <td>${t.album}</td>
         <td style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#7f8c8d;" title="${(t.styles||'').replace(/"/g,'&quot;')}">${formatStyles(t.styles||'')}</td>
@@ -1027,6 +1097,82 @@ document.getElementById('backToClassesBtn')?.addEventListener('click', () => {
   const styleId = new URLSearchParams(window.location.search).get('style_id');
   window.location.href = styleId ? `index.html?style_id=${styleId}` : 'index.html';
 });
+
+// ═══════════════════════════════════════════════════════════
+// STYLE DNA CARD
+// ═══════════════════════════════════════════════════════════
+function renderDnaCard(dna, loading) {
+  const loadingEl = document.getElementById('dnaLoading');
+  const contentEl = document.getElementById('dnaContent');
+  if (!loadingEl || !contentEl) return;
+
+  if (loading) {
+    loadingEl.style.display = '';
+    contentEl.style.display = 'none';
+    return;
+  }
+
+  loadingEl.style.display = 'none';
+  contentEl.style.display = '';
+
+  if (!dna) {
+    contentEl.innerHTML = `<div style="font-size:12px;color:#95a5a6;font-weight:700;text-align:center;padding:8px">No audio data yet</div>`;
+    return;
+  }
+
+  const pct = (v) => v !== null && v !== undefined ? Math.round(v * 100) + '%' : '—';
+  const keyNames = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+
+  const outlierCount = allTracks.filter(t => {
+    const a = t.attrs;
+    if (!a) return false;
+    const bpmOut = a.bpm && dna.bpm.outlierLow !== null && (a.bpm < dna.bpm.outlierLow || a.bpm > dna.bpm.outlierHigh);
+    const eOut = a.energy !== null && dna.energy.outlierLow !== null && (a.energy < dna.energy.outlierLow || a.energy > dna.energy.outlierHigh);
+    return bpmOut || eOut;
+  }).length;
+
+  contentEl.innerHTML = `
+    <div class="dna-row">
+      <span class="dna-label">BPM Range</span>
+      <span class="dna-val">${dna.bpm.min}–${dna.bpm.max}</span>
+    </div>
+    <div class="dna-row">
+      <span class="dna-label">Avg BPM</span>
+      <span class="dna-val">${dna.bpm.avg} <span style="font-weight:700;color:#95a5a6;font-size:11px">±${dna.bpm.std}</span></span>
+    </div>
+    <div class="dna-bar-row">
+      <div class="dna-bar-label"><span>Energy</span><span>${pct(dna.energy.avg)}</span></div>
+      <div class="dna-bar-outer"><div class="dna-bar-inner" style="width:${Math.round(dna.energy.avg*100)}%;background:#e74c3c"></div></div>
+    </div>
+    <div class="dna-bar-row">
+      <div class="dna-bar-label"><span>Danceability</span><span>${pct(dna.danceability.avg)}</span></div>
+      <div class="dna-bar-outer"><div class="dna-bar-inner" style="width:${Math.round(dna.danceability.avg*100)}%;background:#3498db"></div></div>
+    </div>
+    <div class="dna-bar-row">
+      <div class="dna-bar-label"><span>Valence</span><span>${pct(dna.valence.avg)}</span></div>
+      <div class="dna-bar-outer"><div class="dna-bar-inner" style="width:${Math.round(dna.valence.avg*100)}%;background:#f39c12"></div></div>
+    </div>
+    <div class="dna-bar-row" style="border-bottom:none">
+      <div class="dna-bar-label"><span>Acousticness</span><span>${pct(dna.acousticness.avg)}</span></div>
+      <div class="dna-bar-outer"><div class="dna-bar-inner" style="width:${Math.round(dna.acousticness.avg*100)}%;background:#27ae60"></div></div>
+    </div>
+    <div class="dna-row" style="margin-top:8px">
+      <span class="dna-label">Mode</span>
+      <span class="dna-val">${dna.mode.major}maj / ${dna.mode.minor}min</span>
+    </div>
+    ${dna.topKeys.length ? `
+    <div class="dna-row">
+      <span class="dna-label">Top Keys</span>
+      <span class="dna-val" style="font-size:11px">${dna.topKeys.slice(0,3).map(k => keyNames[k.key] || k.key).join(' · ')}</span>
+    </div>` : ''}
+    ${dna.topGenres.length ? `
+    <div style="margin-top:8px">
+      <div class="dna-label" style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Top Genres</div>
+      <div class="dna-genres">${dna.topGenres.map(g => `<span class="dna-genre-tag">${g.genre} <span style="opacity:.6">${g.pct}%</span></span>`).join('')}</div>
+    </div>` : ''}
+    ${outlierCount > 0 ? `<div class="dna-outlier-note">⚡ ${outlierCount} track${outlierCount > 1 ? 's' : ''} flagged as outliers</div>` : ''}
+  `;
+}
 
 // ═══════════════════════════════════════════════════════════
 // GENRE FILTER POPULATION
