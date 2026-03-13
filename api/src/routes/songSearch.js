@@ -13,21 +13,23 @@ export default async function routes(app) {
    * Fuzzy search across title + artist in library_songs.
    * Splits query into tokens and requires all tokens to match
    * somewhere across title+artist (case-insensitive).
+   * Returns audio attributes (bpm, energy, key, mode) if available.
    */
   app.get('/songs/search', async (req, reply) => {
     const q     = (req.query.q || '').trim();
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-
     if (!q) return reply.send({ data: [] });
 
     // Split into tokens — each token must appear in title or artist
     const tokens = q.split(/\s+/).filter(Boolean);
 
-    // Build a Supabase query using ilike filters chained for each token
-    // Each token must match title OR artist
+    // Build search query with left join to song_attributes
     let query = supabase
       .from('library_songs')
-      .select('id, title, artist, album, peak_year, run_time_seconds, styles')
+      .select(`
+        id, title, artist, album, peak_year, run_time_seconds, styles,
+        song_attributes!left(bpm, energy, key, mode, danceability, valence, source)
+      `)
       .limit(limit);
 
     tokens.forEach(token => {
@@ -35,10 +37,25 @@ export default async function routes(app) {
     });
 
     const { data, error } = await query.order('artist').order('title');
-
     assertNoError(error, 'Search failed');
 
-    return reply.send({ data: data || [] });
+    // Flatten attributes — prefer soundcharts source, fallback to first available
+    const results = (data || []).map(song => {
+      const attrRows = song.song_attributes || [];
+      const attrs = attrRows.find(a => a.source === 'soundcharts') || attrRows[0] || null;
+      const { song_attributes, ...rest } = song;
+      return {
+        ...rest,
+        bpm:          attrs?.bpm          ?? null,
+        energy:       attrs?.energy       ?? null,
+        key:          attrs?.key          ?? null,
+        mode:         attrs?.mode         ?? null,
+        danceability: attrs?.danceability ?? null,
+        valence:      attrs?.valence      ?? null,
+      };
+    });
+
+    return reply.send({ data: results });
   });
 
   /**
@@ -49,13 +66,11 @@ export default async function routes(app) {
    */
   app.post('/styles/:styleId/songs', async (req, reply) => {
     const styleId = normalizeStyleId(req.params.styleId);
-
     const parsed = AddSongBody.safeParse(req.body);
     if (!parsed.success) {
       reply.code(400).send({ error: { message: parsed.error.message, status: 400 } });
       return;
     }
-
     const { library_song_id } = parsed.data;
 
     // Check song isn't already in style
@@ -74,7 +89,6 @@ export default async function routes(app) {
     const { error } = await supabase
       .from('sim_style_songs')
       .insert({ style_id: styleId, library_song_id });
-
     assertNoError(error, 'Failed to add song to style');
 
     // Return the full song record so client can show it immediately
@@ -86,4 +100,5 @@ export default async function routes(app) {
 
     return reply.code(201).send({ ok: true, song });
   });
+
 }
