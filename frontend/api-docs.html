@@ -2,371 +2,662 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Opus Platform API – Developer Documentation</title>
 <style>
-body {
-  font-family: Menlo, Monaco, Consolas, monospace;
-  margin: 40px;
-  max-width: 1100px;
-  background: #ffffff;
-  color: #111;
-}
-h1, h2, h3 {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  margin-top: 40px;
-}
-pre {
-  background: #f6f8fa;
-  padding: 16px;
-  border-radius: 6px;
-  overflow-x: auto;
-}
-code {
-  background: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.endpoint {
-  border-left: 4px solid #333;
-  padding-left: 16px;
-  margin-top: 30px;
-}
-.warning {
-  background: #fff3cd;
-  padding: 12px;
-  border-left: 4px solid #856404;
-}
-.section {
-  margin-bottom: 50px;
-}
-table {
-  border-collapse: collapse;
-}
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #161b27; --surface2: #1e2535; --border: #2a3347;
+    --text: #e2e8f0; --muted: #7a8ba8; --accent: #3b82f6; --accent-dim: rgba(59,130,246,.12);
+    --green: #10b981; --green-dim: rgba(16,185,129,.12); --yellow: #f59e0b;
+    --yellow-dim: rgba(245,158,11,.12); --red: #ef4444; --red-dim: rgba(239,68,68,.12);
+    --purple: #a855f7; --purple-dim: rgba(168,85,247,.12); --cyan: #06b6d4;
+    --mono: 'JetBrains Mono','Fira Code',Menlo,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  html { scroll-behavior: smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+  .sidebar { position:sticky; top:0; height:100vh; overflow-y:auto; background:var(--surface); border-right:1px solid var(--border); padding:28px 0 40px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .sidebar-logo { padding:0 20px 24px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .sidebar-logo .name { font-weight:800; font-size:15px; }
+  .sidebar-logo .version { display:inline-block; margin-top:4px; background:var(--accent-dim); color:var(--accent); font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; font-family:var(--mono); }
+  .nav-group { margin-bottom:6px; }
+  .nav-group-label { padding:6px 20px 4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); }
+  .nav-link { display:flex; align-items:center; gap:8px; padding:6px 20px; font-size:13px; color:var(--muted); text-decoration:none; transition:.15s; border-left:2px solid transparent; }
+  .nav-link:hover { color:var(--text); background:var(--surface2); }
+  .nav-method { font-family:var(--mono); font-size:10px; font-weight:700; padding:1px 5px; border-radius:3px; flex-shrink:0; }
+  .m-get  { background:var(--green-dim);  color:var(--green);  }
+  .m-post { background:var(--accent-dim); color:var(--accent); }
+  .m-put  { background:var(--yellow-dim); color:var(--yellow); }
+  .m-del  { background:var(--red-dim);    color:var(--red);    }
+  .m-patch{ background:var(--purple-dim); color:var(--purple); }
+  .main { padding:48px 56px 80px; max-width:860px; }
+  h1 { font-size:28px; font-weight:900; letter-spacing:-.4px; margin-bottom:8px; }
+  .tagline { color:var(--muted); font-size:15px; margin-bottom:40px; }
+  h2 { font-size:20px; font-weight:800; margin:56px 0 16px; padding-top:56px; border-top:1px solid var(--border); scroll-margin-top:24px; }
+  h2.no-border { border-top:none; padding-top:0; margin-top:0; }
+  h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:24px 0 10px; }
+  p { margin-bottom:12px; color:#cbd5e1; }
+  ul,ol { padding-left:20px; margin-bottom:12px; color:#cbd5e1; }
+  li { margin-bottom:4px; }
+  .endpoint { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:20px; overflow:hidden; scroll-margin-top:24px; }
+  .endpoint-header { padding:14px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .method-badge { font-family:var(--mono); font-size:11px; font-weight:800; padding:3px 8px; border-radius:4px; flex-shrink:0; letter-spacing:.3px; }
+  .mb-get   { background:var(--green-dim);  color:var(--green);  border:1px solid rgba(16,185,129,.25); }
+  .mb-post  { background:var(--accent-dim); color:var(--accent); border:1px solid rgba(59,130,246,.25); }
+  .mb-put   { background:var(--yellow-dim); color:var(--yellow); border:1px solid rgba(245,158,11,.25); }
+  .mb-del   { background:var(--red-dim);    color:var(--red);    border:1px solid rgba(239,68,68,.25); }
+  .mb-patch { background:var(--purple-dim); color:var(--purple); border:1px solid rgba(168,85,247,.25); }
+  .endpoint-path { font-family:var(--mono); font-size:13px; color:var(--text); font-weight:600; }
+  .endpoint-desc { color:var(--muted); font-size:12px; margin-left:auto; }
+  .endpoint-body { padding:16px 18px; }
+  .endpoint-body p { font-size:13px; margin-bottom:8px; }
+  pre { background:#0a0d14; border:1px solid var(--border); border-radius:6px; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:12px; line-height:1.6; color:#c9d1d9; margin:10px 0; }
+  code { font-family:var(--mono); font-size:12px; background:var(--surface2); border:1px solid var(--border); padding:1px 6px; border-radius:4px; color:var(--cyan); }
+  .table-wrap { overflow-x:auto; margin:12px 0; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead { background:var(--surface2); }
+  th { text-align:left; padding:10px 14px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); border-bottom:1px solid var(--border); }
+  td { padding:9px 14px; border-bottom:1px solid var(--border); color:#cbd5e1; vertical-align:top; }
+  td code { font-size:11px; }
+  tr:last-child td { border-bottom:none; }
+  .callout { border-radius:6px; padding:12px 14px; font-size:13px; margin:12px 0; display:flex; gap:10px; align-items:flex-start; }
+  .callout-warn { background:var(--yellow-dim); border-left:3px solid var(--yellow); }
+  .callout-info { background:var(--accent-dim); border-left:3px solid var(--accent); }
+  .callout-tip  { background:var(--green-dim);  border-left:3px solid var(--green); }
+  .callout-icon { flex-shrink:0; font-size:15px; margin-top:1px; }
+  .callout-text { color:#cbd5e1; }
+  .schema { background:#0a0d14; border:1px solid var(--border); border-radius:6px; padding:14px 16px; font-family:var(--mono); font-size:12px; line-height:1.8; margin:10px 0; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; margin:1px; }
+  .tag-blue { background:var(--accent-dim); color:var(--accent); }
+  hr { border:none; border-top:1px solid var(--border); margin:32px 0; }
+  @media(max-width:900px){ body{grid-template-columns:1fr} .sidebar{position:relative;height:auto} .main{padding:24px 20px 60px} }
 </style>
 </head>
 <body>
 
-<h1>Opus Platform API – Developer Documentation</h1>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="name">Opus Platform API</div>
+    <span class="version">v1</span>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Overview</div>
+    <a class="nav-link" href="#overview">Architecture</a>
+    <a class="nav-link" href="#auth">Authentication</a>
+    <a class="nav-link" href="#errors">Errors</a>
+    <a class="nav-link" href="#schema">Database Schema</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Styles</div>
+    <a class="nav-link" href="#get-styles"><span class="nav-method m-get">GET</span> /styles</a>
+    <a class="nav-link" href="#post-styles"><span class="nav-method m-post">POST</span> /styles</a>
+    <a class="nav-link" href="#get-dna"><span class="nav-method m-get">GET</span> /styles/:id/dna</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Tracks &amp; Classes</div>
+    <a class="nav-link" href="#get-tracks"><span class="nav-method m-get">GET</span> /styles/:id/tracks</a>
+    <a class="nav-link" href="#get-assignments"><span class="nav-method m-get">GET</span> /styles/:id/assignments</a>
+    <a class="nav-link" href="#put-assignments"><span class="nav-method m-put">PUT</span> /styles/:id/assignments</a>
+    <a class="nav-link" href="#del-assignments"><span class="nav-method m-del">DEL</span> /styles/:id/assignments</a>
+    <a class="nav-link" href="#get-weights"><span class="nav-method m-get">GET</span> /styles/:id/weights</a>
+    <a class="nav-link" href="#put-weights"><span class="nav-method m-put">PUT</span> /styles/:id/weights</a>
+    <a class="nav-link" href="#get-profile"><span class="nav-method m-get">GET</span> /styles/:id/playback-profile</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Songs &amp; Attributes</div>
+    <a class="nav-link" href="#get-search"><span class="nav-method m-get">GET</span> /songs/search</a>
+    <a class="nav-link" href="#post-style-songs"><span class="nav-method m-post">POST</span> /styles/:id/songs</a>
+    <a class="nav-link" href="#get-attributes"><span class="nav-method m-get">GET</span> /songs/attributes</a>
+    <a class="nav-link" href="#get-enriched"><span class="nav-method m-get">GET</span> /songs/enriched</a>
+    <a class="nav-link" href="#post-enrich"><span class="nav-method m-post">POST</span> /songs/enrich</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Curator Schedules</div>
+    <a class="nav-link" href="#get-schedules"><span class="nav-method m-get">GET</span> /curator-schedules</a>
+    <a class="nav-link" href="#put-schedule"><span class="nav-method m-put">PUT</span> /curator-schedules</a>
+    <a class="nav-link" href="#patch-schedule"><span class="nav-method m-patch">PATCH</span> mark-updated</a>
+    <a class="nav-link" href="#del-schedule"><span class="nav-method m-del">DEL</span> /curator-schedules/:id</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Mood Tagging</div>
+    <a class="nav-link" href="#get-moods"><span class="nav-method m-get">GET</span> /styles/:id/moods</a>
+    <a class="nav-link" href="#get-all-moods"><span class="nav-method m-get">GET</span> /moods/all</a>
+    <a class="nav-link" href="#put-moods"><span class="nav-method m-put">PUT</span> /styles/:id/moods</a>
+    <a class="nav-link" href="#del-moods"><span class="nav-method m-del">DEL</span> /styles/:id/moods</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Spotify Sync</div>
+    <a class="nav-link" href="#post-register"><span class="nav-method m-post">POST</span> register-sync</a>
+    <a class="nav-link" href="#post-run-sync"><span class="nav-method m-post">POST</span> run-sync</a>
+    <a class="nav-link" href="#get-syncs"><span class="nav-method m-get">GET</span> /spotify/syncs</a>
+    <a class="nav-link" href="#del-sync"><span class="nav-method m-del">DEL</span> /spotify/syncs/:id</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Reference</div>
+    <a class="nav-link" href="#adding-routes">Adding a Route</a>
+  </div>
+</nav>
 
-<div class="section">
-<h2>Purpose</h2>
-<p>
-Internal API layer for style class categorization and weight management. This API:
-</p>
-<ul>
-  <li>Abstracts database access to Supabase Postgres</li>
-  <li>Enforces validation (class codes, weight totals, request shape)</li>
-  <li>Provides an integration-ready “playback profile” payload for Opus queue-building</li>
-</ul>
-</div>
+<main class="main">
 
-<div class="section">
-<h2>Runtime Architecture</h2>
-<pre>
-Browser (Opus Platform UI)
-        ↓
-Fastify API (Node) on Render
-        ↓
-Supabase Postgres (sandbox tables for POC)
-</pre>
-<p>
-This API is internal-use and protected by an internal header key. It is not intended to be publicly exposed.
-</p>
-</div>
+  <h1>Opus Platform API</h1>
+  <p class="tagline">Internal API for music curation, style class management, and audio enrichment. Deployed on Render, backed by Supabase PostgreSQL.</p>
 
-<div class="section">
-<h2>Authentication Model</h2>
-<div class="warning">
-<p><strong>All non-health endpoints require an internal key header.</strong></p>
-</div>
+  <h2 class="no-border" id="overview">Architecture</h2>
+  <pre>Browser (GitHub Pages)
+  └── api-client.js  ──▶  x-api-key header
+        └── Fastify API (Render)  ──▶  Supabase (PostgreSQL)</pre>
+  <p>Base URL: <code>https://opus-platform.onrender.com</code> &nbsp;·&nbsp; All routes prefixed <code>/v1</code> &nbsp;·&nbsp; <code>/health</code> requires no auth.</p>
 
-<p>
-Requests must include the header <code>X-Internal-Key</code> matching the server environment variable <code>OPUS_INTERNAL_API_KEY</code>.
-</p>
+  <h2 id="auth">Authentication</h2>
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <span class="callout-text">Every endpoint except <code>/health</code> and the Spotify OAuth callbacks requires the <code>x-api-key</code> header.</span>
+  </div>
+  <pre># curl
+curl -H "x-api-key: YOUR_KEY" https://opus-platform.onrender.com/v1/styles
 
-<h3>Example (curl)</h3>
-<pre>
-curl -H "X-Internal-Key: &lt;OPUS_INTERNAL_API_KEY&gt;" \
-  https://&lt;your-render-service&gt;/v1/styles
-</pre>
+# fetch
+fetch("/v1/styles", { headers: { "x-api-key": OPUS_CONFIG.API_KEY } })</pre>
 
-<h3>Example (fetch)</h3>
-<pre>
-fetch(url, {
-  method: "GET",
-  headers: {
-    "X-Internal-Key": internalKey
-  }
-})
-</pre>
-</div>
+  <h2 id="errors">Errors</h2>
+  <pre>{ "error": { "message": "Description", "status": 400 } }</pre>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>400</code></td><td>Bad request — malformed body or invalid values</td></tr>
+        <tr><td><code>401</code></td><td>Unauthorized — missing or wrong API key</td></tr>
+        <tr><td><code>409</code></td><td>Conflict — record already exists</td></tr>
+        <tr><td><code>500</code></td><td>Internal server error</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-<div class="section">
-<h2>Authorization</h2>
-<p>
-Authorization is currently coarse-grained: possession of <code>X-Internal-Key</code> grants access.
-This is acceptable for the POC, and intended to move behind Opus employee authentication later.
-</p>
+  <h2 id="schema">Database Schema</h2>
+  <h3>Core Tables (existing)</h3>
+  <div class="schema">
+    sim_styles              — id, name
+    library_songs           — id, title, artist, album, peak_year, run_time_seconds, isrc, styles
+    sim_style_songs         — style_id, library_song_id, sim_duration_seconds
+    sim_style_song_classes  — style_id, library_song_id, class_code (A|B|C|REST), moved_at
+    sim_style_class_weights — style_id, class_code, weight_pct
+  </div>
+  <h3>Added by Opus</h3>
+  <div class="schema">
+    opus_curator_schedules  — style_id, curator_name, cadence, last_updated, notes
+    opus_style_moods        — style_id, mood, position (1–6)
+    playlist_syncs          — playlist_id, playlist_name, style_id, last_synced_at,
+                              last_sync_added, last_sync_removed, last_sync_unmatched
+    song_attributes         — library_song_id, source, bpm, key, mode, energy, danceability,
+                              valence, acousticness, instrumentalness, speechiness, loudness,
+                              duration_seconds, time_signature, raw (JSONB)
+                              UNIQUE(library_song_id, source)
+  </div>
+  <div class="callout callout-info">
+    <span class="callout-icon">ℹ️</span>
+    <span class="callout-text"><strong>Class codes:</strong> Valid values are <code>A</code> <code>B</code> <code>C</code> <code>REST</code>. Stored uppercase. <strong>REST</strong> = explicitly not played. <strong>Uncategorized</strong> = in style but no row in <code>sim_style_song_classes</code>.</span>
+  </div>
 
-<table>
-<tr>
-<th>Operation</th>
-<th>Allowed</th>
-</tr>
-<tr>
-<td>Read styles/tracks/assignments/weights/playback-profile</td>
-<td>Internal key required</td>
-</tr>
-<tr>
-<td>Write assignments/weights</td>
-<td>Internal key required</td>
-</tr>
-</table>
-</div>
+  <hr>
 
-<div class="section">
-<h2>Versioning</h2>
-<pre>/v1</pre>
+  <!-- STYLES -->
+  <h2 id="styles-section">Styles</h2>
 
-<ul>
-<li>Breaking changes → new version path</li>
-<li>Additive changes allowed within same version</li>
-</ul>
-</div>
+  <div class="endpoint" id="get-styles">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles</span>
+      <span class="endpoint-desc">List all styles</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns all styles ordered by name.</p>
+      <pre>{ "data": [{ "id": "uuid", "name": "Bubbakoo B" }] }</pre>
+    </div>
+  </div>
 
-<div class="section">
-<h2>Database Schema (Relevant Tables)</h2>
+  <div class="endpoint" id="post-styles">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/styles</span>
+      <span class="endpoint-desc">Create a new style</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>// Body
+{ "name": "New Style Name" }
 
-<h3>sim_styles</h3>
-<pre>
-id (UUID, PK)
-name (TEXT)
-</pre>
+// Response 201
+{ "ok": true, "style": { "id": "uuid", "name": "New Style Name" } }</pre>
+    </div>
+  </div>
 
-<h3>library_songs</h3>
-<pre>
-id (UUID, PK)
-title (TEXT)
-artist (TEXT)
-album (TEXT)
-peak_year (INT)
-run_time_seconds (INT)
-styles (TEXT)
-</pre>
+  <div class="endpoint" id="get-dna">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/dna</span>
+      <span class="endpoint-desc">Aggregate audio profile</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Computes the audio DNA from all enriched songs in a style. Powers the Style DNA card, outlier row highlighting, and Add Songs drawer context hints.</p>
+      <pre>{
+  "bpm": { "avg": 112, "std": 14, "min": 75, "max": 190,
+           "outlierLow": 91, "outlierHigh": 133 },  // ±1.5 SD
+  "energy": 0.72,  "danceability": 0.68,
+  "valence": 0.54, "acousticness": 0.18,
+  "genres": [{ "genre": "hip-hop", "count": 48, "pct": 52 }],
+  "keys": ["C", "F", "G", "A"],
+  "majorPct": 64,
+  "enrichedCount": 93, "totalCount": 93
+}</pre>
+      <p>Returns <code>{}</code> when no enriched songs exist. Outlier thresholds are ±1.5 standard deviations from the BPM mean.</p>
+    </div>
+  </div>
 
-<h3>sim_style_songs</h3>
-<pre>
-style_id (UUID, FK → sim_styles.id)
-library_song_id (UUID, FK → library_songs.id)
-sim_duration_seconds (INT)
-PRIMARY KEY (style_id, library_song_id)
-</pre>
+  <hr>
 
-<h3>sim_style_song_classes</h3>
-<pre>
-style_id (UUID)
-library_song_id (UUID)
-class_code (TEXT)  // A | B | C | REST
-moved_at (TIMESTAMP)
-PRIMARY KEY (style_id, library_song_id)
-</pre>
+  <!-- TRACKS & CLASSES -->
+  <h2 id="tracks-section">Tracks &amp; Classes</h2>
 
-<h3>sim_style_class_weights</h3>
-<pre>
-style_id (UUID)
-class_code (TEXT)  // A | B | C | REST (REST usually 0)
-weight_pct (INT 0–100)
-PRIMARY KEY (style_id, class_code)
-</pre>
-</div>
+  <div class="endpoint" id="get-tracks">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/tracks</span>
+      <span class="endpoint-desc">All tracks in a style</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns style membership joined with full song metadata. Capped at 3,000 rows.</p>
+      <pre>{ "data": [{
+  "library_song_id": "uuid",
+  "sim_duration_seconds": 214,
+  "song": { "id", "title", "artist", "album", "peak_year", "run_time_seconds", "styles" }
+}] }</pre>
+    </div>
+  </div>
 
-<div class="section">
-<h2>Class Code Rules</h2>
-<ul>
-<li>Valid: <code>A</code>, <code>B</code>, <code>C</code>, <code>REST</code></li>
-<li>Stored uppercase</li>
-<li><strong>REST</strong> = explicitly not played</li>
-<li><strong>UNCATEGORIZED</strong> = in the style but has no row in <code>sim_style_song_classes</code></li>
-</ul>
-</div>
+  <div class="endpoint" id="get-assignments">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/assignments</span>
+      <span class="endpoint-desc">Class assignments for a style</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "data": [{ "library_song_id": "uuid", "class_code": "A", "moved_at": "2026-02-20T18:00:00Z" }] }</pre>
+    </div>
+  </div>
 
-<div class="section">
-<h2>Endpoints</h2>
+  <div class="endpoint" id="put-assignments">
+    <div class="endpoint-header">
+      <span class="method-badge mb-put">PUT</span>
+      <span class="endpoint-path">/v1/styles/:styleId/assignments</span>
+      <span class="endpoint-desc">Bulk upsert assignments</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Conflict target: <code>(style_id, library_song_id)</code>. Class codes normalized to uppercase. Valid: <code>A</code> <code>B</code> <code>C</code> <code>REST</code>.</p>
+      <pre>{ "assignments": [{ "library_song_id": "uuid", "class_code": "A" }] }</pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-<h3>GET /health</h3>
-<p>Health check. No auth required.</p>
-<pre>
-{ "ok": true }
-</pre>
-</div>
+  <div class="endpoint" id="del-assignments">
+    <div class="endpoint-header">
+      <span class="method-badge mb-del">DELETE</span>
+      <span class="endpoint-path">/v1/styles/:styleId/assignments</span>
+      <span class="endpoint-desc">Remove assignments → Uncategorized</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "songIds": ["uuid1", "uuid2"] }</pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-<h3>GET /v1/styles</h3>
-<p>Returns all styles ordered by name.</p>
-</div>
+  <div class="endpoint" id="get-weights">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/weights</span>
+      <span class="endpoint-desc">Class weight distribution</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "data": [
+  { "class_code": "A", "weight_pct": 35 },
+  { "class_code": "B", "weight_pct": 35 },
+  { "class_code": "C", "weight_pct": 30 }
+] }</pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-<h3>GET /v1/styles/{style_id}/tracks</h3>
-<p>Returns style membership plus song metadata (joined from <code>library_songs</code>).</p>
-<p>Response rows are normalized to include <code>song</code>.</p>
-<pre>
-{
-  "data": [
-    {
-      "library_song_id": "uuid",
-      "sim_duration_seconds": 215,
-      "song": {
-        "id": "uuid",
-        "artist": "Artist",
-        "title": "Title",
-        "album": "Album",
-        "peak_year": 2017,
-        "run_time_seconds": 215,
-        "styles": "..."
-      }
-    }
-  ]
-}
-</pre>
-</div>
+  <div class="endpoint" id="put-weights">
+    <div class="endpoint-header">
+      <span class="method-badge mb-put">PUT</span>
+      <span class="endpoint-path">/v1/styles/:styleId/weights</span>
+      <span class="endpoint-desc">Update weights (must sum to 100)</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "weights": [
+  { "class_code": "A", "weight_pct": 50 },
+  { "class_code": "B", "weight_pct": 30 },
+  { "class_code": "C", "weight_pct": 20 }
+] }
+// Response: { "ok": true, "upserted": 4 }</pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-<h3>GET /v1/styles/{style_id}/assignments</h3>
-<p>Returns all explicit class assignments for a style.</p>
-<pre>
-{
-  "data": [
-    { "library_song_id": "uuid", "class_code": "A", "moved_at": "2026-02-20T18:00:00Z" }
-  ]
-}
-</pre>
-</div>
-
-<div class="endpoint">
-<h3>PUT /v1/styles/{style_id}/assignments</h3>
-<p>Bulk upsert assignments (conflict target: <code>(style_id, library_song_id)</code>).</p>
-<pre>
-{
-  "assignments": [
-    { "library_song_id": "uuid", "class_code": "A" }
-  ]
-}
-</pre>
-<p>Notes:</p>
-<ul>
-  <li>Class codes are normalized to uppercase</li>
-  <li>Valid codes: A/B/C/REST</li>
-</ul>
-</div>
-
-<div class="endpoint">
-<h3>DELETE /v1/styles/{style_id}/assignments</h3>
-<p>Bulk delete assignments (returns songs to Uncategorized).</p>
-<pre>
-{
-  "songIds": ["uuid1", "uuid2"]
-}
-</pre>
-</div>
-
-<div class="endpoint">
-<h3>GET /v1/styles/{style_id}/weights</h3>
-<p>Returns class weights for a style.</p>
-<pre>
-{
-  "data": [
-    { "class_code": "A", "weight_pct": 35 },
-    { "class_code": "B", "weight_pct": 35 },
-    { "class_code": "C", "weight_pct": 30 }
-  ]
-}
-</pre>
-</div>
-
-<div class="endpoint">
-<h3>PUT /v1/styles/{style_id}/weights</h3>
-<p>Upserts weights for A/B/C (and optionally REST) for a style.</p>
-<pre>
-{
-  "weights": [
-    { "class_code": "A", "weight_pct": 50 },
-    { "class_code": "B", "weight_pct": 30 },
-    { "class_code": "C", "weight_pct": 20 }
-  ]
-}
-</pre>
-<p>Validation:</p>
-<ul>
-<li>Each weight 0–100</li>
-<li>Total must equal 100</li>
-</ul>
-</div>
-
-<div class="endpoint">
-<h3>GET /v1/styles/{style_id}/playback-profile</h3>
-<p>
-Integration-ready payload for the playback engine. Provides:
-</p>
-<ul>
-  <li><code>mode</code>: <code>LEGACY</code> vs <code>CLASS_WEIGHTED</code></li>
-  <li>Class weights for A/B/C</li>
-  <li>Pool counts for A/B/C/UNCATEGORIZED/REST</li>
-  <li>Optional track ids (debug only)</li>
-</ul>
-
-<h4>Query Params</h4>
-<ul>
-  <li><code>include_track_ids=true</code> (optional; default false)</li>
-</ul>
-
-<h4>Response</h4>
-<pre>
-{
+  <div class="endpoint" id="get-profile">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/playback-profile</span>
+      <span class="endpoint-desc">Full composite playback payload</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Integration-ready payload for the playback engine. Append <code>?include_track_ids=true</code> for debug output.</p>
+      <pre>{
   "data": {
     "style_id": "uuid",
-    "mode": "LEGACY",
-    "updated_at": "2026-02-20T18:00:00Z",
+    "mode": "CLASS_WEIGHTED",  // or "LEGACY"
     "weights": { "A": 50, "B": 30, "C": 20 },
     "pools": {
-      "A": { "count": 120 },
-      "B": { "count": 80 },
-      "C": { "count": 40 },
-      "UNCATEGORIZED": { "count": 12 },
+      "A": { "count": 120 }, "B": { "count": 80 },
+      "C": { "count": 40  }, "UNCATEGORIZED": { "count": 12 },
       "REST": { "count": 7 }
     }
   }
-}
-</pre>
+}</pre>
+      <p><strong>LEGACY</strong> when no A/B/C tracks are assigned or weights sum to 0. <strong>CLASS_WEIGHTED</strong> otherwise.</p>
+    </div>
+  </div>
 
-<h4>Mode Rules</h4>
-<ul>
-  <li><code>LEGACY</code> when there are no A/B/C assigned tracks (100% uncategorized/rest) or A/B/C weights sum to 0</li>
-  <li><code>CLASS_WEIGHTED</code> otherwise</li>
-</ul>
+  <hr>
 
-<p>
-<strong>Playback semantics:</strong> REST tracks are explicitly not played. Uncategorized tracks exist in the style but have no assignment.
-</p>
-</div>
+  <!-- SONGS & ATTRIBUTES -->
+  <h2 id="songs-section">Songs &amp; Audio Attributes</h2>
 
-</div>
+  <div class="endpoint" id="get-search">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/songs/search?q=&amp;limit=20</span>
+      <span class="endpoint-desc">Fuzzy search by title + artist</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Splits query into tokens — each token must appear in <code>title</code> or <code>artist</code>. So <code>"petty learning"</code> matches Tom Petty's "Learning to Fly". Max 50 results. Audio attributes included inline when available (prefers <code>soundcharts</code> source).</p>
+      <pre>{ "data": [{
+  "id": "uuid", "title": "Learning to Fly", "artist": "Tom Petty",
+  "album": "Into the Great Wide Open", "peak_year": 1991,
+  "bpm": 138, "energy": 0.61, "key": "5", "mode": "major",
+  "danceability": 0.48, "valence": 0.72
+}] }</pre>
+      <p>Attribute fields are <code>null</code> when the song hasn't been enriched.</p>
+    </div>
+  </div>
 
-<div class="section">
-<h2>Error Format</h2>
-<pre>
+  <div class="endpoint" id="post-style-songs">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/styles/:styleId/songs</span>
+      <span class="endpoint-desc">Add a song to a style</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Inserts into <code>sim_style_songs</code> with no class assignment — lands as Uncategorized. Returns <code>409</code> if already in the style.</p>
+      <pre>// Body
+{ "library_song_id": "uuid" }
+
+// Response 201
+{ "ok": true, "song": { "id", "title", "artist", ... } }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="get-attributes">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/songs/attributes?ids=uuid1,uuid2</span>
+      <span class="endpoint-desc">Batch fetch audio attributes</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns full <code>song_attributes</code> rows including <code>raw</code> JSONB for the given <code>library_song_id</code> list. Always returns the <code>soundcharts</code> source row. Used by track metadata modal and outlier detection.</p>
+      <pre>[{
+  "library_song_id": "uuid", "source": "soundcharts",
+  "bpm": 112, "key": "0", "mode": "major",
+  "energy": 0.72, "danceability": 0.65, "valence": 0.54,
+  "acousticness": 0.12, "instrumentalness": 0.0,
+  "speechiness": 0.04, "loudness": -5.2, "time_signature": 4,
+  "raw": { /* full Soundcharts response: genres, labels, composers, etc. */ }
+}]</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="get-enriched">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/songs/enriched?limit=1000&amp;offset=0</span>
+      <span class="endpoint-desc">All enriched songs, paginated</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns all library songs with audio attributes joined with title/artist. Used by the Style Builder to load the full enriched library client-side. Genres are extracted from <code>raw</code> JSONB. Max 2,000 per page.</p>
+      <pre>{
+  "data": [{
+    "library_song_id": "uuid", "title": "Song Title", "artist": "Artist",
+    "bpm": 112, "energy": 0.72, "danceability": 0.65,
+    "valence": 0.54, "acousticness": 0.12,
+    "key": "0", "mode": "major",
+    "genres": ["hip-hop", "r&b"]
+  }],
+  "total": 1000, "offset": 0, "limit": 1000
+}</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="post-enrich">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/songs/enrich</span>
+      <span class="endpoint-desc">Enrich songs via Soundcharts</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Fetches audio attributes for unenriched songs via a 2-step Soundcharts lookup: ISRC → UUID → full metadata. Processes up to <code>limit</code> songs with a 200ms delay between requests to respect rate limits.</p>
+      <pre>// Body (all optional)
 {
-  "error": {
-    "message": "Unauthorized",
-    "status": 401
-  }
+  "limit": 100,            // max 200, default 100
+  "offset": 0,
+  "style_name": "Bubbakoo B"  // scope to a specific style
 }
-</pre>
-</div>
 
+// Response
+{ "ok": true, "total": 93, "enriched": 87, "failed": 6, "results": [...] }</pre>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <span class="callout-text">Requires <code>SOUNDCHARTS_APP_ID</code> and <code>SOUNDCHARTS_API_KEY</code> env vars. Only songs with an ISRC can be enriched (~94.5% of the library, ~115k songs).</span>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- CURATOR SCHEDULES -->
+  <h2 id="schedules-section">Curator Schedules</h2>
+
+  <p>Cadence values and their intervals: <code>weekly</code> (7d) · <code>biweekly</code> (14d) · <code>monthly</code> (30d) · <code>quarterly</code> (90d)</p>
+
+  <div class="endpoint" id="get-schedules">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/curator-schedules</span>
+      <span class="endpoint-desc">List schedules</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Optional query params: <code>?curator_name=</code> and <code>?style_id=</code>. Also: <code>GET /v1/curator-schedules/curators</code> for a distinct list of curator names.</p>
+    </div>
+  </div>
+
+  <div class="endpoint" id="put-schedule">
+    <div class="endpoint-header">
+      <span class="method-badge mb-put">PUT</span>
+      <span class="endpoint-path">/v1/curator-schedules</span>
+      <span class="endpoint-desc">Upsert a schedule</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "style_id": "uuid", "curator_name": "Maya Chen",
+  "cadence": "monthly", "last_updated": "2026-03-01",
+  "notes": "Focus on new releases" }  // notes optional</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="patch-schedule">
+    <div class="endpoint-header">
+      <span class="method-badge mb-patch">PATCH</span>
+      <span class="endpoint-path">/v1/curator-schedules/:styleId/mark-updated</span>
+      <span class="endpoint-desc">Stamp last_updated = today</span>
+    </div>
+    <div class="endpoint-body">
+      <p>No body required. Sets <code>last_updated</code> to today's date on the schedule for the given style.</p>
+    </div>
+  </div>
+
+  <div class="endpoint" id="del-schedule">
+    <div class="endpoint-header">
+      <span class="method-badge mb-del">DELETE</span>
+      <span class="endpoint-path">/v1/curator-schedules/:styleId</span>
+      <span class="endpoint-desc">Remove a schedule</span>
+    </div>
+    <div class="endpoint-body"><p>No body required.</p></div>
+  </div>
+
+  <hr>
+
+  <!-- MOODS -->
+  <h2 id="moods-section">Mood Tagging</h2>
+
+  <p>Each style can have up to 6 moods. Position is significant — Mood 1 is primary. Valid values:</p>
+  <p>
+    <span class="tag tag-blue">Calm</span> <span class="tag tag-blue">Classic</span> <span class="tag tag-blue">Comfortable</span> <span class="tag tag-blue">Current</span> <span class="tag tag-blue">Energetic</span> <span class="tag tag-blue">Festive</span> <span class="tag tag-blue">Fun</span> <span class="tag tag-blue">Intimate</span> <span class="tag tag-blue">Joyful</span> <span class="tag tag-blue">Modern</span> <span class="tag tag-blue">Peaceful</span> <span class="tag tag-blue">Premium</span> <span class="tag tag-blue">Professional</span> <span class="tag tag-blue">Reflective</span> <span class="tag tag-blue">Relaxed</span> <span class="tag tag-blue">Sophisticated</span> <span class="tag tag-blue">Soulful</span> <span class="tag tag-blue">Upbeat</span> <span class="tag tag-blue">Uplifting</span> <span class="tag tag-blue">Vibrant</span> <span class="tag tag-blue">Warm</span> <span class="tag tag-blue">Welcoming</span>
+  </p>
+
+  <div class="endpoint" id="get-moods">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/styles/:styleId/moods</span>
+      <span class="endpoint-desc">Ordered moods for a style</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ "moods": ["Calm", "Relaxed", "Warm"] }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="get-all-moods">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/moods/all</span>
+      <span class="endpoint-desc">All styles with moods (bulk)</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Used for bulk loading on the Mood Tagging page. Returns all styles that have at least one mood assigned.</p>
+    </div>
+  </div>
+
+  <div class="endpoint" id="put-moods">
+    <div class="endpoint-header">
+      <span class="method-badge mb-put">PUT</span>
+      <span class="endpoint-path">/v1/styles/:styleId/moods</span>
+      <span class="endpoint-desc">Full replace moods (ordered, max 6)</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Full replace — send the complete ordered array. Index 0 = Mood 1 = primary.</p>
+      <pre>{ "moods": ["Calm", "Relaxed", "Peaceful"] }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="del-moods">
+    <div class="endpoint-header">
+      <span class="method-badge mb-del">DELETE</span>
+      <span class="endpoint-path">/v1/styles/:styleId/moods</span>
+      <span class="endpoint-desc">Clear all moods for a style</span>
+    </div>
+    <div class="endpoint-body"><p>No body required.</p></div>
+  </div>
+
+  <hr>
+
+  <!-- SPOTIFY SYNC -->
+  <h2 id="spotify-section">Spotify Sync</h2>
+
+  <p>Playlists sync nightly at 3am UTC via GitHub Actions (<code>.github/workflows/nightly-sync.yml</code>). Tracks are matched using a 4-tier strategy: Spotify ID → normalized title/artist → aggressive normalization → fuzzy feat/remix variants.</p>
+
+  <div class="endpoint" id="post-register">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/spotify/register-sync</span>
+      <span class="endpoint-desc">Link a playlist to a style</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Safe to call again on an existing playlist (upserts).</p>
+      <pre>{ "playlist_url": "https://open.spotify.com/playlist/...", "style_id": "uuid" }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="post-run-sync">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/spotify/run-sync</span>
+      <span class="endpoint-desc">Run sync now</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Omit <code>playlist_id</code> to run all registered syncs.</p>
+      <pre>// Body
+{ "playlist_id": "spotify_id" }  // optional — omit to run all
+
+// Response
+{ "results": [{
+  "ok": true, "playlist_id": "...",
+  "added": 5, "removed": 2, "unmatched": 3, "total_tracks": 87,
+  "unmatched_tracks": [{ "spotify": { "title": "...", "artist": "..." } }]
+}] }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="get-syncs">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/spotify/syncs</span>
+      <span class="endpoint-desc">List registered syncs</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns all registered playlist → style sync relationships with last sync stats.</p>
+    </div>
+  </div>
+
+  <div class="endpoint" id="del-sync">
+    <div class="endpoint-header">
+      <span class="method-badge mb-del">DELETE</span>
+      <span class="endpoint-path">/v1/spotify/syncs/:playlistId</span>
+      <span class="endpoint-desc">Remove a registered sync</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Does not affect songs already added to the style.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ADDING ROUTES -->
+  <h2 id="adding-routes">Adding a New Route</h2>
+
+  <pre>// 1. src/routes/myRoute.js
+import { supabase, assertNoError } from '../supabase.js';
+
+export default async function routes(app) {
+  app.get('/my-endpoint', async (req, reply) => {
+    const { data, error } = await supabase.from('my_table').select('*');
+    assertNoError(error, 'Failed to fetch');
+    return reply.send({ data });
+  });
+}
+
+// 2. Register in server.js
+import myRoutes from './src/routes/myRoute.js';
+await app.register(myRoutes, { prefix: '/v1' });
+
+// 3. Add to api-client.js
+OpusAPIClient.prototype.myMethod = async function() {
+  const { data } = await this.request('/my-endpoint');
+  return data;
+};</pre>
+
+</main>
 </body>
 </html>
