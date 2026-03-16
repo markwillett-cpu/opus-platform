@@ -84,6 +84,23 @@ async function enrichSong(song) {
 export default async function routes(app) {
 
   /**
+   * GET /v1/songs/enriched/count
+   * Returns the total number of enriched songs (soundcharts source, bpm not null).
+   * Used by the Style Builder to know how many pages to expect before loading.
+   */
+  app.get('/songs/enriched/count', async (req, reply) => {
+    const { count, error } = await supabase
+      .from('song_attributes')
+      .select('*', { count: 'exact', head: true })
+      .eq('source', 'soundcharts')
+      .not('bpm', 'is', null);
+
+    assertNoError(error, 'Failed to count enriched songs');
+
+    return reply.send({ count: count ?? 0 });
+  });
+
+  /**
    * GET /v1/songs/attributes?ids=uuid1,uuid2,...
    * Returns song_attributes rows for the given library_song_ids.
    * Used by the frontend to load audio metadata for a style's tracks.
