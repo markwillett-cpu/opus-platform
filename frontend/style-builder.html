@@ -138,16 +138,16 @@
 
 <div class="opus-header">
   <div class="opus-title">Opus4</div>
-  <nav class="opus-nav">
-    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
-    <a class="nav-item" href="./api-docs.html">API Docs</a>
-    <a class="nav-item" href="./index.html">Playback Classes</a>
-    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
-    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
-    <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
-    <a class="nav-item" href="./spotify-sync.html">Spotify Sync</a>
-    <a class="nav-item active" href="#">Style Builder</a>
-  </nav>
+      <nav class="opus-nav">
+      <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+      <a class="nav-item" href="./api-docs.html">API Docs</a>
+      <a class="nav-item" href="./index.html">Playback Classes</a>
+      <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+      <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+      <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
+      <a class="nav-item" href="./spotify-sync.html">Spotify Sync</a>
+      <a class="nav-item active" href="./style-builder.html">Style Builder</a>
+    </nav>
 </div>
 
 <div class="page">
@@ -702,13 +702,34 @@ async function loadEnrichedSongs() {
   setLoading(10);
 
   try {
+    // Fetch total count first so we can show accurate progress
+    let totalCount = null;
+    try {
+      const countRes = await fetch(`${API_BASE}/songs/enriched/count`, {
+        headers: { 'x-api-key': API_KEY }
+      });
+      if (countRes.ok) {
+        const { count } = await countRes.json();
+        totalCount = count;
+        subtitle.textContent = `Loading ${totalCount.toLocaleString()} enriched songs…`;
+      }
+    } catch { /* non-fatal — progress bar will still work without it */ }
+
     const PAGE = 1000;
     const collected = [];
     let offset = 0;
 
     while (true) {
-      setLoading(10 + Math.min(Math.floor(offset / 100), 60));
-      subtitle.textContent = `Loading… ${collected.length.toLocaleString()} songs`;
+      const pct = totalCount
+        ? 10 + Math.round((collected.length / totalCount) * 80)
+        : 10 + Math.min(Math.floor(offset / 100), 60);
+      setLoading(pct);
+
+      if (totalCount) {
+        subtitle.textContent = `Loading… ${collected.length.toLocaleString()} / ${totalCount.toLocaleString()}`;
+      } else {
+        subtitle.textContent = `Loading… ${collected.length.toLocaleString()} songs`;
+      }
 
       const res = await fetch(`${API_BASE}/songs/enriched?limit=${PAGE}&offset=${offset}`, {
         headers: { 'x-api-key': API_KEY }

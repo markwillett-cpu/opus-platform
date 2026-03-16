@@ -110,6 +110,7 @@
     <a class="nav-link" href="#post-style-songs"><span class="nav-method m-post">POST</span> /styles/:id/songs</a>
     <a class="nav-link" href="#get-attributes"><span class="nav-method m-get">GET</span> /songs/attributes</a>
     <a class="nav-link" href="#get-enriched"><span class="nav-method m-get">GET</span> /songs/enriched</a>
+    <a class="nav-link" href="#get-enriched-count"><span class="nav-method m-get">GET</span> /songs/enriched/count</a>
     <a class="nav-link" href="#post-enrich"><span class="nav-method m-post">POST</span> /songs/enrich</a>
   </div>
   <div class="nav-group">
@@ -440,6 +441,18 @@ fetch("/v1/styles", { headers: { "x-api-key": OPUS_CONFIG.API_KEY } })</pre>
   }],
   "total": 1000, "offset": 0, "limit": 1000
 }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="get-enriched-count">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/songs/enriched/count</span>
+      <span class="endpoint-desc">Total enriched song count</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns the total number of songs with audio attributes. Used by the Style Builder to calculate accurate load progress before paginating through <code>/songs/enriched</code>.</p>
+      <pre>{ "count": 93 }</pre>
     </div>
   </div>
 
