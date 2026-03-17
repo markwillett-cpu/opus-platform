@@ -118,6 +118,40 @@
     #toast.show{opacity:1}
     #toast.success{background:var(--success)}
     #toast.error{background:var(--danger)}
+
+    /* ── Manual Match ── */
+    .unmatched-row{cursor:pointer}
+    .unmatched-row:hover td{background:#f0f7ff}
+    .match-me-btn{background:none;border:1px solid var(--border);color:var(--accent);font-size:11px;font-weight:900;padding:3px 9px;border-radius:4px;cursor:pointer;transition:.15s;white-space:nowrap}
+    .match-me-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .manual-badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:900;background:#e8f4f8;color:#1a6a9a;border:1px solid #b8d9f0}
+    .mm-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
+    .mm-drawer-overlay.open{opacity:1;pointer-events:all}
+    .mm-drawer{position:fixed;top:0;right:0;bottom:0;width:440px;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:401;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+    .mm-drawer.open{transform:translateX(0)}
+    .mm-drawer-header{background:var(--secondary);color:#fff;padding:16px 18px;flex-shrink:0}
+    .mm-drawer-header h3{font-size:15px;font-weight:900;margin-bottom:2px}
+    .mm-drawer-header .mm-spotify-track{font-size:12px;opacity:.7;font-weight:700}
+    .mm-drawer-close{position:absolute;top:14px;right:16px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;opacity:.8;line-height:1}
+    .mm-drawer-close:hover{opacity:1}
+    .mm-search-wrap{padding:14px 16px;border-bottom:1px solid var(--light);flex-shrink:0}
+    .mm-search{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit}
+    .mm-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.12)}
+    .mm-search-hint{font-size:11px;color:#95a5a6;font-weight:700;margin-top:6px}
+    .mm-results{flex:1;overflow-y:auto;padding:8px}
+    .mm-result{display:flex;align-items:center;gap:10px;padding:10px;border-radius:6px;transition:.15s}
+    .mm-result:hover{background:var(--light)}
+    .mm-result-info{flex:1;min-width:0}
+    .mm-result-title{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mm-result-artist{font-size:12px;color:#7f8c8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mm-pick-btn{flex-shrink:0;padding:6px 12px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:900;cursor:pointer;transition:.15s}
+    .mm-pick-btn:hover{background:var(--accent);color:#fff}
+    .mm-empty{text-align:center;padding:40px 20px;color:#95a5a6}
+    .mm-empty .ei{font-size:32px;margin-bottom:8px}
+    .mm-empty p{font-size:13px;font-weight:700}
+    .mm-spinner{text-align:center;padding:40px;color:#95a5a6;font-size:13px;font-weight:700}
+    .mm-spinner::before{content:'';display:block;width:22px;height:22px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+    .mm-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -126,6 +160,7 @@
   <div class="opus-title">Opus4</div>
   <nav class="opus-nav">
     <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
     <a class="nav-item" href="./index.html">Playback Classes</a>
     <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
     <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
@@ -237,6 +272,7 @@
               <th>Title</th>
               <th>Artist</th>
               <th>ISRC</th>
+              <th style="width:80px"></th>
             </tr>
           </thead>
           <tbody id="unmatchedBody"></tbody>
@@ -289,6 +325,24 @@
       <button class="btn success" id="confirmCreateModal">Create Style</button>
     </div>
   </div>
+</div>
+
+<!-- MANUAL MATCH DRAWER -->
+<div class="mm-drawer-overlay" id="mmOverlay"></div>
+<div class="mm-drawer" id="mmDrawer">
+  <div class="mm-drawer-header">
+    <h3>Find in Library</h3>
+    <div class="mm-spotify-track" id="mmSpotifyTrack">—</div>
+    <button class="mm-drawer-close" id="mmClose">&times;</button>
+  </div>
+  <div class="mm-search-wrap">
+    <input class="mm-search" id="mmSearch" type="text" placeholder="Search by title or artist…" autocomplete="off" />
+    <div class="mm-search-hint">Searching the full library — try artist name or partial title</div>
+  </div>
+  <div class="mm-results" id="mmResults">
+    <div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>
+  </div>
+  <div class="mm-footer" id="mmFooter">Manually matched songs are added to the style as Uncategorized</div>
 </div>
 
 <div id="toast"></div>
@@ -384,6 +438,7 @@ function methodPill(method) {
     spotify_id:       ['Spotify ID', 'm-spotify'],
     fuzzy_norm:       ['Fuzzy', 'm-fuzzy'],
     fuzzy_aggressive: ['Aggressive', 'm-aggressive'],
+    manual:           ['Manual', 'm-isrc'],
   };
   const [label, cls] = map[method] || ['Unknown', ''];
   return `<span class="method-pill ${cls}">${label}</span>`;
@@ -436,17 +491,31 @@ function renderMatchedTable() {
 function renderUnmatchedTable() {
   const tbody = document.getElementById('unmatchedBody');
   if (!filteredUnmatched.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:30px;color:#95a5a6">No unmatched tracks 🎉</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#95a5a6">No unmatched tracks 🎉</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filteredUnmatched.map(u => `
-    <tr>
+  tbody.innerHTML = filteredUnmatched.map((u, i) => {
+    const manuallyMatched = u._manuallyMatched;
+    return `<tr class="unmatched-row" data-idx="${i}">
       <td><div class="overflow" style="font-weight:800;font-size:12px">${esc(u.spotify.title)}</div></td>
       <td><div style="font-size:12px;color:#7f8c8d">${esc(u.spotify.artist)}</div></td>
       <td><div style="font-size:11px;color:#bdc3c7;font-family:monospace">${u.spotify.isrc || '—'}</div></td>
-    </tr>
-  `).join('');
+      <td style="text-align:right">
+        ${manuallyMatched
+          ? `<span class="manual-badge">✓ Matched</span>`
+          : `<button class="match-me-btn" data-idx="${i}">Match</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.match-me-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      openManualMatch(filteredUnmatched[idx], idx);
+    });
+  });
 }
 
 function updateMatchedSelCount() {
@@ -631,6 +700,133 @@ document.addEventListener('keydown', e => {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
   }
 });
+
+// ════════════════════════════════════════════════════════
+// MANUAL MATCH DRAWER
+// ════════════════════════════════════════════════════════
+(function() {
+  const overlay   = document.getElementById('mmOverlay');
+  const drawer    = document.getElementById('mmDrawer');
+  const closeBtn  = document.getElementById('mmClose');
+  const searchEl  = document.getElementById('mmSearch');
+  const resultsEl = document.getElementById('mmResults');
+  const spotifyTrackEl = document.getElementById('mmSpotifyTrack');
+
+  let currentUnmatchedItem = null;
+  let currentUnmatchedIdx  = null;
+  let searchTimer = null;
+
+  function openManualMatch(item, idx) {
+    currentUnmatchedItem = item;
+    currentUnmatchedIdx  = idx;
+
+    spotifyTrackEl.textContent = `${item.spotify.title} — ${item.spotify.artist}`;
+    searchEl.value = item.spotify.title;
+    resultsEl.innerHTML = '<div class="mm-spinner"></div>';
+
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+
+    // Auto-run search with the title
+    runMMSearch(item.spotify.title);
+    setTimeout(() => searchEl.focus(), 80);
+  }
+
+  function closeDrawer() {
+    overlay.classList.remove('open');
+    drawer.classList.remove('open');
+    currentUnmatchedItem = null;
+    currentUnmatchedIdx  = null;
+    searchEl.value = '';
+    resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>';
+  }
+
+  closeBtn.addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  });
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) {
+      resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>';
+      return;
+    }
+    resultsEl.innerHTML = '<div class="mm-spinner"></div>';
+    searchTimer = setTimeout(() => runMMSearch(q), 280);
+  });
+
+  async function runMMSearch(q) {
+    try {
+      const results = await window.api.searchSongs(q, 20);
+      renderMMResults(results);
+    } catch(err) {
+      resultsEl.innerHTML = `<div class="mm-empty"><p style="color:#e74c3c">Search error: ${err.message}</p></div>`;
+    }
+  }
+
+  function renderMMResults(songs) {
+    if (!songs || !songs.length) {
+      resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>No results — try different words</p></div>';
+      return;
+    }
+    resultsEl.innerHTML = songs.map(s => `
+      <div class="mm-result">
+        <div class="mm-result-info">
+          <div class="mm-result-title">${esc(s.title)}</div>
+          <div class="mm-result-artist">${esc(s.artist)}${s.album ? ' · ' + esc(s.album) : ''}${s.peak_year ? ' · ' + s.peak_year : ''}</div>
+        </div>
+        <button class="mm-pick-btn" data-song-id="${s.id}" data-title="${esc(s.title)}" data-artist="${esc(s.artist)}">Pick</button>
+      </div>
+    `).join('');
+
+    resultsEl.querySelectorAll('.mm-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => confirmManualMatch(btn.dataset.songId, btn.dataset.title, btn.dataset.artist));
+    });
+  }
+
+  async function confirmManualMatch(libraryId, libraryTitle, libraryArtist) {
+    if (!currentUnmatchedItem) return;
+
+    // Mark in filteredUnmatched so the row shows ✓ Matched
+    const realIdx = matchResults.unmatched.indexOf(currentUnmatchedItem);
+    if (realIdx !== -1) matchResults.unmatched[realIdx]._manuallyMatched = true;
+    filteredUnmatched[currentUnmatchedIdx]._manuallyMatched = true;
+
+    // Add to the matched list in state so it can be added to a style
+    const manualEntry = {
+      spotify: currentUnmatchedItem.spotify,
+      library: { id: libraryId, title: libraryTitle, artist: libraryArtist },
+      match_method: 'manual',
+      confidence: 1.0,
+      _manual: true
+    };
+    matchResults.matched.push(manualEntry);
+    filteredMatched.push(manualEntry);
+
+    // Update counts
+    const manualCount = matchResults.matched.filter(m => m._manual).length;
+    const baseMatched = matchResults.summary.matched;
+    document.getElementById('matchedBadge').textContent = matchResults.matched.length;
+    document.getElementById('unmatchedBadge').textContent =
+      matchResults.unmatched.filter(u => !u._manuallyMatched).length;
+    document.getElementById('sumMatched').textContent = matchResults.matched.length;
+    document.getElementById('sumUnmatched').textContent =
+      matchResults.unmatched.filter(u => !u._manuallyMatched).length;
+
+    // Re-render both tables
+    renderMatchedTable();
+    renderUnmatchedTable();
+
+    toast(`✓ Matched "${currentUnmatchedItem.spotify.title}" → "${libraryTitle}"`, 'success');
+    closeDrawer();
+  }
+
+  // Expose so renderUnmatchedTable can call it
+  window.openManualMatch = openManualMatch;
+})();
 
 function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
