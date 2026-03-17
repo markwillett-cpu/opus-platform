@@ -261,4 +261,67 @@ export default async function routes(app) {
     });
   });
 
+  /**
+   * GET /v1/songs/by-isrc/:isrc
+   * Look up a library song by ISRC and return its audio attributes.
+   * Used by the DNA Compare page to resolve an ISRC to enriched features.
+   *
+   * Response shape:
+   *   { id, title, artist, isrc, features: { energy, valence, ... } }
+   */
+  app.get('/songs/by-isrc/:isrc', async (req, reply) => {
+    const isrc = (req.params.isrc || '').toUpperCase().trim();
+    if (!isrc) return reply.code(400).send({ error: { message: 'ISRC required', status: 400 } });
+
+    // Find the song in library_songs by ISRC
+    const { data: songs, error: songErr } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, isrc')
+      .ilike('isrc', isrc)
+      .limit(1);
+
+    assertNoError(songErr, 'Failed to look up song by ISRC');
+
+    if (!songs || songs.length === 0) {
+      return reply.code(404).send({ error: { message: 'Song not found', status: 404 } });
+    }
+
+    const song = songs[0];
+
+    // Fetch audio attributes
+    const { data: attrs, error: attrErr } = await supabase
+      .from('song_attributes')
+      .select('*')
+      .eq('library_song_id', song.id)
+      .eq('source', 'soundcharts')
+      .maybeSingle();
+
+    assertNoError(attrErr, 'Failed to fetch song attributes');
+
+    if (!attrs) {
+      return reply.code(404).send({ error: { message: 'Song found but not yet enriched', status: 404 } });
+    }
+
+    return reply.send({
+      id:     song.id,
+      title:  song.title,
+      artist: song.artist,
+      isrc:   song.isrc,
+      features: {
+        energy:           attrs.energy,
+        valence:          attrs.valence,
+        danceability:     attrs.danceability,
+        acousticness:     attrs.acousticness,
+        tempo:            attrs.bpm,
+        loudness:         attrs.loudness,
+        speechiness:      attrs.speechiness,
+        liveness:         attrs.liveness,
+        instrumentalness: attrs.instrumentalness,
+        key:              attrs.key,
+        mode:             attrs.mode,
+        time_signature:   attrs.time_signature,
+      }
+    });
+  });
+
 }
