@@ -262,6 +262,33 @@ export default async function routes(app) {
   });
 
   /**
+   * GET /v1/songs/songstats/:isrc
+   * Proxy to Songstats RapidAPI — works around CORS restriction.
+   * Songstats only allows browser calls from docs.songstats.com,
+   * so all requests must be proxied server-side through this route.
+   */
+  app.get('/songs/songstats/:isrc', async (req, reply) => {
+    const isrc = (req.params.isrc || '').toUpperCase().trim();
+    if (!isrc) return reply.code(400).send({ error: { message: 'ISRC required', status: 400 } });
+
+    const SS_KEY = config.SONGSTATS_RAPIDAPI_KEY;
+    if (!SS_KEY) return reply.code(503).send({ error: { message: 'Songstats API key not configured', status: 503 } });
+
+    const res = await fetch(`https://songstats.p.rapidapi.com/tracks/info?isrc=${encodeURIComponent(isrc)}`, {
+      headers: {
+        'x-rapidapi-host': 'songstats.p.rapidapi.com',
+        'x-rapidapi-key': SS_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await res.json();
+    if (!res.ok) return reply.code(res.status).send({ error: { message: data?.message || 'Songstats error', status: res.status } });
+
+    return reply.send(data);
+  });
+
+  /**
    * GET /v1/songs/by-isrc/:isrc
    * Look up a library song by ISRC and return its audio attributes.
    * Used by the DNA Compare page to resolve an ISRC to enriched features.
