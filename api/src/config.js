@@ -12,6 +12,7 @@ export const config = {
   API_BASE_URL: process.env.API_BASE_URL || 'https://opus-platform.onrender.com',
   SOUNDCHARTS_APP_ID: process.env.SOUNDCHARTS_APP_ID || '',
   SOUNDCHARTS_API_KEY: process.env.SOUNDCHARTS_API_KEY || '',
+  SONGSTATS_RAPIDAPI_KEY: process.env.SONGSTATS_RAPIDAPI_KEY || '',
 };
 
 function must(value, name) {
