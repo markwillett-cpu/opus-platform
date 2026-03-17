@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – DNA Comparison</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;
+      --sc:#3498db;--ss:#9b59b6;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #2c3e50}
+    .toolbar-label{color:#9fb3c8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+
+    .container{max-width:1500px;margin:0 auto;padding:20px}
+
+    /* INPUT */
+    .input-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:18px 24px;margin-bottom:18px}
+    .input-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .input-group{display:flex;flex-direction:column;gap:4px}
+    .input-group label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#7f8c8d}
+    .isrc-input{padding:9px 13px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:monospace;width:210px;text-transform:uppercase;transition:.2s}
+    .isrc-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.1)}
+    .isrc-input::placeholder{font-family:-apple-system,sans-serif;text-transform:none;color:#bdc3c7}
+    .lookup-btn{padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:8px;height:40px;align-self:flex-end;transition:.2s}
+    .lookup-btn:hover{background:#2980b9}
+    .lookup-btn:disabled{opacity:.5;cursor:not-allowed}
+    .spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+    .lookup-btn.loading .spinner{display:block}
+    .lookup-btn.loading .btn-label{display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .track-meta{display:flex;flex-direction:column;gap:2px}
+    .track-meta .t-title{font-size:15px;font-weight:900}
+    .track-meta .t-artist{font-size:13px;color:#7f8c8d}
+    .track-meta .t-isrc{font-size:11px;font-family:monospace;color:#bdc3c7}
+    .err{color:var(--danger);font-size:12px;font-weight:700}
+
+    /* VERDICTS */
+    .verdict-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+    .vcard{border-radius:8px;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid transparent;transition:.3s}
+    .vcard.pass{background:#d4edda;border-color:#c3e6cb}
+    .vcard.fail{background:#f8d7da;border-color:#f5c6cb}
+    .vcard.borderline{background:#fff3cd;border-color:#ffeeba}
+    .vcard.empty{background:#fff;border-color:var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .vleft{display:flex;align-items:center;gap:12px}
+    .vicon{font-size:24px}
+    .vsource{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
+    .vtitle{font-size:15px;font-weight:900}
+    .vsub{font-size:12px;opacity:.75;margin-top:2px}
+    .vscore{font-size:30px;font-weight:1000;opacity:.85}
+
+    /* MAIN GRID */
+    .main-grid{display:grid;grid-template-columns:1fr 1fr 280px;gap:18px;margin-bottom:18px}
+
+    /* FEATURE PANEL */
+    .fpanel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+    .ph{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;color:#fff}
+    .ph.sc{background:#2471a3}
+    .ph.ss{background:#7d3c98}
+    .ph h3{font-size:14px;font-weight:900}
+    .ph-badge{font-size:11px;font-weight:900;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.2)}
+    .pbody{padding:14px}
+
+    .frow{display:grid;grid-template-columns:108px 1fr 56px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--light)}
+    .frow:last-child{border-bottom:none}
+    .fl{font-size:12px;font-weight:900;color:#555}
+    .fbw{position:relative;height:14px;background:var(--light);border-radius:7px;overflow:visible}
+    .fb{height:100%;border-radius:7px;transition:width .3s ease;min-width:2px}
+    .fb.sc-col{background:var(--sc)}
+    .fb.ss-col{background:var(--ss)}
+    .fb.pass{background:var(--success)}
+    .fb.fail{background:var(--danger)}
+    .ftgt{position:absolute;top:0;height:100%;background:rgba(52,152,219,.12);border:1px solid rgba(52,152,219,.3);border-radius:7px;pointer-events:none}
+    .fv{font-size:12px;font-variant-numeric:tabular-nums;font-weight:900;text-align:right}
+    .fv.pass{color:var(--success)}
+    .fv.fail{color:var(--danger)}
+    .fv.warn{color:var(--warning)}
+    .fv.neutral{color:#7f8c8d}
+
+    /* DNA EDITOR */
+    .dna-panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+    .dna-body{display:flex;flex-direction:column;gap:10px;padding:14px}
+    .dna-field .dlabel{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#7f8c8d;display:flex;justify-content:space-between;margin-bottom:4px}
+    .dna-field .dlabel .dcur{font-size:11px;font-weight:900}
+    .rrow{display:flex;gap:6px;align-items:center}
+    .ri{flex:1;padding:5px 7px;border:1px solid var(--border);border-radius:4px;font-size:12px;min-width:0}
+    .ri:focus{outline:none;border-color:var(--accent)}
+    .rsep{font-size:11px;color:#bdc3c7;font-weight:700;flex-shrink:0}
+
+    /* SECTION HEADER */
+    .sh{background:var(--secondary);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+    .sh h3{font-size:14px;font-weight:900}
+    .shbtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:900;cursor:pointer}
+    .shbtn:hover{background:rgba(255,255,255,.25)}
+
+    /* DELTA TABLE */
+    .dsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;margin-bottom:18px}
+    .dtable{width:100%;border-collapse:collapse;font-size:12px}
+    .dtable thead{background:var(--secondary);color:#fff}
+    .dtable th,.dtable td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+    .dtable td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:900}
+    .dtable tbody tr:hover{background:#f8f9fa}
+    .agree{color:var(--success);font-weight:900}
+    .disagree{color:var(--danger);font-weight:900}
+    .pill{display:inline-block;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:900}
+    .pp{background:#d4edda;color:#155724}
+    .pf{background:#f8d7da;color:#721c24}
+    .pw{background:#fff3cd;color:#856404}
+    .pn{background:var(--light);color:#7f8c8d}
+
+    /* RADAR */
+    .rsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;margin-bottom:18px}
+    .rwrap{display:flex;justify-content:center;padding:10px 0 4px}
+    .rlegend{display:flex;gap:14px;justify-content:center;padding:0 0 12px;font-size:11px;font-weight:900}
+    .rlegend span{display:flex;align-items:center;gap:5px}
+    .ldot{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+    /* HISTORY */
+    .hsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+    .hlist{max-height:250px;overflow-y:auto;padding:6px}
+    .hitem{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:5px;cursor:pointer;transition:.15s;gap:8px}
+    .hitem:hover{background:var(--light)}
+    .hinfo{flex:1;min-width:0}
+    .htitle{font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hisrc{font-size:11px;color:#7f8c8d;font-family:monospace}
+    .hpills{display:flex;gap:4px;flex-shrink:0}
+    .hpill{font-size:10px;font-weight:900;padding:2px 6px;border-radius:6px}
+    .hpill.pass{background:#d4edda;color:#155724}
+    .hpill.fail{background:#f8d7da;color:#721c24}
+    .hpill.borderline{background:#fff3cd;color:#856404}
+    .hpill.empty{background:var(--light);color:#7f8c8d}
+
+    .empty-state{text-align:center;padding:30px 16px;color:#95a5a6}
+    .empty-state .icon{font-size:28px;margin-bottom:8px}
+    .empty-state p{font-size:13px;font-weight:700}
+
+    .bottom-grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    .right-col{display:flex;flex-direction:column;gap:18px}
+  </style>
+</head>
+<body>
+
+<header class="opus-header">
+  <div class="opus-title">🎵 Opus Platform</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+    <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
+    <a class="nav-item" href="./spotify-sync.html">Spotify Sync</a>
+    <a class="nav-item active" href="./dna-compare.html">DNA Compare</a>
+    <a class="nav-item" href="./style-builder.html">Style Builder</a>
+  </nav>
+</header>
+
+<div class="opus-toolbar">
+  <span class="toolbar-label">DNA Compare</span>
+  <span style="color:#5a7288;font-size:12px">Soundcharts vs Songstats — side-by-side audio feature validation against playlist DNA targets</span>
+</div>
+
+<div class="container">
+
+  <!-- INPUT -->
+  <div class="input-card">
+    <div class="input-row">
+      <div class="input-group">
+        <label>ISRC</label>
+        <input id="isrc-input" class="isrc-input" placeholder="e.g. USUM72403305" maxlength="12" />
+      </div>
+      <button id="lookup-btn" class="lookup-btn" onclick="doLookup()">
+        <div class="spinner"></div>
+        <span class="btn-label">Compare</span>
+      </button>
+      <div id="track-meta" style="display:none" class="track-meta"></div>
+      <div id="err-msg" class="err"></div>
+    </div>
+  </div>
+
+  <!-- VERDICTS -->
+  <div class="verdict-row">
+    <div id="vsc" class="vcard empty">
+      <div class="vleft"><div class="vicon">📡</div>
+        <div><div class="vsource">Soundcharts</div><div class="vtitle">Awaiting lookup</div><div class="vsub">Enter an ISRC above</div></div>
+      </div>
+      <div class="vscore" id="score-sc">—</div>
+    </div>
+    <div id="vss" class="vcard empty">
+      <div class="vleft"><div class="vicon">📡</div>
+        <div><div class="vsource">Songstats</div><div class="vtitle">Awaiting lookup</div><div class="vsub">Mock server active</div></div>
+      </div>
+      <div class="vscore" id="score-ss">—</div>
+    </div>
+  </div>
+
+  <!-- MAIN: SC | SS | DNA -->
+  <div class="main-grid">
+
+    <div class="fpanel">
+      <div class="ph sc"><h3>Soundcharts</h3><span class="ph-badge" id="sc-badge">No data</span></div>
+      <div class="pbody" id="sc-bars"><div class="empty-state"><div class="icon">📡</div><p>No data</p></div></div>
+    </div>
+
+    <div class="fpanel">
+      <div class="ph ss"><h3>Songstats</h3><span class="ph-badge" id="ss-badge">Mock</span></div>
+      <div class="pbody" id="ss-bars"><div class="empty-state"><div class="icon">📡</div><p>No data</p></div></div>
+    </div>
+
+    <div class="dna-panel">
+      <div class="sh"><h3>DNA Targets</h3><button class="shbtn" onclick="resetDNA()">Reset</button></div>
+      <div class="dna-body" id="dna-editor"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM: Agreement Table | Radar + History -->
+  <div class="bottom-grid">
+
+    <div class="dsect">
+      <div class="sh"><h3>Source Agreement</h3></div>
+      <table class="dtable">
+        <thead><tr><th>Feature</th><th>Soundcharts</th><th>Songstats</th><th>Δ Delta</th><th>SC</th><th>SS</th><th>Agree?</th></tr></thead>
+        <tbody id="delta-body"><tr><td colspan="7" style="text-align:center;color:#95a5a6;padding:28px;font-size:13px">No track loaded</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="right-col">
+      <div class="rsect">
+        <div class="sh"><h3>Radar</h3></div>
+        <div class="rwrap"><canvas id="radar" width="290" height="250"></canvas></div>
+        <div class="rlegend">
+          <span><span class="ldot" style="background:rgba(39,174,96,.4);border:1px solid #27ae60"></span>Target</span>
+          <span><span class="ldot" style="background:var(--sc)"></span>Soundcharts</span>
+          <span><span class="ldot" style="background:var(--ss)"></span>Songstats</span>
+        </div>
+      </div>
+      <div class="hsect">
+        <div class="sh"><h3>History</h3><button class="shbtn" onclick="clearHistory()">Clear</button></div>
+        <div id="hlist" class="hlist"><div class="empty-state"><div class="icon">🕐</div><p>No lookups yet</p></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="./config.js"></script>
+<script src="./api-client.js"></script>
+<script>
+
+// ── DNA CONFIG ──
+const SCORED = [
+  {key:'energy',       label:'Energy',       min:0.60, max:0.85},
+  {key:'valence',      label:'Valence',       min:0.50, max:0.80},
+  {key:'danceability', label:'Danceability',  min:0.55, max:0.80},
+  {key:'acousticness', label:'Acousticness',  min:0.00, max:0.25},
+  {key:'tempo',        label:'BPM',           min:95,   max:145, scale:200},
+];
+const ALL_F = [
+  ...SCORED,
+  {key:'loudness',         label:'Loudness (dB)'},
+  {key:'speechiness',      label:'Speechiness'},
+  {key:'liveness',         label:'Liveness'},
+  {key:'instrumentalness', label:'Instrumental'},
+];
+let dna = {};
+function initDNA(){
+  SCORED.forEach(f=>{ dna[f.key]={min:f.min,max:f.max}; });
+  document.getElementById('dna-editor').innerHTML = SCORED.map(f=>`
+    <div class="dna-field">
+      <div class="dlabel"><span>${f.label}</span><span class="dcur" id="dcur-${f.key}" style="color:#bdc3c7">—</span></div>
+      <div class="rrow">
+        <input class="ri" id="dmin-${f.key}" type="number" step="${f.scale?1:0.01}" value="${f.min}" oninput="onDNA('${f.key}')"/>
+        <span class="rsep">–</span>
+        <input class="ri" id="dmax-${f.key}" type="number" step="${f.scale?1:0.01}" value="${f.max}" oninput="onDNA('${f.key}')"/>
+      </div>
+    </div>`).join('');
+}
+function resetDNA(){
+  SCORED.forEach(f=>{
+    dna[f.key]={min:f.min,max:f.max};
+    document.getElementById(`dmin-${f.key}`).value=f.min;
+    document.getElementById(`dmax-${f.key}`).value=f.max;
+  });
+  rerender();
+}
+function onDNA(k){
+  const mn=parseFloat(document.getElementById(`dmin-${k}`)?.value);
+  const mx=parseFloat(document.getElementById(`dmax-${k}`)?.value);
+  dna[k]={min:isNaN(mn)?null:mn,max:isNaN(mx)?null:mx};
+  rerender();
+}
+
+// ── STATE ──
+let track=null, hist=[];
+const api=new OpusAPIClient(window.OPUS_CONFIG||{});
+
+// ── LOOKUP ──
+async function doLookup(){
+  const isrc=document.getElementById('isrc-input').value.trim().toUpperCase();
+  if(!isrc)return;
+  const btn=document.getElementById('lookup-btn');
+  document.getElementById('err-msg').textContent='';
+  document.getElementById('track-meta').style.display='none';
+  btn.classList.add('loading'); btn.disabled=true;
+  try{
+    const [scR,ssR]=await Promise.allSettled([fetchSC(isrc),fetchSS(isrc)]);
+    const sc=scR.status==='fulfilled'?scR.value:null;
+    const ss=ssR.status==='fulfilled'?ssR.value:null;
+    if(!sc&&!ss){
+      document.getElementById('err-msg').textContent='Not found in either source. Ensure ISRC is in your library and has been enriched.';
+      track=null; rerender(); return;
+    }
+    const title=sc?.title||ss?.title||'Unknown';
+    const artist=sc?.artist||ss?.artist||'Unknown';
+    track={title,artist,isrc,sc,ss};
+    document.getElementById('track-meta').style.display='flex';
+    document.getElementById('track-meta').innerHTML=`
+      <div class="t-title">${title}</div>
+      <div class="t-artist">${artist}</div>
+      <div class="t-isrc">${isrc}</div>`;
+    addHist(track); rerender();
+  }catch(e){
+    document.getElementById('err-msg').textContent=e.message||'Lookup failed';
+    track=null; rerender();
+  }finally{ btn.classList.remove('loading'); btn.disabled=false; }
+}
+
+// ── SOUNDCHARTS (via Opus API → song_attributes) ──
+async function fetchSC(isrc){
+  // Try search first
+  let song=null;
+  const sr=await api.request(`/songs/search?q=${encodeURIComponent(isrc)}&limit=5`).catch(()=>null);
+  song=sr?.data?.find(s=>(s.isrc||'').toUpperCase()===isrc);
+  // Fallback: scan enriched list
+  if(!song){
+    const er=await api.request('/songs/enriched?limit=2000').catch(()=>null);
+    song=er?.data?.find(s=>{
+      try{ const r=typeof s.raw==='string'?JSON.parse(s.raw):s.raw; return (r?.isrc?.value||'').toUpperCase()===isrc; }catch{ return false; }
+    });
+  }
+  if(!song)return null;
+  const id=song.id||song.library_song_id;
+  const ar=await api.request(`/songs/attributes?ids=${id}`).catch(()=>null);
+  const a=ar?.[0]||ar?.data?.[0];
+  if(!a)return null;
+  return {
+    title:song.title||'', artist:song.artist||'', isrc,
+    features:{energy:a.energy,valence:a.valence,danceability:a.danceability,
+      acousticness:a.acousticness,tempo:a.bpm,loudness:a.loudness,
+      speechiness:a.speechiness,liveness:a.liveness,instrumentalness:a.instrumentalness,
+      key:a.key,mode:a.mode}
+  };
+}
+
+// ── SONGSTATS (mock — swap base + headers for live) ──
+const SS_BASE='https://stoplight.io/mocks/songstats/api/12173793';
+// Live: const SS_BASE='https://songstats.p.rapidapi.com'; const SS_KEY='YOUR_KEY';
+async function fetchSS(isrc){
+  const r=await fetch(`${SS_BASE}/track/info?isrc=${encodeURIComponent(isrc)}`,{
+    headers:{'Prefer':'code=200'
+      // Live: ,'x-rapidapi-host':'songstats.p.rapidapi.com','x-rapidapi-key':SS_KEY
+    }
+  });
+  if(!r.ok)throw new Error(`Songstats ${r.status}`);
+  const d=await r.json();
+  if(d.result!=='success')throw new Error(d.message||'Songstats error');
+  const audio={};
+  (d.audio_analysis||[]).forEach(x=>{audio[x.key]=parseFloat(x.value);});
+  const t=d.track_info||{};
+  const KEY_MAP={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+  return {
+    title:t.title||'', artist:(t.artists||[]).map(a=>a.name).join(', '), isrc,
+    features:{energy:audio.energy,valence:audio.valence,danceability:audio.danceability,
+      acousticness:audio.acousticness,tempo:audio.tempo,loudness:audio.loudness,
+      speechiness:audio.speechiness,liveness:audio.liveness,instrumentalness:audio.instrumentalness,
+      key:KEY_MAP[String(audio.key||'')]??-1, mode:audio.mode!=null?Math.round(audio.mode):null}
+  };
+}
+
+// ── SCORING ──
+function score(features){
+  let p=0,t=0;
+  SCORED.forEach(f=>{
+    const v=features?.[f.key],d=dna[f.key];
+    if(v==null||d?.min==null)return;
+    t++; if(v>=d.min&&v<=d.max)p++;
+  });
+  return{passed:p,total:t};
+}
+function vc(p,t){
+  if(!t)return'empty'; if(p===t)return'pass'; if(p>=t-1)return'borderline'; return'fail';
+}
+function fmt(k,v){
+  if(v==null)return'—';
+  return k==='tempo'?v.toFixed(1):k==='loudness'?v.toFixed(2)+' dB':v.toFixed(3);
+}
+
+// ── RENDER ──
+function rerender(){
+  renderVerdicts(); renderBars('sc'); renderBars('ss');
+  renderDelta(); renderRadar(); updateDNACur();
+}
+function updateDNACur(){
+  SCORED.forEach(f=>{
+    const el=document.getElementById(`dcur-${f.key}`); if(!el)return;
+    const v=track?.sc?.features?.[f.key]??track?.ss?.features?.[f.key];
+    if(v==null){el.textContent='—';el.style.color='#bdc3c7';return;}
+    const d=dna[f.key]; const pass=d?.min!=null&&v>=d.min&&v<=d.max;
+    el.textContent=f.scale?v.toFixed(1):v.toFixed(2);
+    el.style.color=pass?'var(--success)':'var(--danger)';
+  });
+}
+function renderVerdicts(){
+  ['sc','ss'].forEach(src=>{
+    const card=document.getElementById(`v${src}`),scoreEl=document.getElementById(`score-${src}`);
+    const f=track?.[src]?.features;
+    const label=src==='sc'?'Soundcharts':'Songstats';
+    if(!track||!f){
+      card.className='vcard empty';
+      card.querySelector('.vsource').textContent=label;
+      card.querySelector('.vtitle').textContent='No data';
+      card.querySelector('.vsub').textContent=src==='ss'?'Mock server active':'Track not enriched or not in library';
+      card.querySelector('.vicon').textContent='📡';
+      scoreEl.textContent='—'; return;
+    }
+    const{passed,total}=score(f); const v=vc(passed,total);
+    const icons={pass:'✅',fail:'❌',borderline:'⚠️',empty:'📊'};
+    const titles={pass:'DNA Match',fail:'DNA Mismatch',borderline:'Borderline',empty:'No targets'};
+    const subs={pass:`Passes all ${total} targets`,fail:`Fails ${total-passed}/${total} targets`,borderline:'Misses 1 target — review',empty:'Set targets'};
+    card.className=`vcard ${v}`;
+    card.querySelector('.vsource').textContent=label;
+    card.querySelector('.vicon').textContent=icons[v];
+    card.querySelector('.vtitle').textContent=titles[v];
+    card.querySelector('.vsub').textContent=subs[v];
+    scoreEl.textContent=`${passed}/${total}`;
+  });
+}
+function renderBars(src){
+  const el=document.getElementById(`${src}-bars`),badge=document.getElementById(`${src}-badge`);
+  const f=track?.[src]?.features;
+  if(!f){
+    el.innerHTML='<div class="empty-state"><div class="icon">📡</div><p>No data from this source</p></div>';
+    badge.textContent=src==='ss'?'Mock':'No data'; return;
+  }
+  const{passed,total}=score(f); badge.textContent=`${passed}/${total} targets`;
+  const col=src==='sc'?'sc-col':'ss-col';
+  el.innerHTML=ALL_F.map(fd=>{
+    const v=f[fd.key]; if(v==null)return'';
+    let pct;
+    if(fd.key==='tempo') pct=Math.min((v/(fd.scale||200))*100,100);
+    else if(fd.key==='loudness') pct=Math.min(Math.max(((v+30)/30)*100,0),100);
+    else pct=Math.min(v*100,100);
+    const d=dna[fd.key];
+    let tgt='';
+    if(d?.min!=null){
+      const L=fd.scale?(d.min/(fd.scale||200))*100:d.min*100;
+      const W=fd.scale?((d.max-d.min)/(fd.scale||200))*100:(d.max-d.min)*100;
+      tgt=`<div class="ftgt" style="left:${L.toFixed(1)}%;width:${W.toFixed(1)}%"></div>`;
+    }
+    const pass=d?.min!=null&&v>=d.min&&v<=d.max;
+    const fail=d?.min!=null&&!pass;
+    const bc=fail?'fail':col;
+    const vclass=d?.min==null?'neutral':pass?'pass':Math.abs(v<d.min?d.min-v:v-d.max)<0.05?'warn':'fail';
+    const disp=fd.key==='tempo'?v.toFixed(1):fd.key==='loudness'?v.toFixed(2)+' dB':v.toFixed(3);
+    return`<div class="frow"><div class="fl">${fd.label}</div>
+      <div class="fbw"><div class="fb ${bc}" style="width:${pct.toFixed(1)}%"></div>${tgt}</div>
+      <div class="fv ${vclass}">${disp}</div></div>`;
+  }).join('');
+}
+function renderDelta(){
+  const tbody=document.getElementById('delta-body');
+  if(!track||(!track.sc&&!track.ss)){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#95a5a6;padding:28px;font-size:13px">No track loaded</td></tr>';
+    return;
+  }
+  tbody.innerHTML=ALL_F.map(fd=>{
+    const sv=track.sc?.features?.[fd.key];
+    const ssv=track.ss?.features?.[fd.key];
+    const ss_str=fmt(fd.key,ssv), sc_str=fmt(fd.key,sv);
+    let dStr='—',dCls='';
+    if(sv!=null&&ssv!=null&&!['key','mode'].includes(fd.key)){
+      const d=Math.abs(sv-ssv); dStr=d.toFixed(3);
+      dCls=d<0.02?'agree':d<0.08?'':'disagree';
+    } else if(['key','mode'].includes(fd.key)&&sv!=null&&ssv!=null){
+      dStr=sv===ssv?'✓':'≠'; dCls=sv===ssv?'agree':'disagree';
+    }
+    const d=dna[fd.key];
+    const mkPill=(v)=>d?.min==null||v==null?'<span class="pill pn">—</span>':
+      v>=d.min&&v<=d.max?'<span class="pill pp">✓</span>':'<span class="pill pf">✗</span>';
+    let agree='<span class="pill pn">—</span>';
+    if(d?.min!=null&&sv!=null&&ssv!=null){
+      const sa=(sv>=d.min&&sv<=d.max),ssa=(ssv>=d.min&&ssv<=d.max);
+      agree=sa===ssa?'<span class="pill pp">✓ Agree</span>':'<span class="pill pf">≠ Split</span>';
+    }
+    return`<tr>
+      <td><strong>${fd.label}</strong></td>
+      <td class="num" style="color:var(--sc)">${sc_str}</td>
+      <td class="num" style="color:var(--ss)">${ss_str}</td>
+      <td class="num ${dCls}">${dStr}</td>
+      <td>${mkPill(sv)}</td><td>${mkPill(ssv)}</td><td>${agree}</td>
+    </tr>`;
+  }).join('');
+}
+function renderRadar(){
+  const canvas=document.getElementById('radar');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const KEYS=['energy','valence','danceability','acousticness'];
+  const LABS=['Energy','Valence','Danceability','Acousticness'];
+  const N=KEYS.length,cx=W/2,cy=H/2,R=Math.min(W,H)/2-36;
+  const ang=i=>-Math.PI/2+i*(Math.PI*2/N);
+  const pt=(i,r)=>({x:cx+Math.cos(ang(i))*r,y:cy+Math.sin(ang(i))*r});
+  // Grid
+  [0.25,0.5,0.75,1].forEach(s=>{
+    ctx.strokeStyle=s===1?'#ccc':'#ebebeb'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){const p=pt(i%N,R*s);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+    ctx.closePath(); ctx.stroke();
+  });
+  ctx.strokeStyle='#ddd';
+  for(let i=0;i<N;i++){ctx.beginPath();ctx.moveTo(cx,cy);const p=pt(i,R);ctx.lineTo(p.x,p.y);ctx.stroke();}
+  // Target zone
+  const mins=KEYS.map(k=>dna[k]?.min??0), maxs=KEYS.map(k=>dna[k]?.max??1);
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const p=pt(i%N,R*maxs[i%N]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+  ctx.closePath(); ctx.fillStyle='rgba(39,174,96,.15)'; ctx.fill();
+  ctx.strokeStyle='rgba(39,174,96,.65)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const p=pt(i%N,R*mins[i%N]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+  ctx.closePath(); ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fill();
+  // Polygon
+  const poly=(vals,fill,stroke)=>{
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){const v=Math.min(Math.max(vals[i%N]??0,0),1);const p=pt(i%N,R*v);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
+    ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=2.5; ctx.stroke();
+    vals.forEach((v,i)=>{
+      if(v==null)return;
+      const p=pt(i,R*Math.min(Math.max(v,0),1));
+      ctx.beginPath(); ctx.arc(p.x,p.y,4.5,0,Math.PI*2);
+      const d=dna[KEYS[i]];
+      ctx.fillStyle=(d?.min!=null&&v>=d.min&&v<=d.max)?'#27ae60':'#e74c3c';
+      ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+    });
+  };
+  if(track?.sc?.features) poly(KEYS.map(k=>track.sc.features[k]),'rgba(52,152,219,.22)','#3498db');
+  if(track?.ss?.features) poly(KEYS.map(k=>track.ss.features[k]),'rgba(155,89,182,.18)','#9b59b6');
+  // Labels
+  ctx.fillStyle='#34495e'; ctx.font='bold 11px -apple-system,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  LABS.forEach((l,i)=>{const p=pt(i,R+22);ctx.fillText(l,p.x,p.y);});
+  ctx.fillStyle='#bbb'; ctx.font='9px -apple-system,sans-serif';
+  [0.25,0.5,0.75,1].forEach(s=>ctx.fillText(s.toFixed(2),cx+4,cy-R*s+4));
+}
+
+// ── HISTORY ──
+function addHist(t){
+  hist=hist.filter(h=>h.isrc!==t.isrc);
+  const sc=score(t.sc?.features),ss=score(t.ss?.features);
+  hist.unshift({...t,sc_score:sc,ss_score:ss});
+  hist=hist.slice(0,20); renderHist();
+}
+function clearHistory(){hist=[];renderHist();}
+function renderHist(){
+  const el=document.getElementById('hlist');
+  if(!hist.length){el.innerHTML='<div class="empty-state"><div class="icon">🕐</div><p>No lookups yet</p></div>';return;}
+  el.innerHTML=hist.map((h,i)=>{
+    const scv=vc(h.sc_score?.passed,h.sc_score?.total);
+    const ssv=vc(h.ss_score?.passed,h.ss_score?.total);
+    const ic={pass:'✓',fail:'✗',borderline:'⚠',empty:'—'};
+    return`<div class="hitem" onclick="loadHist(${i})">
+      <div class="hinfo"><div class="htitle">${h.title}</div><div class="hisrc">${h.isrc}</div></div>
+      <div class="hpills">
+        <span class="hpill ${scv}">SC ${ic[scv]} ${h.sc_score?.passed??'?'}/${h.sc_score?.total??'?'}</span>
+        <span class="hpill ${ssv}">SS ${ic[ssv]} ${h.ss_score?.passed??'?'}/${h.ss_score?.total??'?'}</span>
+      </div></div>`;
+  }).join('');
+}
+function loadHist(i){
+  const h=hist[i]; track=h;
+  document.getElementById('isrc-input').value=h.isrc;
+  document.getElementById('track-meta').style.display='flex';
+  document.getElementById('track-meta').innerHTML=`
+    <div class="t-title">${h.title}</div><div class="t-artist">${h.artist}</div><div class="t-isrc">${h.isrc}</div>`;
+  document.getElementById('err-msg').textContent='';
+  rerender();
+}
+
+document.getElementById('isrc-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLookup();});
+
+initDNA(); renderRadar();
+</script>
+</body>
+</html>
