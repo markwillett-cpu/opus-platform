@@ -337,30 +337,14 @@ async function doLookup(){
   }finally{ btn.classList.remove('loading'); btn.disabled=false; }
 }
 
-// ── SOUNDCHARTS (via Opus API → song_attributes) ──
+// ── SOUNDCHARTS (via Opus API → /songs/by-isrc/:isrc) ──
 async function fetchSC(isrc){
-  // Try search first
-  let song=null;
-  const sr=await api.request(`/songs/search?q=${encodeURIComponent(isrc)}&limit=5`).catch(()=>null);
-  song=sr?.data?.find(s=>(s.isrc||'').toUpperCase()===isrc);
-  // Fallback: scan enriched list
-  if(!song){
-    const er=await api.request('/songs/enriched?limit=2000').catch(()=>null);
-    song=er?.data?.find(s=>{
-      try{ const r=typeof s.raw==='string'?JSON.parse(s.raw):s.raw; return (r?.isrc?.value||'').toUpperCase()===isrc; }catch{ return false; }
-    });
-  }
-  if(!song)return null;
-  const id=song.id||song.library_song_id;
-  const ar=await api.request(`/songs/attributes?ids=${id}`).catch(()=>null);
-  const a=ar?.[0]||ar?.data?.[0];
-  if(!a)return null;
+  const data = await api.request(`/songs/by-isrc/${encodeURIComponent(isrc)}`);
   return {
-    title:song.title||'', artist:song.artist||'', isrc,
-    features:{energy:a.energy,valence:a.valence,danceability:a.danceability,
-      acousticness:a.acousticness,tempo:a.bpm,loudness:a.loudness,
-      speechiness:a.speechiness,liveness:a.liveness,instrumentalness:a.instrumentalness,
-      key:a.key,mode:a.mode}
+    title:    data.title  || '',
+    artist:   data.artist || '',
+    isrc:     data.isrc   || isrc,
+    features: data.features || {}
   };
 }
 
