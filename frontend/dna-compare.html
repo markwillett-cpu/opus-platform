@@ -326,11 +326,18 @@ async function doLookup(){
   try{
     const [scR,ssR]=await Promise.allSettled([fetchSC(isrc),fetchSS(isrc)]);
     const sc=scR.status==='fulfilled'?scR.value:null;
+    const ssErr=ssR.status==='rejected'?ssR.reason?.message:null;
     const ss=ssR.status==='fulfilled'?ssR.value:null;
     if(!sc&&!ss){
-      document.getElementById('err-msg').textContent='Not found in either source. Ensure ISRC is in your library and has been enriched.';
+      const msg = ssErr==='NO_KEY'
+        ? 'Soundcharts: track not found or not enriched. (Songstats: API key not configured)'
+        : 'Not found in either source. Ensure ISRC is in your library and has been enriched.';
+      document.getElementById('err-msg').textContent=msg;
       track=null; rerender(); return;
     }
+    // Store pending key state for SS panel
+    if(!ss && ssErr==='NO_KEY') window._ssPendingKey=true;
+    else window._ssPendingKey=false;
     const title=sc?.title||ss?.title||'Unknown';
     const artist=sc?.artist||ss?.artist||'Unknown';
     track={title,artist,isrc,sc,ss};
@@ -357,28 +364,37 @@ async function fetchSC(isrc){
   };
 }
 
-// ── SONGSTATS (mock — swap base + headers for live) ──
-const SS_BASE='https://stoplight.io/mocks/songstats/api/12173793';
-// Live: const SS_BASE='https://songstats.p.rapidapi.com'; const SS_KEY='YOUR_KEY';
+// ── SONGSTATS ──
+const SS_KEY = '9048705ceamsh5d3ed06a63d2e98p13b5a3jsn53edda85eb8e';
+
 async function fetchSS(isrc){
-  const r=await fetch(`${SS_BASE}/track/info?isrc=${encodeURIComponent(isrc)}`,{
-    headers:{'Prefer':'code=200'
-      // Live: ,'x-rapidapi-host':'songstats.p.rapidapi.com','x-rapidapi-key':SS_KEY
+  if(!SS_KEY) throw new Error('NO_KEY');
+
+  const r = await fetch(`https://songstats.p.rapidapi.com/tracks/info?isrc=${encodeURIComponent(isrc)}`, {
+    headers: {
+      'x-rapidapi-host': 'songstats.p.rapidapi.com',
+      'x-rapidapi-key': SS_KEY
     }
   });
-  if(!r.ok)throw new Error(`Songstats ${r.status}`);
-  const d=await r.json();
-  if(d.result!=='success')throw new Error(d.message||'Songstats error');
-  const audio={};
-  (d.audio_analysis||[]).forEach(x=>{audio[x.key]=parseFloat(x.value);});
-  const t=d.track_info||{};
-  const KEY_MAP={C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+  if(!r.ok) throw new Error(`Songstats ${r.status}`);
+  const d = await r.json();
+  if(d.result !== 'success') throw new Error(d.message || 'Songstats error');
+
+  const audio = {};
+  (d.audio_analysis || []).forEach(x => { audio[x.key] = parseFloat(x.value); });
+  const t = d.track_info || {};
+  const KEY_MAP = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
   return {
-    title:t.title||'', artist:(t.artists||[]).map(a=>a.name).join(', '), isrc,
-    features:{energy:audio.energy,valence:audio.valence,danceability:audio.danceability,
-      acousticness:audio.acousticness,tempo:audio.tempo,loudness:audio.loudness,
-      speechiness:audio.speechiness,liveness:audio.liveness,instrumentalness:audio.instrumentalness,
-      key:KEY_MAP[String(audio.key||'')]??-1, mode:audio.mode!=null?Math.round(audio.mode):null}
+    title: t.title || '',
+    artist: (t.artists||[]).map(a=>a.name).join(', '),
+    isrc,
+    features: {
+      energy: audio.energy, valence: audio.valence, danceability: audio.danceability,
+      acousticness: audio.acousticness, tempo: audio.tempo, loudness: audio.loudness,
+      speechiness: audio.speechiness, liveness: audio.liveness, instrumentalness: audio.instrumentalness,
+      key: KEY_MAP[String(audio.key||'')] ?? -1,
+      mode: audio.mode != null ? Math.round(audio.mode) : null
+    }
   };
 }
 
@@ -423,9 +439,12 @@ function renderVerdicts(){
     if(!track||!f){
       card.className='vcard empty';
       card.querySelector('.vsource').textContent=label;
-      card.querySelector('.vtitle').textContent='No data';
-      card.querySelector('.vsub').textContent=src==='ss'?'Mock server active':'Track not enriched or not in library';
-      card.querySelector('.vicon').textContent='📡';
+      const noKey=src==='ss'&&window._ssPendingKey;
+      card.querySelector('.vtitle').textContent=noKey?'API Key Required':'No data';
+      card.querySelector('.vsub').textContent=noKey
+        ?'Add your RapidAPI key to SS_KEY in the page source'
+        :src==='ss'?'Will populate once SS_KEY is set':'Track not enriched or not in library';
+      card.querySelector('.vicon').textContent=noKey?'🔑':'📡';
       scoreEl.textContent='—'; return;
     }
     const{passed,total}=score(f); const v=vc(passed,total);
@@ -444,8 +463,11 @@ function renderBars(src){
   const el=document.getElementById(`${src}-bars`),badge=document.getElementById(`${src}-badge`);
   const f=track?.[src]?.features;
   if(!f){
-    el.innerHTML='<div class="empty-state"><div class="icon">📡</div><p>No data from this source</p></div>';
-    badge.textContent=src==='ss'?'Mock':'No data'; return;
+    const noKey=src==='ss'&&window._ssPendingKey;
+    el.innerHTML=noKey
+      ?'<div class="empty-state"><div class="icon">🔑</div><p>Add RapidAPI key to SS_KEY to enable Songstats</p></div>'
+      :'<div class="empty-state"><div class="icon">📡</div><p>No data from this source</p></div>';
+    badge.textContent=noKey?'Key needed':src==='ss'?'No data':'No data'; return;
   }
   const{passed,total}=score(f); badge.textContent=`${passed}/${total} targets`;
   const col=src==='sc'?'sc-col':'ss-col';
