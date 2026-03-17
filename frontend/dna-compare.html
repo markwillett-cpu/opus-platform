@@ -364,17 +364,12 @@ async function fetchSC(isrc){
   };
 }
 
-// ── SONGSTATS ──
-const SS_KEY = '9048705ceamsh5d3ed06a63d2e98p13b5a3jsn53edda85eb8e';
-
+// ── SONGSTATS (proxied via Opus API to avoid CORS restriction) ──
 async function fetchSS(isrc){
-  if(!SS_KEY) throw new Error('NO_KEY');
 
-  const r = await fetch(`https://songstats.p.rapidapi.com/tracks/info?isrc=${encodeURIComponent(isrc)}`, {
-    headers: {
-      'x-rapidapi-host': 'songstats.p.rapidapi.com',
-      'x-rapidapi-key': SS_KEY
-    }
+  // Call via Opus proxy — Songstats blocks direct browser requests (CORS)
+  const r = await fetch(`${API_BASE}/songs/songstats/${encodeURIComponent(isrc)}`, {
+    headers: { 'x-api-key': API_KEY }
   });
   if(!r.ok) throw new Error(`Songstats ${r.status}`);
   const d = await r.json();
