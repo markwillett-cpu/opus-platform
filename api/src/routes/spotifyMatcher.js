@@ -55,7 +55,7 @@ function extractPlaylistId(input) {
 // Pull all tracks from a playlist (handles pagination)
 // Compatible with both pre- and post-February 2026 Spotify API.
 // external_ids (ISRC) removed in new API — omitted from fields request.
-async function fetchAllPlaylistTracks(playlistId, token) {
+async function fetchAllPlaylistTracks(playlistId, token, maxTracks = Infinity) {
   const tracks = [];
   let url = `/playlists/${playlistId}/items?limit=100`;
 
@@ -65,6 +65,7 @@ async function fetchAllPlaylistTracks(playlistId, token) {
     for (const item of items) {
       const track = item.item;
       if (track && track.id) tracks.push(track);
+      if (tracks.length >= maxTracks) return tracks;
     }
     url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
   }
@@ -394,8 +395,12 @@ export default async function routes(app) {
     }
 
     const token = await getAccessToken();
-    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
-    const tracks = await fetchAllPlaylistTracks(playlistId, token);
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner,tracks.total`, token);
+
+    const CAP = 500;
+    const totalTracks = playlistMeta.tracks?.total || 0;
+    const wasCapped = totalTracks > CAP;
+    const tracks = await fetchAllPlaylistTracks(playlistId, token, CAP);
     const { matched, unmatched } = await matchTracks(tracks);
 
     const total = tracks.length;
@@ -674,8 +679,13 @@ export default async function routes(app) {
     }
 
     const token = await getAccessToken();
-    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
-    const tracks = await fetchAllPlaylistTracks(playlistId, token);
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner,tracks.total`, token);
+    const totalTracks = playlistMeta.tracks?.total || 0;
+
+    // Cap at 500 tracks — enough for an accurate style fingerprint, avoids timeout
+    const TRACK_CAP = 500;
+    const tracks = await fetchAllPlaylistTracks(playlistId, token, TRACK_CAP);
+    const wasCapped = totalTracks > TRACK_CAP;
 
     // ── Batched matching (optimised for large playlists) ──────────────────
     // Pre-compute normalised keys for every playlist track
@@ -777,7 +787,7 @@ export default async function routes(app) {
 
     if (!matchedIds.size) {
       return reply.send({
-        playlist: { name: playlistMeta.name, total_tracks: tracks.length },
+        playlist: { name: playlistMeta.name, total_tracks: totalTracks, analyzed_tracks: tracks.length, capped: wasCapped },
         matched_count: 0,
         style_matches: [],
         recommendation: null
@@ -845,7 +855,7 @@ export default async function routes(app) {
     }
 
     return reply.send({
-      playlist:      { name: playlistMeta.name, total_tracks: tracks.length },
+      playlist:      { name: playlistMeta.name, total_tracks: totalTracks, sampled: tracks.length, was_capped: wasCapped },
       matched_count: matchedIds.size,
       style_matches: ranked,
       recommendation
