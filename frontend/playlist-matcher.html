@@ -114,44 +114,35 @@
     .empty-state .ei{font-size:36px;margin-bottom:8px}
     .empty-state p{font-size:13px;font-weight:700}
 
+
+    /* ── Mode Toggle ── */
+    .mode-toggle{display:flex;gap:0;margin-bottom:20px;border:1.5px solid var(--border);border-radius:6px;overflow:hidden;width:fit-content}
+    .mode-btn{padding:8px 20px;border:none;background:#fff;color:var(--primary);font-size:13px;font-weight:800;cursor:pointer;transition:.15s}
+    .mode-btn:hover{background:var(--light)}
+    .mode-btn.active{background:var(--secondary);color:#fff}
+    .mode-btn+.mode-btn{border-left:1.5px solid var(--border)}
+
+    /* ── CSV Upload ── */
+    .csv-drop{border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:.2s;background:#fafbfc}
+    .csv-drop:hover,.csv-drop.drag-over{border-color:var(--accent);background:#f0f7ff}
+    .csv-drop .drop-icon{font-size:32px;margin-bottom:8px}
+    .csv-drop .drop-text{font-size:14px;font-weight:800;color:var(--primary);margin-bottom:4px}
+    .csv-drop .drop-sub{font-size:12px;color:#7f8c8d}
+    .csv-drop input[type=file]{display:none}
+    .csv-map{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .csv-map-group{display:flex;flex-direction:column;gap:5px}
+    .csv-map-label{font-size:12px;font-weight:800;color:#7f8c8d;text-transform:uppercase;letter-spacing:.3px}
+    .csv-map-select{padding:8px 10px;border:1.5px solid var(--border);border-radius:5px;font-size:13px;background:#fff;color:var(--primary)}
+    .csv-map-select:focus{outline:none;border-color:var(--accent)}
+    .csv-name-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:5px;font-size:13px;font-family:inherit;width:100%;margin-top:12px}
+    .csv-name-input:focus{outline:none;border-color:var(--accent)}
+    .csv-preview{margin-top:12px;font-size:12px;color:#7f8c8d;font-weight:700}
+    .csv-preview strong{color:var(--primary)}
+
     #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none}
     #toast.show{opacity:1}
     #toast.success{background:var(--success)}
     #toast.error{background:var(--danger)}
-
-    /* ── Manual Match ── */
-    .unmatched-row{cursor:pointer}
-    .unmatched-row:hover td{background:#f0f7ff}
-    .match-me-btn{background:none;border:1px solid var(--border);color:var(--accent);font-size:11px;font-weight:900;padding:3px 9px;border-radius:4px;cursor:pointer;transition:.15s;white-space:nowrap}
-    .match-me-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .manual-badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:900;background:#e8f4f8;color:#1a6a9a;border:1px solid #b8d9f0}
-    .mm-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:400;opacity:0;pointer-events:none;transition:opacity .25s}
-    .mm-drawer-overlay.open{opacity:1;pointer-events:all}
-    .mm-drawer{position:fixed;top:0;right:0;bottom:0;width:440px;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:401;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
-    .mm-drawer.open{transform:translateX(0)}
-    .mm-drawer-header{background:var(--secondary);color:#fff;padding:16px 18px;flex-shrink:0}
-    .mm-drawer-header h3{font-size:15px;font-weight:900;margin-bottom:2px}
-    .mm-drawer-header .mm-spotify-track{font-size:12px;opacity:.7;font-weight:700}
-    .mm-drawer-close{position:absolute;top:14px;right:16px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;opacity:.8;line-height:1}
-    .mm-drawer-close:hover{opacity:1}
-    .mm-search-wrap{padding:14px 16px;border-bottom:1px solid var(--light);flex-shrink:0}
-    .mm-search{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit}
-    .mm-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.12)}
-    .mm-search-hint{font-size:11px;color:#95a5a6;font-weight:700;margin-top:6px}
-    .mm-results{flex:1;overflow-y:auto;padding:8px}
-    .mm-result{display:flex;align-items:center;gap:10px;padding:10px;border-radius:6px;transition:.15s}
-    .mm-result:hover{background:var(--light)}
-    .mm-result-info{flex:1;min-width:0}
-    .mm-result-title{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mm-result-artist{font-size:12px;color:#7f8c8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mm-pick-btn{flex-shrink:0;padding:6px 12px;border-radius:4px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:900;cursor:pointer;transition:.15s}
-    .mm-pick-btn:hover{background:var(--accent);color:#fff}
-    .mm-empty{text-align:center;padding:40px 20px;color:#95a5a6}
-    .mm-empty .ei{font-size:32px;margin-bottom:8px}
-    .mm-empty p{font-size:13px;font-weight:700}
-    .mm-spinner{text-align:center;padding:40px;color:#95a5a6;font-size:13px;font-weight:700}
-    .mm-spinner::before{content:'';display:block;width:22px;height:22px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
-    .mm-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -160,7 +151,6 @@
   <div class="opus-title">Opus4</div>
   <nav class="opus-nav">
     <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
-    <a class="nav-item" href="./api-docs.html">API Docs</a>
     <a class="nav-item" href="./index.html">Playback Classes</a>
     <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
     <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
@@ -171,22 +161,61 @@
 </div>
 
 <div class="opus-toolbar">
-  <span class="toolbar-label" id="toolbarStatus">Paste a Spotify playlist URL to begin</span>
+  <span class="toolbar-label" id="toolbarStatus">Paste a Spotify URL or upload a CSV to begin</span>
 </div>
 
 <div class="container">
 
   <!-- INPUT -->
   <div class="input-card">
-    <h2><span class="spotify-dot"></span> Spotify Playlist Matcher</h2>
-    <p>Paste a customer's Spotify playlist URL. We'll copy it to our account, then match every track against the library using ISRC, Spotify ID, and fuzzy title/artist matching.</p>
-    <div class="url-row">
-      <input class="url-input" id="playlistUrl" type="text"
-        placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" />
-      <button class="match-btn" id="matchBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-        Match Playlist
-      </button>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeSpotify">🎵 Spotify URL</button>
+      <button class="mode-btn" id="modeCsv">📄 CSV File</button>
+    </div>
+
+    <!-- Spotify mode -->
+    <div id="spotifyMode">
+      <h2><span class="spotify-dot"></span> Spotify Playlist Matcher</h2>
+      <p>Paste a customer's Spotify playlist URL. We'll copy it to our account, then match every track against the library using ISRC, Spotify ID, and fuzzy title/artist matching.</p>
+      <div class="url-row">
+        <input class="url-input" id="playlistUrl" type="text"
+          placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" />
+        <button class="match-btn" id="matchBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Match Playlist
+        </button>
+      </div>
+    </div>
+
+    <!-- CSV mode -->
+    <div id="csvMode" style="display:none">
+      <h2>📄 CSV Playlist Matcher</h2>
+      <p>Upload a CSV with song and artist columns. We'll match every row against the library using the same fuzzy matching logic as the Spotify matcher.</p>
+      <div class="csv-drop" id="csvDrop">
+        <input type="file" id="csvFileInput" accept=".csv,text/csv" />
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Drop a CSV file here, or click to browse</div>
+        <div class="drop-sub">Supports any column names — you'll map them after upload</div>
+      </div>
+      <div id="csvMapArea" style="display:none">
+        <div class="csv-map">
+          <div class="csv-map-group">
+            <label class="csv-map-label">Song Title column</label>
+            <select class="csv-map-select" id="csvTitleCol"></select>
+          </div>
+          <div class="csv-map-group">
+            <label class="csv-map-label">Artist column</label>
+            <select class="csv-map-select" id="csvArtistCol"></select>
+          </div>
+        </div>
+        <input class="csv-name-input" id="csvListName" type="text" placeholder="List name (optional)" />
+        <div class="csv-preview" id="csvPreview"></div>
+        <div class="url-row" style="margin-top:14px">
+          <button class="match-btn" id="csvMatchBtn" style="background:var(--accent)">
+            Match CSV
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -272,14 +301,13 @@
               <th>Title</th>
               <th>Artist</th>
               <th>ISRC</th>
-              <th style="width:80px"></th>
             </tr>
           </thead>
           <tbody id="unmatchedBody"></tbody>
         </table>
       </div>
       <div class="action-bar">
-        <span class="sel-count" style="margin-right:auto;color:#7f8c8d;font-size:12px;font-weight:700">Click <strong>Match</strong> on any row to find it manually in the library, or export the full list for the curation team to source.</span>
+        <span class="sel-count" style="margin-right:auto;color:#7f8c8d;font-size:12px;font-weight:700">These tracks are not in the library</span>
         <button class="btn" id="exportUnmatchedBtn" disabled>Export CSV</button>
       </div>
     </div>
@@ -325,24 +353,6 @@
       <button class="btn success" id="confirmCreateModal">Create Style</button>
     </div>
   </div>
-</div>
-
-<!-- MANUAL MATCH DRAWER -->
-<div class="mm-drawer-overlay" id="mmOverlay"></div>
-<div class="mm-drawer" id="mmDrawer">
-  <div class="mm-drawer-header">
-    <h3>Find in Library</h3>
-    <div class="mm-spotify-track" id="mmSpotifyTrack">—</div>
-    <button class="mm-drawer-close" id="mmClose">&times;</button>
-  </div>
-  <div class="mm-search-wrap">
-    <input class="mm-search" id="mmSearch" type="text" placeholder="Search by title or artist…" autocomplete="off" />
-    <div class="mm-search-hint">Searching the full library — try artist name or partial title</div>
-  </div>
-  <div class="mm-results" id="mmResults">
-    <div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>
-  </div>
-  <div class="mm-footer" id="mmFooter">Manually matched songs are added to the style as Uncategorized</div>
 </div>
 
 <div id="toast"></div>
@@ -438,7 +448,6 @@ function methodPill(method) {
     spotify_id:       ['Spotify ID', 'm-spotify'],
     fuzzy_norm:       ['Fuzzy', 'm-fuzzy'],
     fuzzy_aggressive: ['Aggressive', 'm-aggressive'],
-    manual:           ['Manual', 'm-isrc'],
   };
   const [label, cls] = map[method] || ['Unknown', ''];
   return `<span class="method-pill ${cls}">${label}</span>`;
@@ -491,31 +500,17 @@ function renderMatchedTable() {
 function renderUnmatchedTable() {
   const tbody = document.getElementById('unmatchedBody');
   if (!filteredUnmatched.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:#95a5a6">No unmatched tracks 🎉</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:30px;color:#95a5a6">No unmatched tracks 🎉</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filteredUnmatched.map((u, i) => {
-    const manuallyMatched = u._manuallyMatched;
-    return `<tr class="unmatched-row" data-idx="${i}">
+  tbody.innerHTML = filteredUnmatched.map(u => `
+    <tr>
       <td><div class="overflow" style="font-weight:800;font-size:12px">${esc(u.spotify.title)}</div></td>
       <td><div style="font-size:12px;color:#7f8c8d">${esc(u.spotify.artist)}</div></td>
       <td><div style="font-size:11px;color:#bdc3c7;font-family:monospace">${u.spotify.isrc || '—'}</div></td>
-      <td style="text-align:right">
-        ${manuallyMatched
-          ? `<span class="manual-badge">✓ Matched</span>`
-          : `<button class="match-me-btn" data-idx="${i}">Match</button>`}
-      </td>
-    </tr>`;
-  }).join('');
-
-  tbody.querySelectorAll('.match-me-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = parseInt(btn.dataset.idx);
-      openManualMatch(filteredUnmatched[idx], idx);
-    });
-  });
+    </tr>
+  `).join('');
 }
 
 function updateMatchedSelCount() {
@@ -700,133 +695,6 @@ document.addEventListener('keydown', e => {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
   }
 });
-
-// ════════════════════════════════════════════════════════
-// MANUAL MATCH DRAWER
-// ════════════════════════════════════════════════════════
-(function() {
-  const overlay   = document.getElementById('mmOverlay');
-  const drawer    = document.getElementById('mmDrawer');
-  const closeBtn  = document.getElementById('mmClose');
-  const searchEl  = document.getElementById('mmSearch');
-  const resultsEl = document.getElementById('mmResults');
-  const spotifyTrackEl = document.getElementById('mmSpotifyTrack');
-
-  let currentUnmatchedItem = null;
-  let currentUnmatchedIdx  = null;
-  let searchTimer = null;
-
-  function openManualMatch(item, idx) {
-    currentUnmatchedItem = item;
-    currentUnmatchedIdx  = idx;
-
-    spotifyTrackEl.textContent = `${item.spotify.title} — ${item.spotify.artist}`;
-    searchEl.value = item.spotify.title;
-    resultsEl.innerHTML = '<div class="mm-spinner"></div>';
-
-    overlay.classList.add('open');
-    drawer.classList.add('open');
-
-    // Auto-run search with the title
-    runMMSearch(item.spotify.title);
-    setTimeout(() => searchEl.focus(), 80);
-  }
-
-  function closeDrawer() {
-    overlay.classList.remove('open');
-    drawer.classList.remove('open');
-    currentUnmatchedItem = null;
-    currentUnmatchedIdx  = null;
-    searchEl.value = '';
-    resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>';
-  }
-
-  closeBtn.addEventListener('click', closeDrawer);
-  overlay.addEventListener('click', closeDrawer);
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
-  });
-
-  searchEl.addEventListener('input', () => {
-    const q = searchEl.value.trim();
-    clearTimeout(searchTimer);
-    if (!q) {
-      resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>Type to search the library</p></div>';
-      return;
-    }
-    resultsEl.innerHTML = '<div class="mm-spinner"></div>';
-    searchTimer = setTimeout(() => runMMSearch(q), 280);
-  });
-
-  async function runMMSearch(q) {
-    try {
-      const results = await window.api.searchSongs(q, 20);
-      renderMMResults(results);
-    } catch(err) {
-      resultsEl.innerHTML = `<div class="mm-empty"><p style="color:#e74c3c">Search error: ${err.message}</p></div>`;
-    }
-  }
-
-  function renderMMResults(songs) {
-    if (!songs || !songs.length) {
-      resultsEl.innerHTML = '<div class="mm-empty"><div class="ei">🔍</div><p>No results — try different words</p></div>';
-      return;
-    }
-    resultsEl.innerHTML = songs.map(s => `
-      <div class="mm-result">
-        <div class="mm-result-info">
-          <div class="mm-result-title">${esc(s.title)}</div>
-          <div class="mm-result-artist">${esc(s.artist)}${s.album ? ' · ' + esc(s.album) : ''}${s.peak_year ? ' · ' + s.peak_year : ''}</div>
-        </div>
-        <button class="mm-pick-btn" data-song-id="${s.id}" data-title="${esc(s.title)}" data-artist="${esc(s.artist)}">Pick</button>
-      </div>
-    `).join('');
-
-    resultsEl.querySelectorAll('.mm-pick-btn').forEach(btn => {
-      btn.addEventListener('click', () => confirmManualMatch(btn.dataset.songId, btn.dataset.title, btn.dataset.artist));
-    });
-  }
-
-  async function confirmManualMatch(libraryId, libraryTitle, libraryArtist) {
-    if (!currentUnmatchedItem) return;
-
-    // Mark in filteredUnmatched so the row shows ✓ Matched
-    const realIdx = matchResults.unmatched.indexOf(currentUnmatchedItem);
-    if (realIdx !== -1) matchResults.unmatched[realIdx]._manuallyMatched = true;
-    filteredUnmatched[currentUnmatchedIdx]._manuallyMatched = true;
-
-    // Add to the matched list in state so it can be added to a style
-    const manualEntry = {
-      spotify: currentUnmatchedItem.spotify,
-      library: { id: libraryId, title: libraryTitle, artist: libraryArtist },
-      match_method: 'manual',
-      confidence: 1.0,
-      _manual: true
-    };
-    matchResults.matched.push(manualEntry);
-    filteredMatched.push(manualEntry);
-
-    // Update counts
-    const manualCount = matchResults.matched.filter(m => m._manual).length;
-    const baseMatched = matchResults.summary.matched;
-    document.getElementById('matchedBadge').textContent = matchResults.matched.length;
-    document.getElementById('unmatchedBadge').textContent =
-      matchResults.unmatched.filter(u => !u._manuallyMatched).length;
-    document.getElementById('sumMatched').textContent = matchResults.matched.length;
-    document.getElementById('sumUnmatched').textContent =
-      matchResults.unmatched.filter(u => !u._manuallyMatched).length;
-
-    // Re-render both tables
-    renderMatchedTable();
-    renderUnmatchedTable();
-
-    toast(`✓ Matched "${currentUnmatchedItem.spotify.title}" → "${libraryTitle}"`, 'success');
-    closeDrawer();
-  }
-
-  // Expose so renderUnmatchedTable can call it
-  window.openManualMatch = openManualMatch;
-})();
 
 function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
