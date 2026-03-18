@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opus – Style Finder</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
+      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
+      --light:#ecf0f1;--border:#bdc3c7;--spotify:#1db954;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+
+    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    .opus-title{font-weight:800;font-size:16px}
+    .opus-nav{display:flex;gap:14px}
+    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
+    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
+    .nav-item.active{color:#fff;background:var(--accent)}
+
+    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+    .toolbar-label{color:#9fb3c8;font-size:12px;font-weight:700}
+
+    .container{max-width:900px;margin:0 auto;padding:32px 24px}
+
+    /* Input card */
+    .input-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:28px 32px;margin-bottom:24px}
+    .input-card h2{font-size:17px;font-weight:900;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+    .spotify-dot{width:10px;height:10px;border-radius:50%;background:var(--spotify);flex-shrink:0}
+    .input-card p{font-size:13px;color:#7f8c8d;margin-bottom:18px}
+    .url-row{display:flex;gap:10px}
+    .url-input{flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;transition:.2s}
+    .url-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.1)}
+    .url-input::placeholder{color:#bdc3c7}
+    .find-btn{padding:11px 22px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:900;cursor:pointer;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:8px}
+    .find-btn:hover{background:#2980b9}
+    .find-btn:disabled{opacity:.5;cursor:not-allowed}
+    .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Results */
+    .results{display:none}
+
+    /* Playlist info bar */
+    .playlist-bar{background:#2f3d4a;color:#fff;border-radius:8px;padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .playlist-name{font-size:17px;font-weight:900}
+    .playlist-meta{font-size:12px;opacity:.7;margin-top:2px}
+    .playlist-stats{display:flex;gap:20px;flex-shrink:0}
+    .pstat{text-align:center}
+    .pstat-val{font-size:20px;font-weight:1000}
+    .pstat-val.green{color:#2ecc71}
+    .pstat-label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-top:2px}
+
+    /* Recommendation card */
+    .rec-card{border-radius:10px;padding:24px 28px;margin-bottom:20px;border:2px solid transparent}
+    .rec-card.single{background:linear-gradient(135deg,#e8f8f0 0%,#f0faf5 100%);border-color:#a9dfbf}
+    .rec-card.blend{background:linear-gradient(135deg,#eaf2fb 0%,#f0f6fc 100%);border-color:#b8d9f0}
+    .rec-card.no-match{background:var(--light);border-color:var(--border)}
+    .rec-label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+    .rec-label.single{color:#1e8449}
+    .rec-label.blend{color:#1a6a9a}
+    .rec-label.no-match{color:#7f8c8d}
+    .rec-headline{font-size:22px;font-weight:1000;color:var(--primary);margin-bottom:6px;line-height:1.2}
+    .rec-sub{font-size:13px;color:#7f8c8d;margin-bottom:16px}
+    .rec-styles{display:flex;gap:10px;flex-wrap:wrap}
+    .rec-style-pill{display:flex;align-items:center;gap:10px;background:#fff;border-radius:8px;padding:10px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid var(--border)}
+    .rec-style-name{font-weight:900;font-size:14px}
+    .rec-style-score{font-size:13px;font-weight:700;color:#7f8c8d}
+    .rec-style-bar{width:80px;height:5px;background:#e0e0e0;border-radius:3px;overflow:hidden;margin-top:4px}
+    .rec-style-bar-fill{height:100%;border-radius:3px;background:var(--accent)}
+    .rec-style-rank{font-size:18px;font-weight:1000;color:var(--accent);min-width:32px}
+
+    /* Full ranked list */
+    .ranked-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+    .ranked-header{background:var(--secondary);color:#fff;padding:13px 16px;font-weight:900;font-size:14px}
+    .ranked-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--light)}
+    .ranked-row:last-child{border-bottom:none}
+    .ranked-row:hover{background:#f8f9fa}
+    .rank-num{font-size:13px;font-weight:900;color:#bdc3c7;width:24px;text-align:center;flex-shrink:0}
+    .rank-name{flex:1;font-weight:800;font-size:14px}
+    .rank-bar-wrap{width:140px;flex-shrink:0}
+    .rank-bar-track{height:6px;background:var(--light);border-radius:3px;overflow:hidden;margin-bottom:4px}
+    .rank-bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .5s ease}
+    .rank-meta{font-size:11px;color:#7f8c8d;font-weight:700;text-align:right}
+    .rank-score{font-size:13px;font-weight:900;color:var(--primary);width:44px;text-align:right;flex-shrink:0}
+
+    .empty-state{text-align:center;padding:60px 20px;color:#95a5a6}
+    .empty-state .ei{font-size:48px;margin-bottom:12px}
+    .empty-state p{font-size:14px;font-weight:700}
+
+    #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none}
+    #toast.show{opacity:1}
+    #toast.error{background:var(--danger)}
+    #toast.success{background:var(--success)}
+  </style>
+</head>
+<body>
+
+<div class="opus-header">
+  <div class="opus-title">Opus4</div>
+  <nav class="opus-nav">
+    <a class="nav-item" href="http://opus.customchannels.net/">Tracks</a>
+    <a class="nav-item" href="./api-docs.html">API Docs</a>
+    <a class="nav-item" href="./index.html">Playback Classes</a>
+    <a class="nav-item" href="./curator-dashboard.html">Curator Dashboard</a>
+    <a class="nav-item" href="./mood-tagging.html">Mood Tagging</a>
+    <a class="nav-item" href="./playlist-matcher.html">Spotchecker</a>
+    <a class="nav-item active" href="#">Style Finder</a>
+    <a class="nav-item" href="./spotify-sync.html">Spotify Sync</a>
+    <a class="nav-item" href="./style-builder.html">Style Builder</a>
+  </nav>
+</div>
+
+<div class="opus-toolbar">
+  <span class="toolbar-label" id="toolbarStatus">Paste a Spotify playlist URL to find the closest matching style</span>
+</div>
+
+<div class="container">
+
+  <div class="input-card">
+    <h2><span class="spotify-dot"></span> Style Finder</h2>
+    <p>Paste a customer's Spotify playlist URL. We'll match every track against the library and tell you which of your existing styles it most closely resembles — or suggest a blend if it spans multiple styles.</p>
+    <div class="url-row">
+      <input class="url-input" id="playlistUrl" type="text" placeholder="https://open.spotify.com/playlist/…" />
+      <button class="find-btn" id="findBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Find Style
+      </button>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+
+    <!-- Playlist bar -->
+    <div class="playlist-bar">
+      <div>
+        <div class="playlist-name" id="playlistName">—</div>
+        <div class="playlist-meta" id="playlistMeta">—</div>
+      </div>
+      <div class="playlist-stats">
+        <div class="pstat">
+          <div class="pstat-val" id="statTotal">—</div>
+          <div class="pstat-label">Tracks</div>
+        </div>
+        <div class="pstat">
+          <div class="pstat-val green" id="statMatched">—</div>
+          <div class="pstat-label">Matched</div>
+        </div>
+        <div class="pstat">
+          <div class="pstat-val" id="statStyles">—</div>
+          <div class="pstat-label">Styles found</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="rec-card" id="recCard">
+      <div class="rec-label" id="recLabel">—</div>
+      <div class="rec-headline" id="recHeadline">—</div>
+      <div class="rec-sub" id="recSub">—</div>
+      <div class="rec-styles" id="recStyles"></div>
+    </div>
+
+    <!-- Full ranked list -->
+    <div class="ranked-card">
+      <div class="ranked-header">All Matching Styles</div>
+      <div id="rankedList"></div>
+    </div>
+
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="ei">🎯</div>
+    <p>Results will appear here after you paste a playlist URL</p>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api-client.js"></script>
+<script>
+const CFG      = window.OPUS_CONFIG || {};
+const API_BASE = CFG.API_BASE_URL || '';
+const API_KEY  = CFG.API_KEY || '';
+
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+
+document.getElementById('findBtn').addEventListener('click', runFind);
+document.getElementById('playlistUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runFind();
+});
+
+async function runFind() {
+  const url = document.getElementById('playlistUrl').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('findBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing…';
+  document.getElementById('toolbarStatus').textContent = 'Matching tracks and analyzing style overlap…';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+
+  try {
+    const res = await fetch(`${API_BASE}/spotify/find-style`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body: JSON.stringify({ playlist_url: url })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    renderResults(data);
+    document.getElementById('toolbarStatus').textContent =
+      `"${data.playlist.name}" — ${data.matched_count} of ${data.playlist.total_tracks} tracks matched`;
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+    document.getElementById('toolbarStatus').textContent = 'Analysis failed — check the URL and try again';
+    document.getElementById('emptyState').style.display = '';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg> Find Style`;
+  }
+}
+
+function renderResults(data) {
+  const { playlist, matched_count, style_matches, recommendation } = data;
+
+  // Playlist bar
+  document.getElementById('playlistName').textContent  = playlist.name;
+  document.getElementById('playlistMeta').textContent  = `${playlist.total_tracks} tracks in playlist`;
+  document.getElementById('statTotal').textContent     = playlist.total_tracks;
+  document.getElementById('statMatched').textContent   = matched_count;
+  document.getElementById('statStyles').textContent    = style_matches.length;
+
+  // Recommendation card
+  const recCard     = document.getElementById('recCard');
+  const recLabel    = document.getElementById('recLabel');
+  const recHeadline = document.getElementById('recHeadline');
+  const recSub      = document.getElementById('recSub');
+  const recStyles   = document.getElementById('recStyles');
+
+  if (!recommendation) {
+    recCard.className = 'rec-card no-match';
+    recLabel.className = 'rec-label no-match';
+    recLabel.textContent = 'No match found';
+    recHeadline.textContent = 'No library overlap detected';
+    recSub.textContent = 'None of the tracks in this playlist matched songs in your library.';
+    recStyles.innerHTML = '';
+  } else if (recommendation.type === 'single') {
+    const s = recommendation.styles[0];
+    recCard.className = 'rec-card single';
+    recLabel.className = 'rec-label single';
+    recLabel.textContent = '✓ Best match';
+    recHeadline.textContent = s.style_name;
+    recSub.textContent = `${s.overlap} of ${matched_count} matched songs (${s.score}%) are in this style`;
+    recStyles.innerHTML = styleRecPill(s, true);
+  } else {
+    const names = recommendation.styles.map(s => s.style_name).join(' + ');
+    const totalPct = recommendation.styles.reduce((sum, s) => sum + s.score, 0);
+    recCard.className = 'rec-card blend';
+    recLabel.className = 'rec-label blend';
+    recLabel.textContent = '⚡ Style blend';
+    recHeadline.textContent = names;
+    recSub.textContent = `This playlist spans multiple styles. Together these account for ${totalPct}% of matched songs.`;
+    recStyles.innerHTML = recommendation.styles.map(s => styleRecPill(s, false)).join('');
+  }
+
+  // Full ranked list
+  const maxOverlap = style_matches[0]?.overlap || 1;
+  document.getElementById('rankedList').innerHTML = style_matches.length
+    ? style_matches.map((s, i) => `
+        <div class="ranked-row">
+          <span class="rank-num">${i + 1}</span>
+          <span class="rank-name">${esc(s.style_name)}</span>
+          <div class="rank-bar-wrap">
+            <div class="rank-bar-track">
+              <div class="rank-bar-fill" style="width:${Math.round((s.overlap / maxOverlap) * 100)}%"></div>
+            </div>
+            <div class="rank-meta">${s.overlap} songs</div>
+          </div>
+          <span class="rank-score">${s.score}%</span>
+        </div>
+      `).join('')
+    : '<div style="padding:24px;text-align:center;color:#95a5a6;font-size:13px;font-weight:700">No style matches found</div>';
+
+  document.getElementById('results').style.display = '';
+  document.getElementById('emptyState').style.display = 'none';
+}
+
+function styleRecPill(s, large) {
+  return `
+    <div class="rec-style-pill">
+      <div>
+        <div class="rec-style-name">${esc(s.style_name)}</div>
+        <div class="rec-style-score">${s.overlap} songs · ${s.score}%</div>
+        <div class="rec-style-bar"><div class="rec-style-bar-fill" style="width:${s.score}%"></div></div>
+      </div>
+    </div>`;
+}
+
+function esc(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
