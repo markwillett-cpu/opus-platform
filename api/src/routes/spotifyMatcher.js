@@ -657,9 +657,9 @@ export default async function routes(app) {
 
 /**
    * POST /v1/spotify/find-style
-   * Matches a Spotify playlist against the library, then tallies which styles
-   * the matched songs belong to. Returns a ranked list of style matches with
-   * overlap counts and scores, plus a blend recommendation if no single style dominates.
+   * Matches a Spotify playlist against the library in bulk, then tallies which
+   * styles the matched songs belong to. Uses batched queries instead of per-song
+   * lookups so it handles 1000+ track playlists efficiently.
    * Body: { playlist_url }
    */
   app.post('/spotify/find-style', async (req, reply) => {
@@ -676,9 +676,106 @@ export default async function routes(app) {
     const token = await getAccessToken();
     const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
     const tracks = await fetchAllPlaylistTracks(playlistId, token);
-    const { matched } = await matchTracks(tracks);
 
-    if (!matched.length) {
+    // ── Batched matching (optimised for large playlists) ──────────────────
+    // Pre-compute normalised keys for every playlist track
+    const featPattern = /^(feat|ft|featuring|remix|remaster|version|live|acoustic|radio edit)/i;
+
+    const prepared = tracks.map(t => {
+      const artistName = t.artists?.[0]?.name || '';
+      const normTitle  = normalize(t.name);
+      const normArtist = normalize(artistName);
+      const aggTitle   = normTitle.replace(/\(.*?\)/g, '').replace(/feat.*/i, '').replace(/^the\s+/i, '').trim();
+      const aggArtist  = normArtist.replace(/^the\s+/i, '').trim();
+      return { track: t, artistName, normTitle, normArtist, aggTitle, aggArtist };
+    });
+
+    const matchedIds = new Set();
+    const CHUNK = 500; // Supabase IN clause limit
+
+    // Tier 1: Spotify ID bulk lookup
+    const spotifyIds = tracks.map(t => t.id).filter(Boolean);
+    for (let i = 0; i < spotifyIds.length; i += CHUNK) {
+      const chunk = spotifyIds.slice(i, i + CHUNK);
+      const { data } = await supabase
+        .from('library_songs')
+        .select('id, spotify_track_id')
+        .in('spotify_track_id', chunk);
+      (data || []).forEach(r => matchedIds.add(r.id));
+    }
+
+    // Tier 2: Bulk title_norm + artist_norm
+    // Build unique norm pairs for unmatched tracks
+    const unmatchedAfterT1 = prepared.filter(p => !matchedIds.has(p.track.id));
+    const normPairs = [...new Set(unmatchedAfterT1.map(p => `${p.normTitle}|||${p.normArtist}`))];
+
+    for (let i = 0; i < normPairs.length; i += CHUNK) {
+      const chunk = normPairs.slice(i, i + CHUNK);
+      // Fetch all library songs whose title_norm appears in any of these pairs
+      const titleNorms  = [...new Set(chunk.map(p => p.split('|||')[0]))];
+      const artistNorms = [...new Set(chunk.map(p => p.split('|||')[1]))];
+      const { data } = await supabase
+        .from('library_songs')
+        .select('id, title_norm, artist_norm')
+        .in('title_norm',  titleNorms)
+        .in('artist_norm', artistNorms);
+
+      // Match in memory — only count exact pairs
+      const libMap = new Map();
+      (data || []).forEach(r => libMap.set(`${r.title_norm}|||${r.artist_norm}`, r.id));
+      chunk.forEach(pair => {
+        const id = libMap.get(pair);
+        if (id) matchedIds.add(id);
+      });
+    }
+
+    // Tier 3: Aggressive normalization bulk
+    const unmatchedAfterT2 = prepared.filter(p => !matchedIds.has(p.track.id));
+    const aggPairs = [...new Set(unmatchedAfterT2.flatMap(p =>
+      [p.aggTitle, `the ${p.aggTitle}`].map(t => `${t}|||${p.aggArtist}`)
+    ))];
+
+    for (let i = 0; i < aggPairs.length; i += CHUNK) {
+      const chunk = aggPairs.slice(i, i + CHUNK);
+      const aggTitles  = [...new Set(chunk.map(p => p.split('|||')[0]))];
+      const aggArtists = [...new Set(chunk.map(p => p.split('|||')[1]))];
+      const { data } = await supabase
+        .from('library_songs')
+        .select('id, title_aggressive, artist_aggressive')
+        .in('title_aggressive', aggTitles)
+        .in('artist_aggressive', aggArtists);
+
+      const libMap = new Map();
+      (data || []).forEach(r => libMap.set(`${r.title_aggressive}|||${r.artist_aggressive}`, r.id));
+      chunk.forEach(pair => {
+        const id = libMap.get(pair);
+        if (id) matchedIds.add(id);
+      });
+    }
+
+    // Tier 4: Feat/remix prefix — only for remaining unmatched (usually a small set)
+    const unmatchedAfterT3 = prepared.filter(p => !matchedIds.has(p.track.id));
+    for (const p of unmatchedAfterT3) {
+      if (!p.aggTitle) continue;
+      const { data } = await supabase
+        .from('library_songs')
+        .select('id, title_aggressive')
+        .ilike('title_aggressive', `${p.aggTitle}%`)
+        .ilike('artist_aggressive', `${p.aggArtist}%`)
+        .limit(5);
+
+      const best = (data || []).find(m => {
+        const libAgg  = (m.title_aggressive || '').toLowerCase();
+        const spotAgg = p.aggTitle.toLowerCase();
+        if (libAgg === spotAgg) return true;
+        if (libAgg.startsWith(spotAgg))  return featPattern.test(libAgg.slice(spotAgg.length).trim());
+        if (spotAgg.startsWith(libAgg))  return featPattern.test(spotAgg.slice(libAgg.length).trim());
+        return false;
+      });
+      if (best) matchedIds.add(best.id);
+    }
+
+    if (!matchedIds.size) {
       return reply.send({
         playlist: { name: playlistMeta.name, total_tracks: tracks.length },
         matched_count: 0,
@@ -687,14 +784,18 @@ export default async function routes(app) {
       });
     }
 
-    // Fetch all style memberships for matched library songs in one query
-    const libraryIds = matched.map(m => m.library.id);
-    const { data: memberships, error } = await supabase
-      .from('sim_style_songs')
-      .select('library_song_id, style_id, sim_styles!inner(id, name)')
-      .in('library_song_id', libraryIds);
-
-    assertNoError(error, 'Failed to fetch style memberships');
+    // Fetch all style memberships for matched library songs in bulk
+    const libraryIdArray = [...matchedIds];
+    let memberships = [];
+    for (let i = 0; i < libraryIdArray.length; i += CHUNK) {
+      const chunk = libraryIdArray.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from('sim_style_songs')
+        .select('library_song_id, style_id, sim_styles!inner(id, name)')
+        .in('library_song_id', chunk);
+      assertNoError(error, 'Failed to fetch style memberships');
+      memberships = memberships.concat(data || []);
+    }
 
     // Excluded styles
     const EXCLUDE = ['AA Remix'];
@@ -710,7 +811,7 @@ export default async function routes(app) {
       styleNames[id]  = name;
     });
 
-    const total = matched.length;
+    const total = matchedIds.size;
     const ranked = Object.entries(styleCounts)
       .map(([id, count]) => ({
         style_id:   id,
@@ -745,7 +846,7 @@ export default async function routes(app) {
 
     return reply.send({
       playlist:      { name: playlistMeta.name, total_tracks: tracks.length },
-      matched_count: matched.length,
+      matched_count: matchedIds.size,
       style_matches: ranked,
       recommendation
     });
