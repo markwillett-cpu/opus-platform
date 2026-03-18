@@ -361,6 +361,146 @@
 <script src="api-client.js"></script>
 <script>
 // ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const _CFG     = window.OPUS_CONFIG || {};
+const _API_BASE = _CFG.API_BASE_URL || '';
+const _API_KEY  = _CFG.API_KEY || '';
+
+// ════════════════════════════════════════════════════════
+// MODE TOGGLE
+// ════════════════════════════════════════════════════════
+document.getElementById('modeSpotify').addEventListener('click', () => {
+  document.getElementById('modeSpotify').classList.add('active');
+  document.getElementById('modeCsv').classList.remove('active');
+  document.getElementById('spotifyMode').style.display = '';
+  document.getElementById('csvMode').style.display = 'none';
+  document.getElementById('toolbarStatus').textContent = 'Paste a Spotify URL or upload a CSV to begin';
+});
+
+document.getElementById('modeCsv').addEventListener('click', () => {
+  document.getElementById('modeCsv').classList.add('active');
+  document.getElementById('modeSpotify').classList.remove('active');
+  document.getElementById('csvMode').style.display = '';
+  document.getElementById('spotifyMode').style.display = 'none';
+  document.getElementById('toolbarStatus').textContent = 'Upload a CSV file to begin';
+});
+
+// ════════════════════════════════════════════════════════
+// CSV MATCHING
+// ════════════════════════════════════════════════════════
+let csvParsed = null;
+
+const csvDrop      = document.getElementById('csvDrop');
+const csvFileInput = document.getElementById('csvFileInput');
+const csvMapArea   = document.getElementById('csvMapArea');
+const csvTitleCol  = document.getElementById('csvTitleCol');
+const csvArtistCol = document.getElementById('csvArtistCol');
+const csvPreview   = document.getElementById('csvPreview');
+
+csvDrop.addEventListener('click', () => csvFileInput.click());
+csvFileInput.addEventListener('change', e => { if (e.target.files[0]) handleCsvFile(e.target.files[0]); });
+csvDrop.addEventListener('dragover',  e => { e.preventDefault(); csvDrop.classList.add('drag-over'); });
+csvDrop.addEventListener('dragleave', ()  => csvDrop.classList.remove('drag-over'));
+csvDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  csvDrop.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleCsvFile(e.dataTransfer.files[0]);
+});
+
+function handleCsvFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    csvParsed = parseCsv(e.target.result);
+    if (!csvParsed || !csvParsed.rows.length) {
+      toast('Could not parse CSV — make sure it has headers and at least one row', 'error');
+      return;
+    }
+    populateColumnSelectors(csvParsed.headers);
+    csvMapArea.style.display = '';
+    updateCsvPreview();
+  };
+  reader.readAsText(file);
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  function splitLine(line) {
+    const result = []; let inQuote = false, cur = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuote = !inQuote; continue; }
+      if (ch === ',' && !inQuote) { result.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur.trim());
+    return result;
+  }
+  const headers = splitLine(lines[0]);
+  const rows    = lines.slice(1).map(splitLine).filter(r => r.some(c => c));
+  return { headers, rows };
+}
+
+function populateColumnSelectors(headers) {
+  const opts = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+  csvTitleCol.innerHTML  = opts;
+  csvArtistCol.innerHTML = opts;
+  const ti = headers.findIndex(h => /song|title|track|name/i.test(h));
+  const ai = headers.findIndex(h => /artist|band|performer/i.test(h));
+  if (ti >= 0) csvTitleCol.value  = ti;
+  if (ai >= 0) csvArtistCol.value = ai;
+}
+
+function updateCsvPreview() {
+  if (!csvParsed) return;
+  const ti = parseInt(csvTitleCol.value);
+  const ai = parseInt(csvArtistCol.value);
+  const sample = csvParsed.rows.slice(0, 3)
+    .map(r => `"${r[ti] || '—'}" by ${r[ai] || '—'}`).join(' · ');
+  csvPreview.innerHTML = `<strong>${csvParsed.rows.length} rows</strong> · Preview: ${sample}`;
+}
+
+csvTitleCol.addEventListener('change',  updateCsvPreview);
+csvArtistCol.addEventListener('change', updateCsvPreview);
+
+document.getElementById('csvMatchBtn').addEventListener('click', async () => {
+  if (!csvParsed) return;
+  const ti   = parseInt(csvTitleCol.value);
+  const ai   = parseInt(csvArtistCol.value);
+  const name = document.getElementById('csvListName').value.trim() || 'CSV Import';
+  const tracks = csvParsed.rows
+    .map(r => ({ title: (r[ti] || '').trim(), artist: (r[ai] || '').trim() }))
+    .filter(t => t.title);
+  if (!tracks.length) { toast('No valid rows found', 'error'); return; }
+
+  const btn = document.getElementById('csvMatchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Matching…';
+  document.getElementById('toolbarStatus').textContent = `Matching ${tracks.length} tracks from CSV…`;
+
+  try {
+    const res = await fetch(`${_API_BASE}/songs/match-csv`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': _API_KEY },
+      body: JSON.stringify({ tracks, name })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    matchResults = result;
+    renderResults(result);
+    document.getElementById('toolbarStatus').textContent =
+      `"${name}" — ${result.summary.match_rate}% match rate (${result.summary.matched}/${result.summary.total} tracks)`;
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+    document.getElementById('toolbarStatus').textContent = 'Match failed';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Match CSV';
+  }
+});
+
+// ════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════
 let matchResults   = null;
