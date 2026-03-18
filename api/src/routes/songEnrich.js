@@ -262,45 +262,14 @@ export default async function routes(app) {
   });
 
   /**
-   * GET /v1/songs/songstats/:isrc
-   * Proxy to Songstats RapidAPI — works around CORS restriction.
-   * Songstats only allows browser calls from docs.songstats.com,
-   * so all requests must be proxied server-side through this route.
-   */
-  app.get('/songs/songstats/:isrc', async (req, reply) => {
-    const isrc = (req.params.isrc || '').toUpperCase().trim();
-    if (!isrc) return reply.code(400).send({ error: { message: 'ISRC required', status: 400 } });
-
-    const SS_KEY = config.SONGSTATS_RAPIDAPI_KEY;
-    if (!SS_KEY) return reply.code(503).send({ error: { message: 'Songstats API key not configured', status: 503 } });
-
-    const res = await fetch(`https://songstats.p.rapidapi.com/tracks/info?isrc=${encodeURIComponent(isrc)}`, {
-      headers: {
-        'x-rapidapi-host': 'songstats.p.rapidapi.com',
-        'x-rapidapi-key': SS_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await res.json();
-    if (!res.ok) return reply.code(res.status).send({ error: { message: data?.message || 'Songstats error', status: res.status } });
-
-    return reply.send(data);
-  });
-
-  /**
    * GET /v1/songs/by-isrc/:isrc
    * Look up a library song by ISRC and return its audio attributes.
    * Used by the DNA Compare page to resolve an ISRC to enriched features.
-   *
-   * Response shape:
-   *   { id, title, artist, isrc, features: { energy, valence, ... } }
    */
   app.get('/songs/by-isrc/:isrc', async (req, reply) => {
     const isrc = (req.params.isrc || '').toUpperCase().trim();
     if (!isrc) return reply.code(400).send({ error: { message: 'ISRC required', status: 400 } });
 
-    // Find the song in library_songs by ISRC
     const { data: songs, error: songErr } = await supabase
       .from('library_songs')
       .select('id, title, artist, isrc')
@@ -315,7 +284,6 @@ export default async function routes(app) {
 
     const song = songs[0];
 
-    // Fetch audio attributes
     const { data: attrs, error: attrErr } = await supabase
       .from('song_attributes')
       .select('*')
@@ -349,6 +317,81 @@ export default async function routes(app) {
         time_signature:   attrs.time_signature,
       }
     });
+  });
+
+  /**
+   * GET /v1/songs/songstats/:isrc
+   * Proxy to Songstats RapidAPI — works around CORS restriction.
+   */
+  app.get('/songs/songstats/:isrc', async (req, reply) => {
+    const isrc = (req.params.isrc || '').toUpperCase().trim();
+    if (!isrc) return reply.code(400).send({ error: { message: 'ISRC required', status: 400 } });
+
+    const SS_KEY = config.SONGSTATS_RAPIDAPI_KEY;
+    if (!SS_KEY) return reply.code(503).send({ error: { message: 'Songstats API key not configured', status: 503 } });
+
+    const res = await fetch(`https://songstats.p.rapidapi.com/tracks/info?isrc=${encodeURIComponent(isrc)}`, {
+      headers: {
+        'x-rapidapi-host': 'songstats.p.rapidapi.com',
+        'x-rapidapi-key': SS_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await res.json();
+    if (!res.ok) return reply.code(res.status).send({ error: { message: data?.message || 'Songstats error', status: res.status } });
+
+    return reply.send(data);
+  });
+
+  /**
+   * GET /v1/soundcharts?path=/api/v2/...
+   * Generic Soundcharts proxy for frontend pages (Charts page etc.)
+   */
+  app.get('/soundcharts', async (req, reply) => {
+    const scPath = req.query.path;
+    if (!scPath || !scPath.startsWith('/api/')) {
+      return reply.code(400).send({ error: { message: 'path query param required (must start with /api/)', status: 400 } });
+    }
+    try {
+      const data = await soundchartsGet(scPath);
+      return reply.send(data);
+    } catch (e) {
+      const status = e.message.includes('404') ? 404 : 502;
+      return reply.code(status).send({ error: { message: e.message, status } });
+    }
+  });
+
+  /**
+   * POST /v1/songs/check-isrcs
+   * Body: { isrcs: string[] }
+   * Returns: { results: { [isrc]: { inLibrary: bool, songId, title, artist } } }
+   */
+  app.post('/songs/check-isrcs', async (req, reply) => {
+    const { isrcs } = req.body || {};
+    if (!Array.isArray(isrcs) || !isrcs.length) {
+      return reply.code(400).send({ error: { message: 'isrcs array required', status: 400 } });
+    }
+    const batch = isrcs.slice(0, 200).map(i => String(i).toUpperCase().trim());
+
+    const { data, error } = await supabase
+      .from('library_songs')
+      .select('id, title, artist, isrc')
+      .in('isrc', batch);
+
+    assertNoError(error, 'Failed to check ISRCs');
+
+    const found = {};
+    for (const song of (data || [])) {
+      found[song.isrc] = { inLibrary: true, songId: song.id, title: song.title, artist: song.artist };
+    }
+
+    const results = {};
+    for (const isrc of batch) {
+      results[isrc] = found[isrc] || { inLibrary: false, songId: null };
+    }
+
+    return reply.send({ results });
   });
 
 }
