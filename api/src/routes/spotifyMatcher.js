@@ -656,6 +656,102 @@ export default async function routes(app) {
   });
 
 /**
+   * POST /v1/spotify/find-style
+   * Matches a Spotify playlist against the library, then tallies which styles
+   * the matched songs belong to. Returns a ranked list of style matches with
+   * overlap counts and scores, plus a blend recommendation if no single style dominates.
+   * Body: { playlist_url }
+   */
+  app.post('/spotify/find-style', async (req, reply) => {
+    const { playlist_url } = req.body || {};
+    if (!playlist_url) {
+      return reply.code(400).send({ error: { message: 'playlist_url is required', status: 400 } });
+    }
+
+    const playlistId = extractPlaylistId(playlist_url);
+    if (!playlistId) {
+      return reply.code(400).send({ error: { message: 'Could not extract playlist ID from URL', status: 400 } });
+    }
+
+    const token = await getAccessToken();
+    const playlistMeta = await spotifyGet(`/playlists/${playlistId}?fields=name,owner`, token);
+    const tracks = await fetchAllPlaylistTracks(playlistId, token);
+    const { matched } = await matchTracks(tracks);
+
+    if (!matched.length) {
+      return reply.send({
+        playlist: { name: playlistMeta.name, total_tracks: tracks.length },
+        matched_count: 0,
+        style_matches: [],
+        recommendation: null
+      });
+    }
+
+    // Fetch all style memberships for matched library songs in one query
+    const libraryIds = matched.map(m => m.library.id);
+    const { data: memberships, error } = await supabase
+      .from('sim_style_songs')
+      .select('library_song_id, style_id, sim_styles!inner(id, name)')
+      .in('library_song_id', libraryIds);
+
+    assertNoError(error, 'Failed to fetch style memberships');
+
+    // Excluded styles
+    const EXCLUDE = ['AA Remix'];
+
+    // Tally overlap per style
+    const styleCounts = {};
+    const styleNames  = {};
+    (memberships || []).forEach(row => {
+      const name = row.sim_styles?.name;
+      const id   = row.sim_styles?.id || row.style_id;
+      if (!name || EXCLUDE.includes(name)) return;
+      styleCounts[id] = (styleCounts[id] || 0) + 1;
+      styleNames[id]  = name;
+    });
+
+    const total = matched.length;
+    const ranked = Object.entries(styleCounts)
+      .map(([id, count]) => ({
+        style_id:   id,
+        style_name: styleNames[id],
+        overlap:    count,
+        score:      Math.round((count / total) * 100)
+      }))
+      .sort((a, b) => b.overlap - a.overlap)
+      .slice(0, 10);
+
+    // Blend vs single threshold: top style ≥60% = single match
+    const BLEND_THRESHOLD = 60;
+    const top = ranked[0];
+    let recommendation;
+
+    if (!top) {
+      recommendation = null;
+    } else if (top.score >= BLEND_THRESHOLD) {
+      recommendation = { type: 'single', styles: [top] };
+    } else {
+      // Blend — take top styles until we've explained ≥70% of matches or hit 3
+      const blend = [];
+      let cumulative = 0;
+      for (const s of ranked) {
+        if (blend.length >= 3) break;
+        blend.push(s);
+        cumulative += s.score;
+        if (cumulative >= 70) break;
+      }
+      recommendation = { type: 'blend', styles: blend };
+    }
+
+    return reply.send({
+      playlist:      { name: playlistMeta.name, total_tracks: tracks.length },
+      matched_count: matched.length,
+      style_matches: ranked,
+      recommendation
+    });
+  });
+
+  /**
    * GET /v1/spotify/syncs
    * Returns all registered playlist syncs.
    */
