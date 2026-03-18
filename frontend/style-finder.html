@@ -143,7 +143,7 @@
       <div class="playlist-stats">
         <div class="pstat">
           <div class="pstat-val" id="statTotal">—</div>
-          <div class="pstat-label">Tracks</div>
+          <div class="pstat-label" id="statTotalLabel">Tracks</div>
         </div>
         <div class="pstat">
           <div class="pstat-val green" id="statMatched">—</div>
@@ -226,7 +226,7 @@ async function runFind() {
     const data = await res.json();
     renderResults(data);
     document.getElementById('toolbarStatus').textContent =
-      `"${data.playlist.name}" — ${data.matched_count} of ${data.playlist.total_tracks} tracks matched`;
+      `"${data.playlist.name}" — ${data.matched_count} of ${data.playlist.sampled || data.playlist.total_tracks} tracks matched${data.playlist.was_capped ? ` (first 500 of ${data.playlist.total_tracks} analyzed)` : ''}`;
   } catch(err) {
     toast('Error: ' + err.message, 'error');
     document.getElementById('toolbarStatus').textContent = 'Analysis failed — check the URL and try again';
@@ -242,8 +242,11 @@ function renderResults(data) {
 
   // Playlist bar
   document.getElementById('playlistName').textContent  = playlist.name;
-  document.getElementById('playlistMeta').textContent  = `${playlist.total_tracks} tracks in playlist`;
-  document.getElementById('statTotal').textContent     = playlist.total_tracks;
+  document.getElementById('playlistMeta').textContent  = playlist.was_capped
+    ? `${playlist.total_tracks} tracks in playlist — analyzing first ${playlist.sampled}`
+    : `${playlist.total_tracks} tracks in playlist`;
+  document.getElementById('statTotal').textContent     = playlist.was_capped ? `${playlist.sampled}` : playlist.total_tracks;
+  document.getElementById('statTotalLabel').textContent = playlist.was_capped ? 'Analyzed' : 'Tracks';
   document.getElementById('statMatched').textContent   = matched_count;
   document.getElementById('statStyles').textContent    = style_matches.length;
 
