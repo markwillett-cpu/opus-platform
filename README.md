@@ -31,7 +31,12 @@ Auth is a static `x-api-key` header checked on every request. The service role k
 | `uncategorized-detail.html` | Unassigned tracks view + song search drawer + audio attribute filters |
 | `curator-dashboard.html` | Curator scheduling — cadence, overdue alerts, CSV export |
 | `mood-tagging.html` | Tag styles with up to 6 ordered moods |
+| `playlist-matcher.html` | Spotchecker — match Spotify playlists or CSV files against the library; manual match drawer for unmatched songs |
+| `style-finder.html` | Style Finder — paste a Spotify URL to get a best-fit style recommendation or blend |
 | `spotify-sync.html` | Spotify playlist sync — register playlists, view sync status, export unmatched songs |
+| `style-builder.html` | Style Builder — build a new style by filtering enriched songs by BPM, energy, genre, and other audio attributes |
+| `charts.html` | Charts — browse Spotify charts (global, US, city-level) and see which tracks are in the library |
+| `dna-compare.html` | DNA Compare — compare audio attributes of two songs side by side |
 
 ---
 
@@ -88,11 +93,23 @@ All routes are prefixed `/v1` and require `x-api-key`.
 | GET | `/v1/songs/search?q=` | Fuzzy search by title + artist — includes BPM, energy, key, mode if enriched |
 | POST | `/v1/styles/:styleId/songs` | Add a song to a style (lands as Uncategorized) |
 | GET | `/v1/songs/attributes?ids=` | Batch fetch audio attributes by library_song_id (comma-separated) |
+| GET | `/v1/songs/enriched?limit=1000&offset=0` | All enriched songs paginated — used by Style Builder |
+| GET | `/v1/songs/enriched/count` | Total count of enriched songs — used by Style Builder for load progress |
+| GET | `/v1/soundcharts?path=` | Soundcharts API proxy — used by Charts page |
+| POST | `/v1/songs/check-isrcs` | Bulk ISRC → library lookup — returns inLibrary status per ISRC |
+| POST | `/v1/songs/check-sc-uuids` | Bulk Soundcharts UUID → library lookup — used by Charts page |
+| GET | `/v1/songs/by-isrc/:isrc` | Look up a song and its audio attributes by ISRC |
+| GET | `/v1/songs/songstats/:isrc` | Songstats proxy — returns streaming stats for a track |
 | POST | `/v1/songs/enrich` | Enrich a batch of unenriched songs via Soundcharts (`{ limit, offset, style_name? }`) |
+| POST | `/v1/songs/match-csv` | Match a CSV list of `{ title, artist }` pairs against the library — same fuzzy matching as Spotify |
 
-### Spotify Sync
+### Spotify
 | Method | Path | Description |
 |--------|------|-------------|
+| POST | `/v1/spotify/match-playlist` | Match a Spotify playlist against the library — returns matched/unmatched |
+| POST | `/v1/spotify/find-style` | Match a playlist and recommend the closest existing style or blend |
+| POST | `/v1/spotify/add-to-style` | Add matched library songs to an existing style |
+| POST | `/v1/spotify/create-style` | Create a new style from matched songs |
 | POST | `/v1/spotify/register-sync` | Register a Spotify playlist to sync with a style |
 | POST | `/v1/spotify/run-sync` | Run sync for one or all registered playlists |
 | GET | `/v1/spotify/syncs` | List all registered syncs |
@@ -104,14 +121,46 @@ All routes are prefixed `/v1` and require `x-api-key`.
 
 Playlists are synced to styles on a nightly schedule via GitHub Actions. The sync:
 1. Fetches the current playlist tracks from Spotify
-2. Matches each track against the library using a 4-tier matching strategy (Spotify ID → normalized title/artist → aggressive normalization → fuzzy feat/remix)
+2. Matches each track against the library using a 5-tier matching strategy:
+   - **Tier 1:** Spotify track ID (exact)
+   - **Tier 2:** Normalized title + artist (lowercased, accents stripped, punctuation removed)
+   - **Tier 3:** Aggressive normalization (feat/remix/leading "the" stripped, known suffixes removed)
+   - **Tier 4:** Fuzzy feat/remix prefix match
 3. Adds newly matched songs to the style
 4. Removes songs from the style that were removed from the playlist
 5. Records added/removed/unmatched counts on the sync record
 
-Unmatched songs (tracks in the playlist with no library match) are available via the Spotify Sync page and can be exported as CSV for the curation team to source.
+**Known suffix stripping (Tier 3):** Radio Edit, Edit Version, Single Version, Remaster, Remastered, Live Version, Acoustic Version, Album Version, Original Mix, Extended Mix, Explicit Version, Clean Version, Deluxe Edition, Bonus Track.
+
+Unmatched songs can be manually matched via the **Match drawer** in Spotchecker — search the library and pick the correct track directly from the UI.
 
 **Cron job:** `.github/workflows/nightly-sync.yml` runs `POST /v1/spotify/run-sync` at 3am UTC every night.
+
+---
+
+## Spotchecker (playlist-matcher.html)
+
+Two input modes:
+
+**Spotify URL** — paste a playlist URL, fetch and match all tracks against the library. Results show matched songs with method/confidence, and unmatched songs with a **Match** button to find them manually in the library.
+
+**CSV File** — upload a CSV with any column names. After upload, map the title and artist columns (auto-detected where possible), preview the first 3 rows, then run the same fuzzy matching logic as Spotify. Useful for matching customer-supplied track lists that don't exist as Spotify playlists.
+
+Matched songs can be added to an existing style or used to create a new style directly from the results.
+
+---
+
+## Style Finder (style-finder.html)
+
+Paste a Spotify playlist URL to find which existing style(s) it most closely resembles. The endpoint matches the playlist against the library (capped at 500 tracks for performance), then tallies which styles the matched songs belong to.
+
+**Recommendation logic:**
+- If the top style accounts for ≥60% of matched songs → single best-fit match
+- Otherwise → blend of up to 3 styles that together explain ≥70% of matches
+
+`AA Remix` is excluded from results (it indicates library membership, not a curation style).
+
+Results show a recommendation card plus a full ranked list of all matching styles with overlap counts and percentage scores.
 
 ---
 
@@ -176,8 +225,10 @@ Outlier thresholds are pre-computed server-side and used by the frontend to high
 - **Track metadata modal** — full attribute breakdown (tempo/key, feel bars, texture, credits)
 - **BPM / Energy / Genre filter bar** — range sliders and dropdowns to filter the track list
 - **Style DNA sidebar card** — BPM range, energy/danceability/valence bars, top genres, key distribution, outlier count
+- **Style DNA card on index.html** — compact horizontal strip showing the same data on the Playback Classes page
 - **Outlier highlighting** — BPM outliers get a yellow border + `⚡ BPM` badge; energy outliers get red + `⚡ E`; both get purple
 - **Add Songs drawer** — search result chips are green (fits style DNA) or yellow (outlier) based on the current style's BPM and energy thresholds
+- **Style Builder** — filter the full enriched library by BPM, energy, danceability, valence, acousticness, mode, and genre to build a new style from scratch
 
 ---
 
@@ -225,7 +276,7 @@ Each style can have up to 6 moods. Position is significant — Mood 1 is primary
 `config.js` controls:
 - `API_BASE_URL` — points to Render API
 - `API_KEY` — sandbox key for auth
-- `STYLES_TO_EXCLUDE` — style names hidden from UI
+- `STYLES_TO_EXCLUDE` — style names hidden from UI (also excluded from Style Finder results)
 - `MAX_TRACKS_DISPLAY` — cap for track table rendering
 - `SEARCH_DEBOUNCE` — ms delay on search inputs
 - `TOAST_DURATION` — ms for success toast visibility
