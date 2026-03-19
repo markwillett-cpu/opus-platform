@@ -121,6 +121,7 @@ async function matchTracks(spotifyTracks) {
     const aggTitle = normalize(track.name)
       .replace(/\(.*?\)/g, '')
       .replace(/feat.*/i, '')
+      .replace(/\s(radio edit|edit version|single version|remaster|remastered|live version|acoustic version|album version|original mix|extended mix|explicit version|clean version|deluxe edition|bonus track)(\s.*)?$/i, '')
       .replace(/^the\s+/i, '')
       .trim();
     const aggArtist = normalize(artistName)
@@ -585,6 +586,7 @@ export default async function routes(app) {
 
       const aggTitle = normalize(title)
         .replace(/\(.*?\)/g, '').replace(/feat.*/i, '')
+        .replace(/\s(radio edit|edit version|single version|remaster|remastered|live version|acoustic version|album version|original mix|extended mix|explicit version|clean version|deluxe edition|bonus track)(\s.*)?$/i, '')
         .replace(/^the\s+/i, '').trim();
       const aggArtist = normalize(artist)
         .replace(/^the\s+/i, '').trim();
@@ -695,7 +697,7 @@ export default async function routes(app) {
       const artistName = t.artists?.[0]?.name || '';
       const normTitle  = normalize(t.name);
       const normArtist = normalize(artistName);
-      const aggTitle   = normTitle.replace(/\(.*?\)/g, '').replace(/feat.*/i, '').replace(/^the\s+/i, '').trim();
+      const aggTitle   = normTitle.replace(/\(.*?\)/g, '').replace(/feat.*/i, '').replace(/\s(radio edit|edit version|single version|remaster|remastered|live version|acoustic version|album version|original mix|extended mix|explicit version|clean version|deluxe edition|bonus track)(\s.*)?$/i, '').replace(/^the\s+/i, '').trim();
       const aggArtist  = normArtist.replace(/^the\s+/i, '').trim();
       return { track: t, artistName, normTitle, normArtist, aggTitle, aggArtist };
     });
