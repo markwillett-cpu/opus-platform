@@ -229,15 +229,48 @@ const SC_PROXY = `${API_BASE}/v1/soundcharts`;
 // Soundcharts chart slugs per platform
 const CHART_OPTIONS = {
   spotify: [
-    { slug: 'spotify_viral_50_global',   name: 'Viral 50 Global' },
-    { slug: 'spotify_viral_50_us',        name: 'Viral 50 US' },
-    { slug: 'spotify_top_200_global',     name: 'Top 200 Global' },
-    { slug: 'spotify_top_200_us',         name: 'Top 200 US' },
-    { slug: 'spotify_top_hits_global',    name: 'Top Hits Global' },
+    // ── National ──
+    { slug: 'global-1',       name: '🌍 Top Songs — Global' },
+    { slug: 'top-songs-68',   name: '🇺🇸 Top Songs — US' },
+    { slug: 'most-viral-1',   name: '🔥 Viral Songs — US' },
+    // ── US Cities ──
+    { slug: 'top-new-york-city',   name: 'Top — New York City' },
+    { slug: 'top-los-angeles',     name: 'Top — Los Angeles' },
+    { slug: 'top-chicago',         name: 'Top — Chicago' },
+    { slug: 'top-houston',         name: 'Top — Houston' },
+    { slug: 'top-miami',           name: 'Top — Miami' },
+    { slug: 'top-dallas',          name: 'Top — Dallas' },
+    { slug: 'top-atlanta',         name: 'Top — Atlanta' },
+    { slug: 'top-san-francisco',   name: 'Top — San Francisco' },
+    { slug: 'top-seattle',         name: 'Top — Seattle' },
+    { slug: 'top-nashville',       name: 'Top — Nashville' },
+    { slug: 'top-austin',          name: 'Top — Austin' },
+    { slug: 'top-phoenix',         name: 'Top — Phoenix' },
+    { slug: 'top-denver',          name: 'Top — Denver' },
+    { slug: 'top-philadelphia',    name: 'Top — Philadelphia' },
+    { slug: 'top-washington',      name: 'Top — Washington DC' },
+    { slug: 'top-boston',          name: 'Top — Boston' },
+    { slug: 'top-detroit',         name: 'Top — Detroit' },
+    { slug: 'top-minneapolis',     name: 'Top — Minneapolis' },
+    { slug: 'top-portland',        name: 'Top — Portland' },
+    { slug: 'top-san-diego',       name: 'Top — San Diego' },
+    { slug: 'top-las-vegas',       name: 'Top — Las Vegas' },
+    { slug: 'top-charlotte',       name: 'Top — Charlotte' },
+    { slug: 'top-san-antonio',     name: 'Top — San Antonio' },
+    { slug: 'top-tampa',           name: 'Top — Tampa' },
+    { slug: 'top-new-orleans',     name: 'Top — New Orleans' },
+    { slug: 'top-pittsburgh',      name: 'Top — Pittsburgh' },
+    { slug: 'top-st-louis',        name: 'Top — St. Louis' },
+    { slug: 'top-salt-lake-city',  name: 'Top — Salt Lake City' },
+    { slug: 'top-sacramento',      name: 'Top — Sacramento' },
+    { slug: 'top-omaha',           name: 'Top — Omaha' },
+    { slug: 'top-indianapolis',    name: 'Top — Indianapolis' },
+    { slug: 'top-cleveland',       name: 'Top — Cleveland' },
+    { slug: 'top-memphis',         name: 'Top — Memphis' },
+    { slug: 'top-san-juan',        name: 'Top — San Juan' },
   ],
   apple_music: [
-    { slug: 'apple_music_top_100_global', name: 'Top 100 Global' },
-    { slug: 'apple_music_top_100_us',     name: 'Top 100 US' },
+    { slug: 'apple_music_top_100_us', name: '🇺🇸 Top 100 — US' },
   ],
   tiktok: [],
 };
@@ -319,13 +352,13 @@ async function loadChart() {
       return;
     }
 
-    // 2. Extract ISRCs and check library in bulk
-    const isrcs = items.map(item => item.song?.isrc || item.isrc).filter(Boolean);
-    const libraryMap = await checkLibraryBatch(isrcs);
+    // 2. Extract Soundcharts UUIDs and check library in bulk
+    const scUuids = items.map(item => item.song?.uuid).filter(Boolean);
+    const libraryMap = await checkLibraryBatchByUUID(scUuids);
 
     // 3. Render
     currentChartTracks = items;
-    renderChart(platform, chartSlug, items, libraryMap, rankData);
+    renderChart(platform, chartSlug, items, libraryMap, rankData?.related || {});
 
   } catch (e) {
     console.error(e);
@@ -345,17 +378,17 @@ async function loadChart() {
 // LIBRARY CHECK
 // ─────────────────────────────────────────────
 
-async function checkLibraryBatch(isrcs) {
-  if (!isrcs.length) return {};
+async function checkLibraryBatchByUUID(scUuids) {
+  if (!scUuids.length) return {};
   try {
-    const res = await fetch(`${API_BASE}/v1/songs/check-isrcs`, {
+    const res = await fetch(`${API_BASE}/v1/songs/check-sc-uuids`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-      body: JSON.stringify({ isrcs })
+      body: JSON.stringify({ sc_uuids: scUuids })
     });
     if (!res.ok) return {};
     const data = await res.json();
-    // Expects { results: { [isrc]: { inLibrary: bool, songId: uuid, title, artist } } }
+    // Expects { results: { [sc_uuid]: { inLibrary: bool, songId, title, artist, isrc } } }
     return data.results || {};
   } catch {
     return {};
@@ -366,10 +399,10 @@ async function checkLibraryBatch(isrcs) {
 // RENDER
 // ─────────────────────────────────────────────
 
-function renderChart(platform, slug, items, libraryMap, rawData) {
+function renderChart(platform, slug, items, libraryMap, related) {
   const pl = PLATFORM_LABELS[platform] || { emoji: '📊', name: platform };
   const chartName = CHART_OPTIONS[platform]?.find(c => c.slug === slug)?.name || slug;
-  const updatedAt = rawData?.date || rawData?.object?.date || '';
+  const updatedAt = related?.date || '';
 
   let inLib = 0, notLib = 0;
   items.forEach(item => {
@@ -382,13 +415,14 @@ function renderChart(platform, slug, items, libraryMap, rawData) {
   document.getElementById('statsPill').style.display = 'flex';
 
   const rows = items.map((item, idx) => {
-    const rank    = item.rank ?? (idx + 1);
+    const rank    = item.position ?? item.rank ?? (idx + 1);
     const song    = item.song || item;
+    const scUuid  = song.uuid || '';
     const isrc    = song.isrc || '';
     const title   = song.name || song.title || 'Unknown';
-    const artist  = (song.artists?.[0]?.name) || song.creditName || song.artist || '';
+    const artist  = song.creditName || (song.artists?.[0]?.name) || song.artist || '';
     const imgUrl  = song.imageUrl || '';
-    const lib     = libraryMap[isrc] || {};
+    const lib     = libraryMap[scUuid] || libraryMap[isrc] || {};
     const inLibrary = !!lib.inLibrary;
     const songId  = lib.songId || null;
     const rankClass = rank <= 3 ? 'top3' : '';
