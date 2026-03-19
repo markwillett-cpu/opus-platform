@@ -155,8 +155,6 @@
   <span class="toolbar-label">Platform</span>
   <select class="toolbar-select" id="platformSelect">
     <option value="spotify">Spotify</option>
-    <option value="apple_music">Apple Music</option>
-    <option value="tiktok" disabled>TikTok (weekly)</option>
   </select>
 
   <div class="toolbar-divider"></div>
@@ -269,16 +267,10 @@ const CHART_OPTIONS = {
     { slug: 'top-memphis',         name: 'Top — Memphis' },
     { slug: 'top-san-juan',        name: 'Top — San Juan' },
   ],
-  apple_music: [
-    { slug: 'apple_music_top_100_us', name: '🇺🇸 Top 100 — US' },
-  ],
-  tiktok: [],
-};
+};  // apple_music and tiktok pending plan upgrade
 
 const PLATFORM_LABELS = {
-  spotify:     { emoji: '🟢', name: 'Spotify' },
-  apple_music: { emoji: '🎵', name: 'Apple Music' },
-  tiktok:      { emoji: '🎵', name: 'TikTok' },
+  spotify: { emoji: '🟢', name: 'Spotify' },
 };
 
 // ─────────────────────────────────────────────
@@ -338,9 +330,19 @@ async function loadChart() {
   document.getElementById('statsPill').style.display = 'none';
 
   try {
-    // 1. Fetch latest ranking from Soundcharts
-    const rankData = await scProxy(`/api/v2.14/chart/song/${chartSlug}/ranking/latest`);
-    const items = rankData?.items || rankData?.object?.items || [];
+    // 1. Fetch latest ranking from Soundcharts (paginate to get all tracks)
+    const rankData = await scProxy(`/api/v2.14/chart/song/${chartSlug}/ranking/latest?limit=100&offset=0`);
+    let items = rankData?.items || [];
+    const total = rankData?.page?.total || items.length;
+
+    // Fetch remaining pages if chart has more than 100 tracks
+    if (total > 100) {
+      const extraPages = Math.ceil((total - 100) / 100);
+      for (let p = 1; p <= extraPages; p++) {
+        const more = await scProxy(`/api/v2.14/chart/song/${chartSlug}/ranking/latest?limit=100&offset=${p * 100}`);
+        if (more?.items?.length) items = items.concat(more.items);
+      }
+    }
 
     if (!items.length) {
       document.getElementById('mainContent').innerHTML = `
