@@ -214,8 +214,9 @@
 // CONFIG
 // ─────────────────────────────────────────────
 
+// Strip trailing /v1 if present — routes already include /v1 prefix
 const API_BASE = (typeof OPUS_CONFIG !== 'undefined' && OPUS_CONFIG.API_BASE_URL)
-  ? OPUS_CONFIG.API_BASE_URL.replace(/\/$/, '')
+  ? OPUS_CONFIG.API_BASE_URL.replace(/\/$/, '').replace(/\/v1$/, '')
   : 'https://opus-platform.onrender.com';
 
 const API_KEY = (typeof OPUS_CONFIG !== 'undefined')
