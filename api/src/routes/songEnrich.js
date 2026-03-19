@@ -394,4 +394,62 @@ export default async function routes(app) {
     return reply.send({ results });
   });
 
+  /**
+   * POST /v1/songs/check-sc-uuids
+   * Body: { sc_uuids: string[] }
+   * Returns: { results: { [sc_uuid]: { inLibrary: bool, songId, title, artist, isrc } } }
+   * Looks up Soundcharts song UUIDs stored in song_attributes.raw->>'uuid'
+   */
+  app.post('/songs/check-sc-uuids', async (req, reply) => {
+    const { sc_uuids } = req.body || {};
+    if (!Array.isArray(sc_uuids) || !sc_uuids.length) {
+      return reply.code(400).send({ error: { message: 'sc_uuids array required', status: 400 } });
+    }
+    const batch = sc_uuids.slice(0, 200).map(u => String(u).trim());
+
+    // song_attributes.raw contains the full Soundcharts response including uuid
+    const { data, error } = await supabase
+      .from('song_attributes')
+      .select('library_song_id, raw')
+      .eq('source', 'soundcharts')
+      .in('raw->>uuid', batch);
+
+    assertNoError(error, 'Failed to check SC UUIDs');
+
+    // Also fetch song details for matched library_song_ids
+    const songIds = (data || []).map(r => r.library_song_id);
+    let songMap = {};
+    if (songIds.length) {
+      const { data: songs } = await supabase
+        .from('library_songs')
+        .select('id, title, artist, isrc')
+        .in('id', songIds);
+      for (const s of (songs || [])) {
+        songMap[s.id] = s;
+      }
+    }
+
+    const found = {};
+    for (const row of (data || [])) {
+      const scUuid = row.raw?.uuid;
+      const song   = songMap[row.library_song_id];
+      if (scUuid && song) {
+        found[scUuid] = {
+          inLibrary: true,
+          songId:    song.id,
+          title:     song.title,
+          artist:    song.artist,
+          isrc:      song.isrc,
+        };
+      }
+    }
+
+    const results = {};
+    for (const uuid of batch) {
+      results[uuid] = found[uuid] || { inLibrary: false, songId: null };
+    }
+
+    return reply.send({ results });
+  });
+
 }
