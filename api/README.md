@@ -223,6 +223,24 @@ Matching uses a 4-tier strategy:
 
 Requires `supabase-migration-playlist-syncs.sql` and Spotify env vars to be set.
 
+
+---
+
+### Acquisition Queue
+```
+GET    /v1/acquisition              ?status=want|purchased|in_library
+POST   /v1/acquisition              body: { title, artist, isrc?, playlist_name?, source?, notes? }
+PATCH  /v1/acquisition/:id          body: { status?, source?, notes? }
+DELETE /v1/acquisition/:id
+```
+
+Tracks songs flagged for purchase from Spotchecker sessions. Songs are added via the 🛒 Want button on unmatched rows. Duplicate detection prevents the same title+artist being added twice while still in `want` or `purchased` status.
+
+Valid `status` values: `want` · `purchased` · `in_library`  
+Valid `source` values: `itunes` · `amazon` · `ilm` · `serviced`
+
+Requires `opus_acquisition_queue` table (run migration SQL).
+
 ---
 
 ### Spotify Auth (one-time setup)
