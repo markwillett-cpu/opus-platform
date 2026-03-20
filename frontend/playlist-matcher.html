@@ -172,6 +172,34 @@
     .mm-spinner::before{content:'';display:block;width:22px;height:22px;border:3px solid var(--light);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
     .mm-footer{padding:12px 16px;border-top:1px solid var(--light);font-size:12px;color:#95a5a6;font-weight:700;flex-shrink:0}
 
+
+    /* ── Acquisition Queue ── */
+    .want-btn{background:none;border:1px solid var(--warning);color:var(--warning);font-size:11px;font-weight:900;padding:3px 9px;border-radius:4px;cursor:pointer;transition:.15s;white-space:nowrap}
+    .want-btn:hover{background:var(--warning);color:#fff}
+    .want-btn.queued{background:rgba(243,156,18,.12);color:var(--warning);cursor:default;border-style:dashed;pointer-events:none}
+    .acq-panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+    .acq-toolbar{padding:12px 16px;border-bottom:1px solid var(--light);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .acq-filter-btn{padding:5px 12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:.15s;color:#7f8c8d}
+    .acq-filter-btn.active{background:var(--secondary);color:#fff;border-color:var(--secondary)}
+    .acq-scroll{overflow:auto;max-height:520px}
+    .acq-table{width:100%;border-collapse:collapse;font-size:12px}
+    .acq-table thead{background:var(--secondary);color:#fff;position:sticky;top:0;z-index:1}
+    .acq-table th,.acq-table td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--light)}
+    .acq-table tbody tr:hover{background:#f8f9fa}
+    .sp{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.3px}
+    .sp-want{background:#fff3cd;color:#856404}
+    .sp-purchased{background:#d1ecf1;color:#0c5460}
+    .sp-in_library{background:#d4edda;color:#155724}
+    .acq-sel{padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:#fff;color:var(--primary);cursor:pointer}
+    .acq-notes{padding:4px 7px;border:1px solid var(--border);border-radius:4px;font-size:11px;width:150px;font-family:inherit}
+    .acq-notes:focus{outline:none;border-color:var(--accent)}
+    .acq-del{background:none;border:none;color:#bdc3c7;font-size:15px;cursor:pointer;padding:2px 5px;border-radius:3px;transition:.15s;line-height:1}
+    .acq-del:hover{color:var(--danger);background:#fdf2f2}
+    .acq-empty{padding:50px 20px;text-align:center;color:#95a5a6}
+    .acq-empty .ei{font-size:36px;margin-bottom:8px}
+    .acq-empty p{font-size:13px;font-weight:700}
+    .acq-badge{display:inline-block;background:var(--warning);color:#fff;font-size:10px;font-weight:900;padding:1px 6px;border-radius:8px;margin-left:5px;vertical-align:middle;min-width:18px;text-align:center}
+
     #toast{position:fixed;bottom:24px;right:24px;background:#2c3e50;color:#fff;padding:11px 16px;border-radius:6px;font-size:13px;font-weight:700;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none}
     #toast.show{opacity:1}
     #toast.success{background:var(--success)}
@@ -196,6 +224,7 @@
     <div class="mode-toggle">
       <button class="mode-btn active" id="modeSpotify">🎵 Spotify URL</button>
       <button class="mode-btn" id="modeCsv">📄 CSV File</button>
+      <button class="mode-btn" id="modeAcq">🛒 Acquisition Queue<span class="acq-badge" id="acqBadge" style="display:none">0</span></button>
     </div>
 
     <!-- Spotify mode -->
@@ -240,6 +269,40 @@
             Match CSV
           </button>
         </div>
+      </div>
+
+    <!-- Acquisition Queue mode -->
+    <div id="acqMode" style="display:none">
+      <h2>🛒 Acquisition Queue</h2>
+      <p>Songs flagged for purchase from Spotchecker sessions. Update status and source as you work through the list.</p>
+    </div>
+  </div>
+
+  <!-- ACQUISITION QUEUE PANEL (shown when in acq mode) -->
+  <div id="acqPanel" style="display:none">
+    <div class="acq-panel">
+      <div class="acq-toolbar">
+        <button class="acq-filter-btn active" data-status="">All</button>
+        <button class="acq-filter-btn" data-status="want">Want</button>
+        <button class="acq-filter-btn" data-status="purchased">Purchased</button>
+        <button class="acq-filter-btn" data-status="in_library">In Library</button>
+        <span style="margin-left:auto;font-size:12px;color:#7f8c8d;font-weight:700" id="acqCount"></span>
+      </div>
+      <div class="acq-scroll">
+        <table class="acq-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Artist</th>
+              <th>From Playlist</th>
+              <th>Status</th>
+              <th>Source</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="acqBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -698,7 +761,9 @@ function renderUnmatchedTable() {
       <td style="text-align:right">
         ${manuallyMatched
           ? `<span class="manual-badge">✓ Matched</span>`
-          : `<button class="match-me-btn" data-idx="${i}">Match</button>`}
+          : u._queued
+            ? `<button class="want-btn queued">🛒 Queued</button><button class="match-me-btn" data-idx="${i}" style="margin-left:4px">Match</button>`
+            : `<button class="want-btn" data-idx="${i}" onclick="wantSong(${i})">🛒 Want</button><button class="match-me-btn" data-idx="${i}" style="margin-left:4px">Match</button>`}
       </td>
     </tr>`;
   }).join('');
@@ -996,6 +1061,191 @@ document.addEventListener('keydown', e => {
     closeDrawer();
   }
 })();
+
+// ════════════════════════════════════════════════════════
+// ACQUISITION QUEUE
+// ════════════════════════════════════════════════════════
+const _CFG2    = window.OPUS_CONFIG || {};
+const _APIBASE = _CFG2.API_BASE_URL || '';
+const _APIKEY  = _CFG2.API_KEY || '';
+
+let acqItems   = [];
+let acqFilter  = '';
+
+// Mode toggle for Acquisition Queue tab
+document.getElementById('modeAcq').addEventListener('click', () => {
+  document.getElementById('modeSpotify').classList.remove('active');
+  document.getElementById('modeCsv').classList.remove('active');
+  document.getElementById('modeAcq').classList.add('active');
+  document.getElementById('spotifyMode').style.display = 'none';
+  document.getElementById('csvMode').style.display = 'none';
+  document.getElementById('acqMode').style.display = '';
+  document.getElementById('acqPanel').style.display = '';
+  document.getElementById('summaryBanner').style.display = 'none';
+  document.getElementById('resultsLayout').style.display = 'none';
+  document.getElementById('toolbarStatus').textContent = 'Acquisition queue — songs flagged for purchase';
+  loadAcqQueue();
+});
+
+// Switch back to hide acq panel when switching to other modes
+['modeSpotify','modeCsv'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    document.getElementById('acqPanel').style.display = 'none';
+    document.getElementById('acqMode').style.display = 'none';
+  });
+});
+
+async function loadAcqQueue() {
+  try {
+    const res = await fetch(`${_APIBASE}/acquisition`, {
+      headers: { 'x-api-key': _APIKEY }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    acqItems = data.data || [];
+    renderAcqTable();
+    updateAcqBadge();
+  } catch(err) {
+    document.getElementById('acqBody').innerHTML =
+      `<tr><td colspan="7" style="padding:24px;text-align:center;color:#e74c3c;font-weight:700">Failed to load queue: ${err.message}</td></tr>`;
+  }
+}
+
+function updateAcqBadge() {
+  const pending = acqItems.filter(i => i.status === 'want' || i.status === 'purchased').length;
+  const badge = document.getElementById('acqBadge');
+  if (pending > 0) {
+    badge.textContent = pending;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderAcqTable() {
+  const tbody = document.getElementById('acqBody');
+  const filtered = acqFilter ? acqItems.filter(i => i.status === acqFilter) : acqItems;
+  document.getElementById('acqCount').textContent = `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="acq-empty"><div class="ei">${acqFilter ? '🔍' : '🛒'}</div><p>${acqFilter ? 'No items with this status' : 'No songs in the queue yet — flag unmatched songs from Spotchecker'}</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => `
+    <tr data-id="${item.id}">
+      <td style="font-weight:800">${esc(item.title)}</td>
+      <td style="color:#7f8c8d">${esc(item.artist)}</td>
+      <td style="color:#7f8c8d;font-size:11px">${esc(item.playlist_name || '—')}</td>
+      <td>
+        <select class="acq-sel" onchange="updateAcqItem('${item.id}','status',this.value)">
+          <option value="want"       ${item.status==='want'       ?'selected':''}>🔖 Want</option>
+          <option value="purchased"  ${item.status==='purchased'  ?'selected':''}>💳 Purchased</option>
+          <option value="in_library" ${item.status==='in_library' ?'selected':''}>✅ In Library</option>
+        </select>
+      </td>
+      <td>
+        <select class="acq-sel" onchange="updateAcqItem('${item.id}','source',this.value)">
+          <option value=""        ${!item.source            ?'selected':''}>— Unknown</option>
+          <option value="itunes"  ${item.source==='itunes'  ?'selected':''}>🎵 iTunes</option>
+          <option value="amazon"  ${item.source==='amazon'  ?'selected':''}>📦 Amazon</option>
+          <option value="ilm"     ${item.source==='ilm'     ?'selected':''}>🎶 ILM</option>
+          <option value="serviced"${item.source==='serviced'?'selected':''}>📬 Serviced</option>
+        </select>
+      </td>
+      <td>
+        <input class="acq-notes" type="text" value="${esc(item.notes || '')}"
+          placeholder="Notes…"
+          onblur="updateAcqItem('${item.id}','notes',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()" />
+      </td>
+      <td>
+        <button class="acq-del" onclick="deleteAcqItem('${item.id}')" title="Remove">×</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Filter buttons
+document.querySelectorAll('.acq-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.acq-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    acqFilter = btn.dataset.status;
+    renderAcqTable();
+  });
+});
+
+async function wantSong(idx) {
+  const u = filteredUnmatched[idx];
+  if (!u) return;
+
+  const btn = document.querySelector(`.want-btn[data-idx="${idx}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  try {
+    const res = await fetch(`${_APIBASE}/acquisition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': _APIKEY },
+      body: JSON.stringify({
+        title: u.spotify.title,
+        artist: u.spotify.artist,
+        isrc: u.spotify.isrc || null,
+        playlist_name: matchResults?.playlist?.name || null
+      })
+    });
+
+    if (res.status === 409) {
+      toast(`"${u.spotify.title}" is already in the queue`, 'error');
+      u._queued = true;
+      renderUnmatchedTable();
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    u._queued = true;
+    acqItems.unshift((await res.json()).item);
+    updateAcqBadge();
+    renderUnmatchedTable();
+    toast(`🛒 Added "${u.spotify.title}" to acquisition queue`, 'success');
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '🛒 Want'; }
+  }
+}
+
+async function updateAcqItem(id, field, value) {
+  try {
+    const res = await fetch(`${_APIBASE}/acquisition/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': _APIKEY },
+      body: JSON.stringify({ [field]: value })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const updated = (await res.json()).item;
+    const idx = acqItems.findIndex(i => i.id === id);
+    if (idx !== -1) acqItems[idx] = updated;
+    updateAcqBadge();
+  } catch(err) {
+    toast('Failed to update: ' + err.message, 'error');
+  }
+}
+
+async function deleteAcqItem(id) {
+  try {
+    const res = await fetch(`${_APIBASE}/acquisition/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-api-key': _APIKEY }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    acqItems = acqItems.filter(i => i.id !== id);
+    renderAcqTable();
+    updateAcqBadge();
+    toast('Removed from queue', 'success');
+  } catch(err) {
+    toast('Failed to delete: ' + err.message, 'error');
+  }
+}
 
 function esc(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
