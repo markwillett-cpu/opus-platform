@@ -545,4 +545,106 @@ export default async function routes(app) {
     return reply.send({ results });
   });
 
+
+  // ─────────────────────────────────────────────────────────
+  // Acquisition Queue
+  // ─────────────────────────────────────────────────────────
+
+  /**
+   * GET /v1/acquisition
+   * Returns all items in the acquisition queue, newest first.
+   * Optional ?status=want|purchased|in_library filter.
+   */
+  app.get('/acquisition', async (req, reply) => {
+    let query = supabase
+      .from('opus_acquisition_queue')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    const { data, error } = await query;
+    assertNoError(error, 'Failed to fetch acquisition queue');
+    return reply.send({ data: data || [] });
+  });
+
+  /**
+   * POST /v1/acquisition
+   * Add a song to the acquisition queue.
+   * Body: { title, artist, isrc?, playlist_name?, source?, notes? }
+   */
+  app.post('/acquisition', async (req, reply) => {
+    const { title, artist, isrc, playlist_name, source, notes } = req.body || {};
+    if (!title || !artist) {
+      return reply.code(400).send({ error: { message: 'title and artist are required', status: 400 } });
+    }
+
+    // Check for duplicate (same title+artist already in want or purchased)
+    const { data: existing } = await supabase
+      .from('opus_acquisition_queue')
+      .select('id, status')
+      .ilike('title', title)
+      .ilike('artist', artist)
+      .in('status', ['want', 'purchased'])
+      .limit(1);
+
+    if (existing?.length) {
+      return reply.code(409).send({
+        error: { message: 'Already in queue', status: 409 },
+        existing: existing[0]
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('opus_acquisition_queue')
+      .insert({ title, artist, isrc: isrc || null, playlist_name: playlist_name || null, source: source || null, notes: notes || null, status: 'want' })
+      .select('*')
+      .single();
+
+    assertNoError(error, 'Failed to add to acquisition queue');
+    return reply.code(201).send({ ok: true, item: data });
+  });
+
+  /**
+   * PATCH /v1/acquisition/:id
+   * Update status, source, or notes on a queue item.
+   * Body: { status?, source?, notes? }
+   */
+  app.patch('/acquisition/:id', async (req, reply) => {
+    const { id } = req.params;
+    const { status, source, notes } = req.body || {};
+    const VALID_STATUSES = ['want', 'purchased', 'in_library'];
+    if (status && !VALID_STATUSES.includes(status)) {
+      return reply.code(400).send({ error: { message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`, status: 400 } });
+    }
+
+    const updates = { updated_at: new Date().toISOString() };
+    if (status  !== undefined) updates.status  = status;
+    if (source  !== undefined) updates.source  = source;
+    if (notes   !== undefined) updates.notes   = notes;
+
+    const { data, error } = await supabase
+      .from('opus_acquisition_queue')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    assertNoError(error, 'Failed to update acquisition item');
+    return reply.send({ ok: true, item: data });
+  });
+
+  /**
+   * DELETE /v1/acquisition/:id
+   * Remove an item from the queue.
+   */
+  app.delete('/acquisition/:id', async (req, reply) => {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('opus_acquisition_queue')
+      .delete()
+      .eq('id', id);
+    assertNoError(error, 'Failed to delete acquisition item');
+    return reply.send({ ok: true });
+  });
+
+
 }
