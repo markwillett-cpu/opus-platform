@@ -612,6 +612,7 @@ export default async function routes(app) {
     const { id } = req.params;
     const { status, source, notes } = req.body || {};
     const VALID_STATUSES = ['want', 'purchased', 'in_library'];
+    const VALID_SOURCES  = ['itunes', 'amazon', 'ilm', 'serviced', 'explicit', ''];
     if (status && !VALID_STATUSES.includes(status)) {
       return reply.code(400).send({ error: { message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`, status: 400 } });
     }
