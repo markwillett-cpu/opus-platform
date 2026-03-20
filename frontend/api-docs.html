@@ -135,6 +135,13 @@
     <a class="nav-link" href="#del-sync"><span class="nav-method m-del">DEL</span> /spotify/syncs/:id</a>
   </div>
   <div class="nav-group">
+    <div class="nav-group-label">Acquisition Queue</div>
+    <a class="nav-link" href="#get-acq"><span class="nav-method m-get">GET</span> /acquisition</a>
+    <a class="nav-link" href="#post-acq"><span class="nav-method m-post">POST</span> /acquisition</a>
+    <a class="nav-link" href="#patch-acq"><span class="nav-method m-patch">PATCH</span> /acquisition/:id</a>
+    <a class="nav-link" href="#del-acq"><span class="nav-method m-del">DEL</span> /acquisition/:id</a>
+  </div>
+  <div class="nav-group">
     <div class="nav-group-label">Reference</div>
     <a class="nav-link" href="#adding-routes">Adding a Route</a>
   </div>
@@ -195,6 +202,9 @@ fetch("/v1/styles", { headers: { "x-api-key": OPUS_CONFIG.API_KEY } })</pre>
                               valence, acousticness, instrumentalness, speechiness, loudness,
                               duration_seconds, time_signature, raw (JSONB)
                               UNIQUE(library_song_id, source)
+    opus_acquisition_queue  — id, title, artist, isrc, status (want|purchased|in_library),
+                              source (itunes|amazon|ilm|serviced), notes, playlist_name,
+                              created_at, updated_at
   </div>
   <div class="callout callout-info">
     <span class="callout-icon">ℹ️</span>
@@ -643,6 +653,72 @@ fetch("/v1/styles", { headers: { "x-api-key": OPUS_CONFIG.API_KEY } })</pre>
     <div class="endpoint-body">
       <p>Does not affect songs already added to the style.</p>
     </div>
+  </div>
+
+  <hr>
+
+  <!-- ACQUISITION QUEUE -->
+  <h2 id="acq-section">Acquisition Queue</h2>
+
+  <p>Songs flagged for purchase from Spotchecker sessions. Added via the 🛒 Want button on unmatched rows. Persisted in Supabase so the whole team can see what's in the pipeline.</p>
+
+  <div class="endpoint" id="get-acq">
+    <div class="endpoint-header">
+      <span class="method-badge mb-get">GET</span>
+      <span class="endpoint-path">/v1/acquisition</span>
+      <span class="endpoint-desc">List acquisition queue</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns all items ordered by newest first. Optional <code>?status=want|purchased|in_library</code> filter.</p>
+      <pre>{ "data": [{
+  "id": "uuid", "title": "Rich Girl", "artist": "Hall and Oates",
+  "isrc": "USRC17607760", "status": "want",
+  "source": "itunes", "notes": "For Bubbakoo",
+  "playlist_name": "Adult Contemporary",
+  "created_at": "2026-03-20T10:00:00Z"
+}] }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="post-acq">
+    <div class="endpoint-header">
+      <span class="method-badge mb-post">POST</span>
+      <span class="endpoint-path">/v1/acquisition</span>
+      <span class="endpoint-desc">Flag a song for acquisition</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Returns <code>409</code> if the same title+artist is already in <code>want</code> or <code>purchased</code> status.</p>
+      <pre>// Body
+{ "title": "Rich Girl", "artist": "Hall and Oates",
+  "isrc": "USRC17607760",         // optional
+  "playlist_name": "Adult Contemporary",  // optional
+  "source": "itunes",             // optional
+  "notes": "For Bubbakoo" }       // optional
+
+// Response 201
+{ "ok": true, "item": { "id": "uuid", "status": "want", ... } }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="patch-acq">
+    <div class="endpoint-header">
+      <span class="method-badge mb-patch">PATCH</span>
+      <span class="endpoint-path">/v1/acquisition/:id</span>
+      <span class="endpoint-desc">Update status, source, or notes</span>
+    </div>
+    <div class="endpoint-body">
+      <p>Send only the fields you want to update. Valid statuses: <code>want</code> <code>purchased</code> <code>in_library</code>. Valid sources: <code>itunes</code> <code>amazon</code> <code>ilm</code> <code>serviced</code>.</p>
+      <pre>{ "status": "purchased", "source": "itunes", "notes": "Bought 2026-03-20" }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint" id="del-acq">
+    <div class="endpoint-header">
+      <span class="method-badge mb-del">DELETE</span>
+      <span class="endpoint-path">/v1/acquisition/:id</span>
+      <span class="endpoint-desc">Remove from queue</span>
+    </div>
+    <div class="endpoint-body"><p>No body required.</p></div>
   </div>
 
   <hr>
