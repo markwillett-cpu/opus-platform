@@ -1288,6 +1288,7 @@ td:nth-child(4) { width: 52px; padding: 3px 6px; }
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://quuxtalnpdcommlylwlp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dXh0YWxucGRjb21tbHlsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjI3OTcsImV4cCI6MjA4Mzg5ODc5N30.6WBARbLiRFQQv1rol8X7rT1fUxPiikE-rk_873btHWE';
+
 // ── Replace with your actual anon key ──
 const CONFIG = window.OPUS_CONFIG || {};
 const API_BASE = CONFIG.API_BASE_URL || 'https://opus-platform.onrender.com/v1';
@@ -1366,7 +1367,7 @@ async function loadLibrary(page = 1) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let path = `library_songs?select=id,song_id,title,artist,composer,album,label,peak_year,isrc,spotify_track_id,category,albumart_file_name,styles,channels&order=${sortField}.${sortDir}`;
+  let path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category&order=${sortField}.${sortDir}`;
 
   // Apply active query filters
   if (activeQuery) {
@@ -1421,17 +1422,13 @@ function renderTable(rows) {
     const isSelected = selectedIds.has(row.id);
     const isPlaying = currentTrack?.id === row.id;
     const catColor = CATEGORIES.find(c => c.code === row.category)?.color || '#5a5a72';
-    const artUrl = row.albumart_file_name
-      ? `https://albumart.customchannels.rocks/medium/${row.albumart_file_name}`
+    const artUrl = row.album_art_file_name
+      ? `https://albumart.customchannels.rocks/medium/${row.album_art_file_name}`
       : null;
 
-    const stylesList = Array.isArray(row.styles)
-      ? row.styles.slice(0, 3).map(s => `<span class="tag">${s}</span>`).join('')
-      : (row.styles ? `<span class="tag">${row.styles}</span>` : '');
+    const stylesList = row.styles ? row.styles.split(',').slice(0,3).map(s => `<span class="tag">${s.trim()}</span>`).join('') : '';
 
-    const channelsList = Array.isArray(row.channels)
-      ? row.channels.slice(0, 2).map(c => `<span class="tag">${c}</span>`).join('')
-      : '';
+    const channelsList = row.ethos_channels ? `<span class="tag">${row.ethos_channels}</span>` : '';
 
     return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}">
       <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect(${row.id}, this)"></td>
@@ -1447,7 +1444,7 @@ function renderTable(rows) {
       </td>
       <td>
         ${artUrl
-          ? `<img class="album-thumb" src="${artUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
+          ? `<img class="album-thumb" src="${artUrl}" alt="" loading="lazy" onerror="this.style.display='none'" loading='lazy'>`
           : `<div class="album-thumb-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div>`
         }
       </td>
@@ -1948,7 +1945,7 @@ async function saveTrack() {
     peak_year: parseInt(document.getElementById('editPeakYear').value) || null,
     isrc: document.getElementById('editIsrc').value || null,
     spotify_track_id: document.getElementById('editSpotifyId').value || null,
-    albumart_file_name: document.getElementById('editAlbumArtUrl').value || null,
+    album_art_file_name: document.getElementById('editAlbumArtUrl').value || null,
     category: document.getElementById('editCategory').value,
     styles: styles
   };
@@ -2028,7 +2025,8 @@ async function createTrack() {
     category: document.getElementById('newCategory').value,
     isrc: document.getElementById('newIsrc').value || null,
     spotify_track_id: document.getElementById('newSpotifyId').value || null,
-    albumart_file_name: document.getElementById('newAlbumArtUrl').value || null,
+    album_art_file_name: document.getElementById('newAlbumArtUrl').value || null,
+    category: document.getElementById('newCategory').value,
   };
 
   try {
