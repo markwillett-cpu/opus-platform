@@ -371,19 +371,19 @@ td:nth-child(4){width:52px;padding:4px 8px}
     </div>
     <div class="modal-body" id="bulkBody">
       <div id="selectedCountLabel" style="font-size:12px; color:var(--text3); margin-bottom:12px;"></div>
-      <div class="bulk-action-item" onclick="selectBulkAction('add-style', this)">
+      <div class="bulk-action-item" data-action="add-style" onclick="selectBulkAction('add-style', this)">
         <div class="bulk-action-icon icon-add"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         Add to Style
       </div>
-      <div class="bulk-action-item" onclick="selectBulkAction('remove-style', this)">
+      <div class="bulk-action-item" data-action="remove-style" onclick="selectBulkAction('remove-style', this)">
         <div class="bulk-action-icon icon-remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         Remove from Style
       </div>
-      <div class="bulk-action-item" onclick="selectBulkAction('add-channel', this)">
+      <div class="bulk-action-item" data-action="add-channel" onclick="selectBulkAction('add-channel', this)">
         <div class="bulk-action-icon icon-add"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         Add to Channel
       </div>
-      <div class="bulk-action-item" onclick="selectBulkAction('remove-channel', this)">
+      <div class="bulk-action-item" data-action="remove-channel" onclick="selectBulkAction('remove-channel', this)">
         <div class="bulk-action-icon icon-remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         Remove from Channel
       </div>
@@ -749,7 +749,7 @@ async function loadLibrary(page = 1) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category&order=${sortField}.${sortDir}`;
+  let path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category&order=${sortField}.${sortDir}`;
 
   // Apply active query filters
   if (activeQuery) {
@@ -814,14 +814,14 @@ function renderTable(rows) {
     const channelsList = row.ethos_channels ? `<span class="tag">${row.ethos_channels}</span>` : '';
 
     return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}">
-      <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect(${row.id}, this)"></td>
+      <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${row.id}', this)"></td>
       <td>
-        <button class="row-actions-btn" onclick="showRowMenu(event, ${row.id})" title="Actions">
+        <button class="row-actions-btn" onclick="showRowMenu(event, '${row.id}')" title="Actions">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         </button>
       </td>
       <td>
-        <button class="listen-btn ${isPlaying ? 'active' : ''}" onclick="playTrack(${row.id})" title="Listen">
+        <button class="listen-btn ${isPlaying ? 'active' : ''}" onclick="playTrack('${row.id}')" title="Listen">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="${isPlaying ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         </button>
       </td>
@@ -949,12 +949,12 @@ function rowAction(action) {
   if (!row) return;
   if (action === 'listen') playTrack(row.id);
   if (action === 'edit') openEdit(row);
-  if (action === 'albumart') toast(`Album art: ${row.albumart_file_name || 'none'}`, 'info');
+  if (action === 'albumart') toast(`Album art: ${row.album_art_file_name || 'none'}`, 'info');
   if (action === 'addToStyle') {
     selectedIds.clear();
     selectedIds.add(row.id);
     updateSelectionUI();
-    openBulkActions();
+    openBulkActions('add-style');
   }
   document.getElementById('rowMenu').classList.remove('visible');
 }
@@ -980,9 +980,13 @@ function playTrack(id) {
 
   document.getElementById('playerInfo').innerHTML = `<strong>${esc(row.artist)}</strong> — ${esc(row.title)}`;
 
-  // Try to get audio from API
-  const songId = row.song_id || row.id;
-  const audioSrc = `${API_BASE}/songs/audio/${songId}`;
+  // Use Supabase Storage if file_name is set, else fall back to API
+  let audioSrc = null;
+  if (row.file_name) {
+    audioSrc = `${SUPABASE_URL}/storage/v1/object/public/tracks/${row.file_name}`;
+  } else if (row.song_id) {
+    audioSrc = `${API_BASE}/songs/audio/${row.song_id}`;
+  }
 
   audioEl = new Audio();
   audioEl.volume = 0.8;
@@ -992,12 +996,17 @@ function playTrack(id) {
     drawFakeWaveform();
   });
   audioEl.addEventListener('ended', () => setPlayIcon(false));
-  audioEl.src = audioSrc;
-  audioEl.play().then(() => setPlayIcon(true)).catch(() => {
-    // Fallback: just show the UI without actual audio
-    toast('Audio preview not available for this track', 'info');
+
+  if (audioSrc) {
+    audioEl.src = audioSrc;
+    audioEl.play().then(() => setPlayIcon(true)).catch(() => {
+      toast('Audio preview not available for this track', 'info');
+      simulatePlayerProgress();
+    });
+  } else {
+    toast('No audio file linked to this track', 'info');
     simulatePlayerProgress();
-  });
+  }
 
   // Update row highlight
   document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('playing'));
@@ -1202,20 +1211,26 @@ function clearQuery() {
 // ══════════════════════════════════════════════
 // BULK ACTIONS
 // ══════════════════════════════════════════════
-async function openBulkActions() {
+async function openBulkActions(preselect = null) {
   const n = selectedIds.size;
   document.getElementById('selectedCountLabel').textContent = `${n} track${n !== 1 ? 's' : ''} selected`;
   document.getElementById('bulkSubSelect').classList.remove('visible');
   bulkActionSelected = null;
+  document.querySelectorAll('.bulk-action-item').forEach(i => i.classList.remove('selected'));
 
   // Load styles into dropdown
   try {
-    const styles = await sb('library_styles?select=id,name&active=eq.true&order=name.asc&limit=200');
+    const styles = await sb('sim_styles?select=id,name&order=name.asc&limit=200');
     const sel = document.getElementById('bulkSubValue');
     sel.innerHTML = `<option value="">Choose…</option>` +
       (styles || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn('Could not load styles:', e.message);
+  }
+
+  if (preselect) {
+    const el = document.querySelector(`.bulk-action-item[data-action="${preselect}"]`);
+    if (el) selectBulkAction(preselect, el);
   }
 
   document.getElementById('bulkModal').classList.add('visible');
@@ -1253,15 +1268,37 @@ async function executeBulkAction() {
 
   try {
     const ids = [...selectedIds];
+    const styleId = document.getElementById('bulkSubValue').value;
+
     if (bulkActionSelected === 'add-style') {
-      // In real implementation: call API to add style to each song
-      // For now, show success
-      toast(`Added ${ids.length} tracks to style`, 'success');
+      // Insert into sim_style_song_classes (upsert to avoid duplicates)
+      const rows = ids.map(songId => ({
+        style_id: parseInt(styleId),
+        library_song_id: songId,
+        class_code: 'Uncategorized'
+      }));
+      await sb('sim_style_song_classes', {
+        method: 'POST',
+        prefer: 'resolution=merge-duplicates,return=minimal',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(rows)
+      });
+      toast(`Added ${ids.length} track${ids.length !== 1 ? 's' : ''} to style`, 'success');
+
     } else if (bulkActionSelected === 'remove-style') {
-      toast(`Removed ${ids.length} tracks from style`, 'success');
+      // Delete from sim_style_song_classes
+      for (const songId of ids) {
+        await sb(`sim_style_song_classes?style_id=eq.${styleId}&library_song_id=eq.${songId}`, {
+          method: 'DELETE',
+          prefer: 'return=minimal'
+        });
+      }
+      toast(`Removed ${ids.length} track${ids.length !== 1 ? 's' : ''} from style`, 'success');
+
     } else {
       toast(`Action completed for ${ids.length} tracks`, 'success');
     }
+
     clearSelection();
     loadLibrary(currentPage);
   } catch (e) {
