@@ -243,14 +243,8 @@ td:nth-child(4){width:52px;padding:4px 8px}
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     Columns
     <div class="col-toggle-menu" id="colMenu">
-      <div class="col-toggle-item" onclick="toggleCol('composer',this)">
-        <input type="checkbox" checked onclick="event.stopPropagation()"> Composer
-      </div>
       <div class="col-toggle-item" onclick="toggleCol('album',this)">
         <input type="checkbox" checked onclick="event.stopPropagation()"> Album
-      </div>
-      <div class="col-toggle-item" onclick="toggleCol('label',this)">
-        <input type="checkbox" checked onclick="event.stopPropagation()"> Label
       </div>
       <div class="col-toggle-item" onclick="toggleCol('peakYear',this)">
         <input type="checkbox" checked onclick="event.stopPropagation()"> Peak Year
@@ -324,9 +318,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
         <th>Art</th>
         <th onclick="sortBy('title')">Title</th>
         <th onclick="sortBy('artist')">Artist</th>
-        <th class="col-composer" onclick="sortBy('composer')">Composer</th>
         <th class="col-album" onclick="sortBy('album')">Album</th>
-        <th class="col-label" onclick="sortBy('label')">Label</th>
         <th class="col-peakYear" onclick="sortBy('peak_year')">Year</th>
         <th class="col-styles">Styles</th>
         <th class="col-channels">Ethos Channels</th>
@@ -702,7 +694,7 @@ const CATEGORIES = [
 ];
 
 const COLUMNS = {
-  composer: true, album: true, label: true, peakYear: true,
+  album: true, peakYear: true,
   styles: true, channels: true, isrc: false, spotifyId: false
 };
 
@@ -836,9 +828,9 @@ function renderTable(rows) {
       ? `https://albumart.customchannels.rocks/medium/${row.album_art_file_name}`
       : null;
 
-    const stylesList = row.styles ? row.styles.split(',').slice(0,3).map(s => `<span class="tag">${s.trim()}</span>`).join('') : '';
+    const stylesList = row.styles ? row.styles.split('|').slice(0,3).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
 
-    const channelsList = row.ethos_channels ? `<span class="tag">${row.ethos_channels}</span>` : '';
+    const channelsList = row.ethos_channels ? row.ethos_channels.split('|').slice(0,2).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
 
     return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}">
       <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${row.id}', this)"></td>
@@ -860,9 +852,7 @@ function renderTable(rows) {
       </td>
       <td style="color:var(--text); font-weight:500; max-width:200px" title="${esc(row.title)}">${esc(row.title)}</td>
       <td style="color:var(--text); max-width:160px" title="${esc(row.artist)}">${esc(row.artist)}</td>
-      <td class="col-composer" style="${COLUMNS.composer ? '' : 'display:none'}">${esc(row.composer || '')}</td>
       <td class="col-album" style="${COLUMNS.album ? '' : 'display:none'}" title="${esc(row.album || '')}">${esc(row.album || '')}</td>
-      <td class="col-label" style="${COLUMNS.label ? '' : 'display:none'}">${esc(row.label || '')}</td>
       <td class="col-peakYear" style="${COLUMNS.peakYear ? '' : 'display:none'}; font-family:'DM Mono',monospace; color:var(--text3)">${row.peak_year || ''}</td>
       <td class="col-styles" style="${COLUMNS.styles ? '' : 'display:none'}"><div class="tag-list">${stylesList}</div></td>
       <td class="col-channels" style="${COLUMNS.channels ? '' : 'display:none'}"><div class="tag-list">${channelsList}</div></td>
@@ -1249,14 +1239,17 @@ async function openBulkActions(preselect = null) {
   bulkActionSelected = null;
   document.querySelectorAll('.bulk-action-item').forEach(i => i.classList.remove('selected'));
 
-  // Load styles into dropdown
+  // Load styles from API
   try {
-    const styles = await sb('sim_styles?select=id,name&order=name.asc&limit=200');
     const sel = document.getElementById('bulkSubValue');
-    sel.innerHTML = `<option value="">Choose…</option>` +
-      (styles || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    sel.innerHTML = `<option value="">Loading…</option>`;
+    const styles = await api('/styles');
+    const list = Array.isArray(styles) ? styles : (styles?.styles || styles?.data || []);
+    sel.innerHTML = `<option value="">Choose a style…</option>` +
+      list.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
   } catch (e) {
     console.warn('Could not load styles:', e.message);
+    document.getElementById('bulkSubValue').innerHTML = `<option value="">Error loading styles</option>`;
   }
 
   if (preselect) {
@@ -1336,10 +1329,27 @@ async function executeBulkAction() {
         body: JSON.stringify(styleSongRows)
       });
 
-      // Note: no sim_style_song_classes insert — tracks without a class row
-      // are automatically treated as Uncategorized by the class manager.
+      // No sim_style_song_classes insert — tracks without a class row
+      // are automatically Uncategorized in the class manager.
 
-      toast(`Added ${songRows.length} track${songRows.length !== 1 ? 's' : ''} to style — they will appear as Uncategorized`, 'success');
+      // Also update the denormalized styles text field on library_songs
+      // so the style tag shows up immediately in the table
+      const styleName = document.querySelector(`#bulkSubValue option[value="${styleIdFinal}"]`)?.textContent || '';
+      if (styleName) {
+        for (const r of songRows) {
+          const existing = r.styles ? r.styles.split('|').map(s => s.trim()) : [];
+          if (!existing.includes(styleName)) {
+            const updated = [...existing, styleName].filter(Boolean).join('|');
+            await sb(`library_songs?id=eq.${r.id}`, {
+              method: 'PATCH',
+              headers: { 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ styles: updated })
+            });
+          }
+        }
+      }
+
+      toast(`Added ${songRows.length} track${songRows.length !== 1 ? 's' : ''} to style`, 'success');
 
     } else if (effectiveAction === 'remove-style') {
       // Delete from sim_style_song_classes
