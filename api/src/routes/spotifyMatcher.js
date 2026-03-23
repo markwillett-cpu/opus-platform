@@ -330,6 +330,22 @@ export default async function routes(app) {
     return reply.redirect(`https://accounts.spotify.com/authorize?${params}`);
   });
 
+/**
+ * GET /v1/spotify/search?q=...&limit=8
+ * Track search — used by library.html Add Track flow
+ */
+app.get('/spotify/search', async (req, reply) => {
+  const { q, limit = 8 } = req.query;
+  if (!q) return reply.code(400).send({ error: 'q is required' });
+
+  const token = await getAccessToken();
+  const data = await spotifyGet(
+    `/search?q=${encodeURIComponent(q)}&type=track&limit=${limit}&market=US`,
+    token
+  );
+  return reply.send(data);
+});
+  
   /**
    * GET /v1/spotify/callback
    * Spotify redirects here after login.
