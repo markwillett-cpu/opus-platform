@@ -1463,29 +1463,31 @@ async function searchSpotify() {
   const q = document.getElementById('spotifySearchInput').value.trim();
   if (!q) return;
   const container = document.getElementById('spotifyResults');
-  container.innerHTML = `<div style="color:var(--text3); font-size:12px; text-align:center; padding:20px"><span class="spinner"></span> Searching…</div>`;
+  container.innerHTML = `<div style="font-size:12px;text-align:center;padding:16px;color:#7f8c8d"><span class="spinner"></span> Searching…</div>`;
 
   try {
-    const data = await api(`/spotify/search?q=${encodeURIComponent(q)}`);
+    const data = await api(`/spotify/search?q=${encodeURIComponent(q)}&limit=8`);
     const tracks = data?.tracks?.items || data?.items || [];
     if (!tracks.length) {
-      container.innerHTML = `<div style="color:var(--text3); font-size:12px; padding:10px">No results</div>`;
+      container.innerHTML = `<div style="font-size:13px;padding:10px;color:#7f8c8d">No results found</div>`;
       return;
     }
     container.innerHTML = tracks.slice(0, 8).map(t => `
-      <div style="display:flex; gap:8px; padding:8px; border-radius:6px; cursor:pointer; border: 1px solid transparent; transition:all 0.1s;"
-        onmouseover="this.style.background='var(--surface3)'; this.style.borderColor='var(--border)'"
-        onmouseout="this.style.background=''; this.style.borderColor='transparent'"
+      <div style="display:flex;gap:8px;padding:8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all .1s"
+        onmouseover="this.style.background='var(--light)';this.style.borderColor='var(--border)'"
+        onmouseout="this.style.background='';this.style.borderColor='transparent'"
         onclick="applySpotifyTrack(${JSON.stringify(t).replace(/"/g, '&quot;')})">
-        ${t.album?.images?.[2]?.url ? `<img src="${t.album.images[2].url}" style="width:36px;height:36px;border-radius:3px;object-fit:cover;flex-shrink:0">` : ''}
-        <div style="overflow:hidden;">
-          <div style="font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${esc(t.name)}</div>
-          <div style="font-size:11px; color:var(--text3)">${esc(t.artists?.[0]?.name)}</div>
+        ${t.album?.images?.[2]?.url
+          ? `<img src="${t.album.images[2].url}" style="width:36px;height:36px;border-radius:3px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)">`
+          : `<div style="width:36px;height:36px;border-radius:3px;background:var(--light);flex-shrink:0;border:1px solid var(--border)"></div>`}
+        <div style="overflow:hidden;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
+          <div style="font-size:11px;color:#7f8c8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.artists?.[0]?.name)} · ${esc(t.album?.name)}</div>
         </div>
       </div>
     `).join('');
   } catch (e) {
-    container.innerHTML = `<div style="color:var(--red); font-size:12px; padding:10px">${e.message}</div>`;
+    container.innerHTML = `<div style="font-size:13px;padding:10px;color:var(--danger)">${e.message}</div>`;
   }
 }
 
