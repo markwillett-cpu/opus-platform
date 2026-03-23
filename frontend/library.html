@@ -636,8 +636,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 // CONFIG
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://quuxtalnpdcommlylwlp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dXh0YWxucGRjb21tbHlsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjI3OTcsImV4cCI6MjA4Mzg5ODc5N30.6WBARbLiRFQQv1rol8X7rT1fUxPiikE-rk_873btHWE';
-  
+const SUPABASE_KEY = 'sb_publishable_Lvv-SG7eonq1OO3T5Y7ofg__aF4eDRQ';
 // ── Replace with your actual anon key ──
 const CONFIG = window.OPUS_CONFIG || {};
 const API_BASE = CONFIG.API_BASE_URL || 'https://opus-platform.onrender.com/v1';
@@ -725,10 +724,8 @@ async function loadLibrary(page = 1) {
   }
 
   try {
-    const [rows, count] = await Promise.all([
-      sb(path, { headers: { 'Range-Unit': 'items', 'Range': `${from}-${to}` } }),
-      getCount(activeQuery)
-    ]);
+    // Use count=planned for speed — avoids full table scan, gives estimated count
+    const { rows, count } = await sbWithCount(path, from, to);
 
     allRows = rows || [];
     totalCount = count;
@@ -736,25 +733,28 @@ async function loadLibrary(page = 1) {
     updateStatus();
   } catch (e) {
     console.error(e);
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="15" style="color:var(--red)">Error loading library: ${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="15" style="color:var(--danger)">Error loading library: ${e.message}</td></tr>`;
   }
 }
 
-async function getCount(query) {
-  try {
-    let path = `library_songs?select=id`;
-    if (query?.category) path += `&category=in.(${query.category})`;
-    if (query?.search) path += `&or=(title.ilike.*${encodeURIComponent(query.search)}*,artist.ilike.*${encodeURIComponent(query.search)}*)`;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      method: 'HEAD',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Prefer': 'count=exact'
-      }
-    });
-    return parseInt(res.headers.get('content-range')?.split('/')[1] || '0');
-  } catch { return 0; }
+async function sbWithCount(path, from, to) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Range-Unit': 'items',
+      'Range': `${from}-${to}`,
+      'Prefer': 'count=planned'   // fast estimate, no full scan
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  const contentRange = res.headers.get('content-range') || '';
+  // content-range: 0-99/123456  or  0-99/*
+  const total = parseInt(contentRange.split('/')[1]) || 0;
+  const rows = await res.json();
+  return { rows, count: total };
 }
 
 // ══════════════════════════════════════════════
