@@ -911,12 +911,8 @@ function nextPage() { const total = Math.ceil(totalCount / PAGE_SIZE); if (curre
 
 function updateStatus() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const countLabel = totalCount > allRows.length
-    ? `${allRows.length} of ${totalCount.toLocaleString()} tracks`
-    : `${allRows.length} track${allRows.length !== 1 ? 's' : ''}`;
-  document.getElementById('totalCount').textContent = countLabel;
   document.getElementById('statusPage').textContent = `Page ${currentPage}`;
-  document.getElementById('statusShowing').textContent = `Showing ${allRows.length}`;
+  document.getElementById('statusShowing').textContent = `${allRows.length} tracks`;
   document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
   document.getElementById('prevBtn').disabled = currentPage <= 1;
   document.getElementById('nextBtn').disabled = currentPage >= totalPages;
@@ -1312,8 +1308,11 @@ async function executeBulkAction() {
   if (effectiveAction.includes('style') && !subValue) { toast('Please select a style', 'error'); return; }
   if (effectiveAction.includes('channel') && !subValue) { toast('Please select a channel', 'error'); return; }
 
-  const styleIdInt = parseInt(subValue, 10);
-  if (effectiveAction.includes('style') && isNaN(styleIdInt)) {
+  // Try int first, fall back to raw value (handles both int and string IDs)
+  const styleIdNum = Number(subValue);
+  const styleIdFinal = !isNaN(styleIdNum) && subValue !== '' ? styleIdNum : subValue;
+  console.log('Style ID raw:', JSON.stringify(subValue), '→ final:', styleIdFinal);
+  if (effectiveAction.includes('style') && !subValue) {
     toast('Please select a valid style', 'error'); return;
   }
 
@@ -1335,7 +1334,7 @@ async function executeBulkAction() {
       }
 
       const rows = songRows.map(r => ({
-        style_id: styleIdInt,
+        style_id: styleIdFinal,
         library_song_id: r.song_id,   // integer song_id, not UUID
         class_code: 'Uncategorized'
       }));
