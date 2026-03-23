@@ -390,7 +390,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 
       <div class="bulk-sub-select" id="bulkSubSelect">
         <div class="bulk-sub-label" id="bulkSubLabel">Select Style</div>
-        <select class="filter-select" style="width:100%" id="bulkSubValue">
+        <select class="filter-select" style="width:100%" id="bulkSubValue" onchange="onStyleSelectChange(this)">
           <option value="">Choose…</option>
         </select>
       </div>
@@ -1287,6 +1287,14 @@ function selectBulkAction(action, el) {
   }
 }
 
+function onStyleSelectChange(sel) {
+  // If user picks a style but hasn't clicked an action button, default to Add to Style
+  if (sel.value && !bulkActionSelected) {
+    const el = document.querySelector('.bulk-action-item[data-action="add-style"]');
+    if (el) selectBulkAction('add-style', el);
+  }
+}
+
 async function executeBulkAction() {
   if (!bulkActionSelected || !selectedIds.size) return;
 
@@ -1300,8 +1308,15 @@ async function executeBulkAction() {
     return;
   }
 
+  // If no action selected but sub-select has a value, default to add-style
+  const effectiveAction = action || (subValue ? 'add-style' : null);
+  if (!effectiveAction) {
+    toast('Please select an action', 'error');
+    return;
+  }
+
   const styleIdInt = parseInt(subValue, 10);
-  if (action.includes('style') && isNaN(styleIdInt)) {
+  if (effectiveAction.includes('style') && (!subValue || isNaN(styleIdInt))) {
     toast('Please select a style', 'error');
     return;
   }
@@ -1313,7 +1328,7 @@ async function executeBulkAction() {
   try {
     const styleId = subValue;
 
-    if (action === 'add-style') {
+    if (effectiveAction === 'add-style') {
 
       // Look up the integer song_id for each selected UUID
       const songRows = allRows.filter(r => ids.includes(r.id));
@@ -1338,7 +1353,7 @@ async function executeBulkAction() {
       });
       toast(`Added ${rows.length} track${rows.length !== 1 ? 's' : ''} to style`, 'success');
 
-    } else if (action === 'remove-style') {
+    } else if (effectiveAction === 'remove-style') {
       // Delete from sim_style_song_classes
       for (const songId of ids) {
         await sb(`sim_style_song_classes?style_id=eq.${styleId}&library_song_id=eq.${songId}`, {
