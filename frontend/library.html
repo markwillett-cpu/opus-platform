@@ -1289,26 +1289,31 @@ function selectBulkAction(action, el) {
 
 async function executeBulkAction() {
   if (!bulkActionSelected || !selectedIds.size) return;
-  const val = document.getElementById('bulkSubValue').value;
-  if (!val && (bulkActionSelected.includes('style') || bulkActionSelected.includes('channel'))) {
+
+  // Read ALL values before closing modal — modal DOM disappears after close
+  const subValue = document.getElementById('bulkSubValue').value;
+  const action = bulkActionSelected;
+  const ids = [...selectedIds];
+
+  if (!subValue && (action.includes('style') || action.includes('channel'))) {
     toast('Please select a target', 'error');
     return;
   }
 
-  toast(`Applying to ${selectedIds.size} tracks…`, 'info');
+  const styleIdInt = parseInt(subValue, 10);
+  if (action.includes('style') && isNaN(styleIdInt)) {
+    toast('Please select a style', 'error');
+    return;
+  }
+
+  // All validated — close modal and proceed
   closeModal('bulkModal');
+  toast(`Applying to ${ids.length} track${ids.length !== 1 ? 's' : ''}…`, 'info');
 
   try {
-    const ids = [...selectedIds];
-    const styleId = document.getElementById('bulkSubValue').value;
+    const styleId = subValue;
 
-    if (bulkActionSelected === 'add-style') {
-      if (!styleId) { toast('Please select a style', 'error'); return; }
-
-      // sim_style_song_classes uses integer style_id and integer song_id
-      // library_song_id maps to song_id (bigint) on library_songs, not the UUID id
-      const styleIdInt = parseInt(styleId, 10);
-      if (isNaN(styleIdInt)) { toast('Invalid style ID', 'error'); return; }
+    if (action === 'add-style') {
 
       // Look up the integer song_id for each selected UUID
       const songRows = allRows.filter(r => ids.includes(r.id));
@@ -1333,7 +1338,7 @@ async function executeBulkAction() {
       });
       toast(`Added ${rows.length} track${rows.length !== 1 ? 's' : ''} to style`, 'success');
 
-    } else if (bulkActionSelected === 'remove-style') {
+    } else if (action === 'remove-style') {
       // Delete from sim_style_song_classes
       for (const songId of ids) {
         await sb(`sim_style_song_classes?style_id=eq.${styleId}&library_song_id=eq.${songId}`, {
