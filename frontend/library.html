@@ -1287,7 +1287,7 @@ td:nth-child(4) { width: 52px; padding: 3px 6px; }
 // CONFIG
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://quuxtalnpdcommlylwlp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dXh0YWxucGRjb21tbHlsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMjI3OTcsImV4cCI6MjA4Mzg5ODc5N30.6WBARbLiRFQQv1rol8X7rT1fUxPiikE-rk_873btHWE';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dXh0YWxucGRjb21tbHlsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk4NTI4MDAsImV4cCI6MjAyNTQyODgwMH0.placeholder';
 
 // ── Replace with your actual anon key ──
 const CONFIG = window.OPUS_CONFIG || {};
@@ -1329,15 +1329,16 @@ const COLUMNS = {
 // ══════════════════════════════════════════════
 async function sb(path, opts = {}) {
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const { headers: extraHeaders, prefer, ...restOpts } = opts;
   const res = await fetch(url, {
+    ...restOpts,
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': opts.prefer || 'return=representation',
-      ...opts.headers
-    },
-    ...opts
+      'Prefer': prefer || 'return=representation',
+      ...extraHeaders
+    }
   });
   if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
   return res.headers.get('content-type')?.includes('json') ? res.json() : res.text();
