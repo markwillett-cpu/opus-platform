@@ -475,16 +475,6 @@ td:nth-child(4){width:52px;padding:4px 8px}
           <input type="text" class="field-input" id="editAlbum">
         </div>
         <div>
-          <div class="field-label">Label</div>
-          <input type="text" class="field-input" id="editLabel">
-        </div>
-      </div>
-      <div class="field-group">
-        <div>
-          <div class="field-label">Composer</div>
-          <input type="text" class="field-input" id="editComposer">
-        </div>
-        <div>
           <div class="field-label">Peak Year</div>
           <input type="number" class="field-input" id="editPeakYear">
         </div>
@@ -533,77 +523,119 @@ td:nth-child(4){width:52px;padding:4px 8px}
 <div class="modal-backdrop" id="addTrackModal">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <span class="modal-title">Add New Track</span>
-      <button class="modal-close" onclick="closeModal('addTrackModal')">
+      <span class="modal-title" id="addTrackTitle">Add New Track — Step 1: Upload File</span>
+      <button class="modal-close" onclick="closeAddTrack()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <div class="modal-body">
-      <div style="display:flex; gap:16px;">
-        <div style="flex:1">
-          <div class="field-group">
-            <div>
-              <div class="field-label">Title *</div>
-              <input type="text" class="field-input" id="newTitle" placeholder="Track title">
-            </div>
-            <div>
-              <div class="field-label">Artist *</div>
-              <input type="text" class="field-input" id="newArtist" placeholder="Artist name">
-            </div>
-          </div>
-          <div class="field-group">
-            <div>
-              <div class="field-label">Album</div>
-              <input type="text" class="field-input" id="newAlbum">
-            </div>
-            <div>
-              <div class="field-label">Label</div>
-              <input type="text" class="field-input" id="newLabel">
-            </div>
-          </div>
-          <div class="field-group">
-            <div>
-              <div class="field-label">Peak Year</div>
-              <input type="number" class="field-input" id="newPeakYear" placeholder="e.g. 2024">
-            </div>
-            <div>
-              <div class="field-label">Category</div>
-              <select class="field-input" id="newCategory">
-                <option value="NEW">NEW - New Adds</option>
-                <option value="LIB">LIB - Library</option>
-              </select>
-            </div>
-          </div>
-          <div class="field-group">
-            <div>
-              <div class="field-label">ISRC</div>
-              <input type="text" class="field-input" id="newIsrc">
-            </div>
-            <div>
-              <div class="field-label">Spotify ID</div>
-              <input type="text" class="field-input" id="newSpotifyId">
-            </div>
-          </div>
-          <div class="field-group full">
-            <div>
-              <div class="field-label">Album Art URL</div>
-              <input type="text" class="field-input" id="newAlbumArtUrl" placeholder="https://…">
-            </div>
-          </div>
+
+      <!-- STEP 1: File Upload -->
+      <div id="addStep1">
+        <div style="background:#fff3cd;border-left:4px solid var(--warning);padding:10px 14px;border-radius:4px;font-size:13px;color:#856404;margin-bottom:16px;font-weight:600">
+          Remove <strong>ALL</strong> special characters from the filename and MP3 metadata before uploading.
+          Examples: à, é, ô, ñ, ü, Ø, ¿, å, &
         </div>
-        <div style="width:240px; flex-shrink:0;">
-          <div class="field-label" style="margin-bottom:8px">Spotify Lookup</div>
-          <div style="display:flex; gap:6px; margin-bottom:10px;">
-            <input type="text" class="field-input" id="spotifySearchInput" placeholder="Search Spotify…" style="flex:1">
-            <button class="toolbar-btn primary" onclick="searchSpotify()">Go</button>
+        <div id="fileDropZone"
+          style="border:2px dashed var(--border);border-radius:8px;background:#fafafa;padding:48px 20px;text-align:center;cursor:pointer;transition:all .2s"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)">
+          <div style="font-size:32px;margin-bottom:10px">📂</div>
+          <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:6px">Drag & Drop your MP3 file here</div>
+          <div style="font-size:13px;color:#7f8c8d">or <span style="color:var(--accent);text-decoration:underline;cursor:pointer">Browse</span></div>
+          <div style="font-size:12px;color:#95a5a6;margin-top:10px">MP3 files only · 100MB max</div>
+        </div>
+        <input type="file" id="fileInput" accept=".mp3,audio/mpeg" style="display:none" onchange="handleFileSelect(this)">
+        <div id="filePreview" style="display:none;margin-top:14px;background:var(--light);border-radius:6px;padding:12px 14px;display:none;align-items:center;gap:12px">
+          <div style="font-size:24px">🎵</div>
+          <div style="flex:1;overflow:hidden">
+            <div id="fileName" style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="fileSize" style="font-size:12px;color:#7f8c8d;margin-top:2px"></div>
           </div>
-          <div id="spotifyResults" style="max-height:340px; overflow-y:auto;"></div>
+          <button onclick="clearFile()" style="background:none;border:none;cursor:pointer;color:#95a5a6;font-size:18px;padding:0 4px">✕</button>
         </div>
       </div>
+
+      <!-- STEP 2: Metadata -->
+      <div id="addStep2" style="display:none">
+        <div id="step2FileInfo" style="background:var(--light);border-radius:6px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px">
+          <span style="font-size:18px">🎵</span>
+          <span id="step2FileName" style="font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <span id="step2FileSize" style="color:#7f8c8d"></span>
+        </div>
+        <div style="display:flex;gap:16px">
+          <div style="flex:1">
+            <div class="field-group">
+              <div>
+                <div class="field-label">Title *</div>
+                <input type="text" class="field-input" id="newTitle" placeholder="Track title">
+              </div>
+              <div>
+                <div class="field-label">Artist *</div>
+                <input type="text" class="field-input" id="newArtist" placeholder="Artist name">
+              </div>
+            </div>
+            <div class="field-group">
+              <div>
+                <div class="field-label">Album</div>
+                <input type="text" class="field-input" id="newAlbum">
+              </div>
+              <div>
+                <div class="field-label">Peak Year</div>
+                <input type="number" class="field-input" id="newPeakYear" placeholder="e.g. 2024">
+              </div>
+            </div>
+            <div class="field-group">
+              <div>
+                <div class="field-label">ISRC</div>
+                <input type="text" class="field-input" id="newIsrc">
+              </div>
+              <div>
+                <div class="field-label">Spotify ID</div>
+                <input type="text" class="field-input" id="newSpotifyId">
+              </div>
+            </div>
+            <div class="field-group">
+              <div>
+                <div class="field-label">Category</div>
+                <select class="field-input" id="newCategory">
+                  <option value="NEW">NEW — New Adds</option>
+                  <option value="LIB">LIB — Library</option>
+                </select>
+              </div>
+              <div>
+                <div class="field-label">Album Art URL</div>
+                <input type="text" class="field-input" id="newAlbumArtUrl" placeholder="https://…">
+              </div>
+            </div>
+          </div>
+          <div style="width:220px;flex-shrink:0">
+            <div class="field-label" style="margin-bottom:8px">Spotify Lookup</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <input type="text" class="field-input" id="spotifySearchInput" placeholder="Search…" style="flex:1">
+              <button class="toolbar-btn primary" onclick="searchSpotify()">Go</button>
+            </div>
+            <div id="spotifyResults" style="max-height:300px;overflow-y:auto"></div>
+            <div id="artPreviewWrap" style="display:none;margin-top:10px;text-align:center">
+              <img id="artPreview" style="width:80px;height:80px;border-radius:4px;object-fit:cover;border:1px solid var(--border)">
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
-      <button class="toolbar-btn primary" onclick="createTrack()">Create Track</button>
-      <button class="toolbar-btn" onclick="closeModal('addTrackModal')">Cancel</button>
+      <div id="addFooterStep1">
+        <button class="toolbar-btn primary" id="step1NextBtn" onclick="goToStep2()" disabled>Next — Add Metadata →</button>
+        <button class="toolbar-btn" onclick="closeAddTrack()">Cancel</button>
+      </div>
+      <div id="addFooterStep2" style="display:none">
+        <button class="toolbar-btn" onclick="goToStep1()">← Back</button>
+        <button class="toolbar-btn primary" onclick="createTrack()">Create Track</button>
+        <button class="toolbar-btn" onclick="closeAddTrack()">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -637,6 +669,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://quuxtalnpdcommlylwlp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Lvv-SG7eonq1OO3T5Y7ofg__aF4eDRQ';
+  
 // ── Replace with your actual anon key ──
 const CONFIG = window.OPUS_CONFIG || {};
 const API_BASE = CONFIG.API_BASE_URL || 'https://opus-platform.onrender.com/v1';
@@ -1244,18 +1277,16 @@ function openEdit(row) {
   document.getElementById('editTitle').value = row.title || '';
   document.getElementById('editArtist').value = row.artist || '';
   document.getElementById('editAlbum').value = row.album || '';
-  document.getElementById('editLabel').value = row.label || '';
-  document.getElementById('editComposer').value = row.composer || '';
   document.getElementById('editPeakYear').value = row.peak_year || '';
   document.getElementById('editIsrc').value = row.isrc || '';
   document.getElementById('editSpotifyId').value = row.spotify_track_id || '';
-  document.getElementById('editAlbumArtUrl').value = row.albumart_file_name || '';
+  document.getElementById('editAlbumArtUrl').value = row.album_art_file_name || '';
   document.getElementById('editCategory').value = row.category || 'LIB';
 
-  // Styles tags
+  // Styles tags — stored as comma-separated text
   const field = document.getElementById('editStylesField');
   field.querySelectorAll('.tag-removable').forEach(t => t.remove());
-  const styles = Array.isArray(row.styles) ? row.styles : (row.styles ? [row.styles] : []);
+  const styles = row.styles ? row.styles.split(',').map(s => s.trim()).filter(Boolean) : [];
   styles.forEach(s => addTag(field, s));
 
   document.getElementById('editModal').classList.add('visible');
@@ -1316,8 +1347,115 @@ async function saveTrack() {
 // ══════════════════════════════════════════════
 // ADD TRACK
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// ADD TRACK — TWO STEP FLOW
+// ══════════════════════════════════════════════
+let selectedFile = null;
+
 function openAddTrack() {
+  selectedFile = null;
+  goToStep1();
+  // Clear all fields
+  ['newTitle','newArtist','newAlbum','newPeakYear','newIsrc','newSpotifyId','newAlbumArtUrl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('newCategory').value = 'NEW';
+  document.getElementById('spotifyResults').innerHTML = '';
+  document.getElementById('artPreviewWrap').style.display = 'none';
   document.getElementById('addTrackModal').classList.add('visible');
+}
+
+function closeAddTrack() {
+  closeModal('addTrackModal');
+  selectedFile = null;
+}
+
+function goToStep1() {
+  document.getElementById('addStep1').style.display = '';
+  document.getElementById('addStep2').style.display = 'none';
+  document.getElementById('addFooterStep1').style.display = '';
+  document.getElementById('addFooterStep2').style.display = 'none';
+  document.getElementById('addTrackTitle').textContent = 'Add New Track — Step 1: Upload File';
+}
+
+function goToStep2() {
+  if (!selectedFile) return;
+  document.getElementById('addStep1').style.display = 'none';
+  document.getElementById('addStep2').style.display = '';
+  document.getElementById('addFooterStep1').style.display = 'none';
+  document.getElementById('addFooterStep2').style.display = '';
+  document.getElementById('addTrackTitle').textContent = 'Add New Track — Step 2: Track Info';
+  // Pre-fill title/artist from filename: Artist--Title.12345.mp3
+  if (!document.getElementById('newTitle').value) {
+    const base = selectedFile.name.replace(/\.mp3$/i, '').replace(/\.[^.]+$/, '');
+    const parts = base.split('--');
+    if (parts.length >= 2) {
+      document.getElementById('newArtist').value = parts[0].replace(/_/g, ' ').trim();
+      document.getElementById('newTitle').value = parts[1].replace(/_/g, ' ').trim();
+      // Pre-fill Spotify search
+      document.getElementById('spotifySearchInput').value = `${parts[0].replace(/_/g,' ')} ${parts[1].replace(/_/g,' ')}`.trim();
+    } else {
+      document.getElementById('newTitle').value = base.replace(/_/g, ' ');
+    }
+  }
+  document.getElementById('step2FileName').textContent = selectedFile.name;
+  document.getElementById('step2FileSize').textContent = formatBytes(selectedFile.size);
+}
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  setSelectedFile(file);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  const zone = document.getElementById('fileDropZone');
+  zone.style.borderColor = 'var(--accent)';
+  zone.style.background = '#e8f4f8';
+}
+
+function handleDragLeave(e) {
+  const zone = document.getElementById('fileDropZone');
+  zone.style.borderColor = 'var(--border)';
+  zone.style.background = '#fafafa';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  handleDragLeave(e);
+  const file = e.dataTransfer.files[0];
+  if (file && (file.type === 'audio/mpeg' || file.name.endsWith('.mp3'))) {
+    setSelectedFile(file);
+  } else {
+    toast('Please drop an MP3 file', 'error');
+  }
+}
+
+function setSelectedFile(file) {
+  if (file.size > 100 * 1024 * 1024) { toast('File exceeds 100MB limit', 'error'); return; }
+  selectedFile = file;
+  document.getElementById('fileDropZone').style.display = 'none';
+  const preview = document.getElementById('filePreview');
+  preview.style.display = 'flex';
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatBytes(file.size);
+  document.getElementById('step1NextBtn').disabled = false;
+}
+
+function clearFile() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileDropZone').style.display = '';
+  document.getElementById('filePreview').style.display = 'none';
+  document.getElementById('step1NextBtn').disabled = true;
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(1) + ' MB';
 }
 
 async function searchSpotify() {
@@ -1357,34 +1495,89 @@ function applySpotifyTrack(t) {
   document.getElementById('newIsrc').value = t.external_ids?.isrc || '';
   document.getElementById('newSpotifyId').value = t.id || '';
   document.getElementById('newPeakYear').value = t.album?.release_date?.substring(0, 4) || '';
-  document.getElementById('newAlbumArtUrl').value = t.album?.images?.[1]?.url || '';
+  const artUrl = t.album?.images?.[1]?.url || '';
+  document.getElementById('newAlbumArtUrl').value = artUrl;
+  if (artUrl) {
+    document.getElementById('artPreview').src = artUrl;
+    document.getElementById('artPreviewWrap').style.display = '';
+  }
   toast('Spotify data applied', 'success');
+}
+
+// ══════════════════════════════════════════════
+// SUPABASE STORAGE UPLOAD
+// ══════════════════════════════════════════════
+async function uploadToStorage(file) {
+  // Build a clean filename: sanitize, preserve Artist--Title.ext pattern
+  const safeName = file.name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip accents
+    .replace(/[^a-zA-Z0-9._\-]/g, '_');                  // replace special chars
+
+  const path = `uploads/${Date.now()}_${safeName}`;
+
+  const res = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/tracks/${path}`,
+    {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'audio/mpeg',
+        'x-upsert': 'true'
+      },
+      body: file
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Upload failed: ${err}`);
+  }
+
+  return path; // store this as file_name in library_songs
 }
 
 async function createTrack() {
   const title = document.getElementById('newTitle').value.trim();
   const artist = document.getElementById('newArtist').value.trim();
   if (!title || !artist) { toast('Title and artist are required', 'error'); return; }
+  if (!selectedFile) { toast('No file selected', 'error'); return; }
 
-  const payload = {
-    title, artist,
-    album: document.getElementById('newAlbum').value || null,
-    label: document.getElementById('newLabel').value || null,
-    peak_year: parseInt(document.getElementById('newPeakYear').value) || null,
-    category: document.getElementById('newCategory').value,
-    isrc: document.getElementById('newIsrc').value || null,
-    spotify_track_id: document.getElementById('newSpotifyId').value || null,
-    album_art_file_name: document.getElementById('newAlbumArtUrl').value || null,
-    category: document.getElementById('newCategory').value,
-  };
+  const createBtn = document.querySelector('#addFooterStep2 .toolbar-btn.primary');
+  const origText = createBtn.textContent;
+  createBtn.disabled = true;
 
   try {
+    // Step 1: upload file to Supabase Storage
+    createBtn.textContent = 'Uploading…';
+    toast('Uploading MP3…', 'info');
+    const filePath = await uploadToStorage(selectedFile);
+
+    // Step 2: create the library_songs record
+    createBtn.textContent = 'Saving…';
+    const payload = {
+      title,
+      artist,
+      album: document.getElementById('newAlbum').value || null,
+      peak_year: parseInt(document.getElementById('newPeakYear').value) || null,
+      category: document.getElementById('newCategory').value,
+      isrc: document.getElementById('newIsrc').value || null,
+      spotify_track_id: document.getElementById('newSpotifyId').value || null,
+      album_art_file_name: document.getElementById('newAlbumArtUrl').value || null,
+      file_name: filePath,
+    };
+
     await sb('library_songs', { method: 'POST', body: JSON.stringify(payload) });
-    closeModal('addTrackModal');
-    toast('Track created successfully', 'success');
+
+    closeAddTrack();
+    toast(`✓ "${title}" uploaded and saved`, 'success');
     loadLibrary(1);
+
   } catch (e) {
     toast(`Error: ${e.message}`, 'error');
+  } finally {
+    createBtn.disabled = false;
+    createBtn.textContent = origText;
   }
 }
 
