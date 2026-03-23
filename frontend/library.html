@@ -911,7 +911,10 @@ function nextPage() { const total = Math.ceil(totalCount / PAGE_SIZE); if (curre
 
 function updateStatus() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  document.getElementById('totalCount').textContent = `${totalCount.toLocaleString()} tracks`;
+  const countLabel = totalCount > allRows.length
+    ? `${allRows.length} of ${totalCount.toLocaleString()} tracks`
+    : `${allRows.length} track${allRows.length !== 1 ? 's' : ''}`;
+  document.getElementById('totalCount').textContent = countLabel;
   document.getElementById('statusPage').textContent = `Page ${currentPage}`;
   document.getElementById('statusShowing').textContent = `Showing ${allRows.length}`;
   document.getElementById('pageInfo').textContent = `${currentPage} / ${totalPages}`;
@@ -1296,32 +1299,25 @@ function onStyleSelectChange(sel) {
 }
 
 async function executeBulkAction() {
-  if (!bulkActionSelected || !selectedIds.size) return;
-
-  // Read ALL values before closing modal — modal DOM disappears after close
+  // Read everything upfront before any modal manipulation
   const subValue = document.getElementById('bulkSubValue').value;
-  const action = bulkActionSelected;
   const ids = [...selectedIds];
 
-  if (!subValue && (action.includes('style') || action.includes('channel'))) {
-    toast('Please select a target', 'error');
-    return;
-  }
+  // Determine effective action — prefer explicit selection, fall back to add-style if style chosen
+  const effectiveAction = bulkActionSelected || (subValue ? 'add-style' : null);
 
-  // If no action selected but sub-select has a value, default to add-style
-  const effectiveAction = action || (subValue ? 'add-style' : null);
-  if (!effectiveAction) {
-    toast('Please select an action', 'error');
-    return;
-  }
+  // Validate
+  if (!ids.length) { toast('No tracks selected', 'error'); return; }
+  if (!effectiveAction) { toast('Please select an action', 'error'); return; }
+  if (effectiveAction.includes('style') && !subValue) { toast('Please select a style', 'error'); return; }
+  if (effectiveAction.includes('channel') && !subValue) { toast('Please select a channel', 'error'); return; }
 
   const styleIdInt = parseInt(subValue, 10);
-  if (effectiveAction.includes('style') && (!subValue || isNaN(styleIdInt))) {
-    toast('Please select a style', 'error');
-    return;
+  if (effectiveAction.includes('style') && isNaN(styleIdInt)) {
+    toast('Please select a valid style', 'error'); return;
   }
 
-  // All validated — close modal and proceed
+  // All good — close and execute
   closeModal('bulkModal');
   toast(`Applying to ${ids.length} track${ids.length !== 1 ? 's' : ''}…`, 'info');
 
