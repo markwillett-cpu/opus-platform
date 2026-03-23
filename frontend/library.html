@@ -1304,20 +1304,34 @@ async function executeBulkAction() {
 
     if (bulkActionSelected === 'add-style') {
       if (!styleId) { toast('Please select a style', 'error'); return; }
-      // style_id is integer in sim_styles
-      const styleIdInt = Number(styleId);
-      const rows = ids.map(songId => ({
+
+      // sim_style_song_classes uses integer style_id and integer song_id
+      // library_song_id maps to song_id (bigint) on library_songs, not the UUID id
+      const styleIdInt = parseInt(styleId, 10);
+      if (isNaN(styleIdInt)) { toast('Invalid style ID', 'error'); return; }
+
+      // Look up the integer song_id for each selected UUID
+      const songRows = allRows.filter(r => ids.includes(r.id));
+      const missing = songRows.filter(r => !r.song_id);
+      if (missing.length) {
+        toast(`${missing.length} track(s) have no song_id and cannot be added`, 'error');
+        return;
+      }
+
+      const rows = songRows.map(r => ({
         style_id: styleIdInt,
-        library_song_id: songId,
+        library_song_id: r.song_id,   // integer song_id, not UUID
         class_code: 'Uncategorized'
       }));
+
+      console.log('Inserting to sim_style_song_classes:', rows);
+
       await sb('sim_style_song_classes', {
         method: 'POST',
-        prefer: 'resolution=merge-duplicates,return=minimal',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(rows)
       });
-      toast(`Added ${ids.length} track${ids.length !== 1 ? 's' : ''} to style`, 'success');
+      toast(`Added ${rows.length} track${rows.length !== 1 ? 's' : ''} to style`, 'success');
 
     } else if (bulkActionSelected === 'remove-style') {
       // Delete from sim_style_song_classes
