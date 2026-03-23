@@ -1654,12 +1654,26 @@ async function createTrack() {
   createBtn.disabled = true;
 
   try {
-    // Step 1: upload file to Supabase Storage
+    // Step 0: Check for duplicate filename
+    createBtn.textContent = 'Checking…';
+    const safeName = selectedFile.name
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._\-]/g, '_');
+    const existing = await sb(`library_songs?file_name=ilike.*${encodeURIComponent(safeName)}*&select=id,title,artist&limit=1`);
+    if (existing?.length) {
+      const dup = existing[0];
+      toast(`Duplicate: "${dup.title}" by ${dup.artist} already exists with this filename`, 'error');
+      createBtn.disabled = false;
+      createBtn.textContent = origText;
+      return;
+    }
+
+    // Step 1: Upload file to Supabase Storage
     createBtn.textContent = 'Uploading…';
     toast('Uploading MP3…', 'info');
     const filePath = await uploadToStorage(selectedFile);
 
-    // Step 2: create the library_songs record
+    // Step 2: Create the library_songs record
     createBtn.textContent = 'Saving…';
     const payload = {
       title,
