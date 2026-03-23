@@ -791,6 +791,33 @@ async function sbWithCount(path, from, to) {
   return { rows, count: total };
 }
 
+
+// ══════════════════════════════════════════════
+// SUPABASE SIGNED URL (for private storage)
+// ══════════════════════════════════════════════
+async function getSignedUrl(filePath, expiresIn = 3600) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/sign/tracks/${filePath}`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ expiresIn })
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const { signedURL } = await res.json();
+    return `${SUPABASE_URL}${signedURL}`;
+  } catch (e) {
+    console.error('Signed URL error:', e);
+    return null;
+  }
+}
+
 // ══════════════════════════════════════════════
 // RENDER TABLE
 // ══════════════════════════════════════════════
@@ -981,15 +1008,9 @@ function playTrack(id) {
   document.getElementById('playerInfo').innerHTML = `<strong>${esc(row.artist)}</strong> — ${esc(row.title)}`;
 
   // Use Supabase Storage if file_name is set, else fall back to API
-  let audioSrc = null;
-  if (row.file_name) {
-    audioSrc = `${SUPABASE_URL}/storage/v1/object/public/tracks/${row.file_name}`;
-  } else if (row.song_id) {
-    audioSrc = `${API_BASE}/songs/audio/${row.song_id}`;
-  }
-
   audioEl = new Audio();
   audioEl.volume = 0.8;
+  audioEl.crossOrigin = 'anonymous';
   audioEl.addEventListener('timeupdate', updatePlayerProgress);
   audioEl.addEventListener('loadedmetadata', () => {
     updatePlayerProgress();
@@ -997,8 +1018,19 @@ function playTrack(id) {
   });
   audioEl.addEventListener('ended', () => setPlayIcon(false));
 
-  if (audioSrc) {
-    audioEl.src = audioSrc;
+  if (row.file_name) {
+    // Public bucket — direct URL supports HTTP range requests (scrubbing)
+    audioEl.src = `${SUPABASE_URL}/storage/v1/object/public/tracks/${row.file_name}`;
+    audioEl.play().then(() => setPlayIcon(true)).catch(err => {
+      console.error('Audio play error:', err);
+      // Fall back to signed URL if public access fails
+      getSignedUrl(row.file_name).then(url => {
+        if (url) { audioEl.src = url; audioEl.play().then(() => setPlayIcon(true)); }
+        else { toast('Could not load audio', 'error'); simulatePlayerProgress(); }
+      });
+    });
+  } else if (row.song_id) {
+    audioEl.src = `${API_BASE}/songs/audio/${row.song_id}`;
     audioEl.play().then(() => setPlayIcon(true)).catch(() => {
       toast('Audio preview not available for this track', 'info');
       simulatePlayerProgress();
@@ -1271,9 +1303,11 @@ async function executeBulkAction() {
     const styleId = document.getElementById('bulkSubValue').value;
 
     if (bulkActionSelected === 'add-style') {
-      // Insert into sim_style_song_classes (upsert to avoid duplicates)
+      if (!styleId) { toast('Please select a style', 'error'); return; }
+      // style_id is integer in sim_styles
+      const styleIdInt = Number(styleId);
       const rows = ids.map(songId => ({
-        style_id: parseInt(styleId),
+        style_id: styleIdInt,
         library_song_id: songId,
         class_code: 'Uncategorized'
       }));
