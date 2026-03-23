@@ -663,16 +663,17 @@ td:nth-child(4){width:52px;padding:4px 8px}
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
+<script src="config.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://quuxtalnpdcommlylwlp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Lvv-SG7eonq1OO3T5Y7ofg__aF4eDRQ';
-  
-// ── Replace with your actual anon key ──
+
 const CONFIG = window.OPUS_CONFIG || {};
-const API_BASE = CONFIG.API_BASE_URL || 'https://opus-platform.onrender.com/v1';
+const API_BASE = (CONFIG.API_BASE_URL || 'https://opus-platform.onrender.com/v1');
+const API_KEY  = CONFIG.API_KEY || '';
 
 const PAGE_SIZE = 100;
 let currentPage = 1;
@@ -730,7 +731,7 @@ async function sb(path, opts = {}) {
 // ══════════════════════════════════════════════
 async function api(path, opts = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', 'x-api-key': CONFIG.API_KEY || '' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
     ...opts
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
