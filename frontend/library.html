@@ -207,13 +207,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 <!-- NAV -->
 <div class="opus-header">
   <div class="opus-title">Opus4</div>
-  <div class="opus-nav">
-    <a href="#" class="nav-item active">Library</a>
-    <a href="style-finder.html" class="nav-item">Style Finder</a>
-    <a href="playlist-matcher.html" class="nav-item">Spot Checker</a>
-    <a href="charts.html" class="nav-item">Charts</a>
-    <a href="index.html" class="nav-item">Playback Classes</a>
-  </div>
+  <div id="nav-root"></div>
   <div class="nav-right">
     <button class="toolbar-btn primary" onclick="openAddTrack()">+ Add Track</button>
   </div>
@@ -656,6 +650,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 <div class="toast-container" id="toastContainer"></div>
 
 <script src="config.js"></script>
+<script src="./nav.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // CONFIG
