@@ -1423,13 +1423,39 @@ async function executeBulkAction() {
       toast(`Added ${songRows.length} track${songRows.length !== 1 ? 's' : ''} to style`, 'success');
 
     } else if (effectiveAction === 'remove-style') {
-      // Delete from sim_style_song_classes
+      const styleName = document.querySelector(`#bulkSubValue option[value="${styleIdFinal}"]`)?.textContent || '';
+      const songRows  = allRows.filter(r => ids.includes(r.id));
+
+      // Delete from sim_style_songs (membership table)
       for (const songId of ids) {
-        await sb(`sim_style_song_classes?style_id=eq.${styleId}&library_song_id=eq.${songId}`, {
+        await sb(`sim_style_songs?style_id=eq.${styleIdFinal}&library_song_id=eq.${songId}`, {
           method: 'DELETE',
-          prefer: 'return=minimal'
+          headers: { 'Prefer': 'return=minimal' }
         });
       }
+
+      // Delete from sim_style_song_classes (class assignments)
+      for (const songId of ids) {
+        await sb(`sim_style_song_classes?style_id=eq.${styleIdFinal}&library_song_id=eq.${songId}`, {
+          method: 'DELETE',
+          headers: { 'Prefer': 'return=minimal' }
+        });
+      }
+
+      // Update denormalized styles field so tag disappears immediately
+      if (styleName) {
+        for (const row of songRows) {
+          if (!row.styles) continue;
+          const updated = row.styles.split('|').map(s => s.trim()).filter(s => s !== styleName).join('|');
+          await sb(`library_songs?id=eq.${row.id}`, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ styles: updated || null })
+          });
+          row.styles = updated || null;
+        }
+      }
+
       toast(`Removed ${ids.length} track${ids.length !== 1 ? 's' : ''} from style`, 'success');
 
     } else {
