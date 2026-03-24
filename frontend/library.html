@@ -856,7 +856,11 @@ function renderTable(rows) {
       ? `https://albumart.customchannels.rocks/medium/${row.album_art_file_name}`
       : null;
 
-    const stylesList = row.styles ? row.styles.split('|').slice(0,3).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
+    const allStyles = row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : [];
+    const stylesList = allStyles.length
+      ? allStyles.slice(0, 4).map(s => `<span class="tag">${esc(s)}</span>`).join('')
+        + (allStyles.length > 4 ? `<span class="tag" style="background:#e2e8f0;color:#64748b">+${allStyles.length - 4}</span>` : '')
+      : '';
 
     const channelsList = row.ethos_channels ? row.ethos_channels.split('|').slice(0,2).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
 
