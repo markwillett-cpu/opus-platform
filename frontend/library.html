@@ -228,6 +228,12 @@ td:nth-child(4){width:52px;padding:4px 8px}
 .col-toggle-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:var(--primary);font-weight:600;transition:all .1s}
 .col-toggle-item:hover{background:var(--light)}
 
+/* EXTRA METADATA MODE */
+.toolbar-btn.meta-active{background:#7c3aed !important;border:1px solid #a78bfa;color:#fff}
+.col-bpm,.col-key,.col-energy{font-family:'DM Mono',monospace;font-size:var(--text-sm);color:var(--text-muted);text-align:right;white-space:nowrap}
+th.col-bpm,th.col-key,th.col-energy{background:#2d1f4e;color:#c4b5fd;text-align:right;font-size:10px;letter-spacing:.05em;border-bottom:2px solid #7c3aed}
+.meta-dash{color:var(--text-muted);opacity:.35}
+
 /* STYLE FILTER */
 .style-filter-wrap{display:flex;align-items:center;gap:6px}
 .style-filter-select{padding:6px 10px;background:#fff;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--primary);outline:none;max-width:180px}
@@ -314,6 +320,11 @@ kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(
     Assign Mode
   </button>
 
+  <button class="toolbar-btn" id="metaModeBtn" onclick="toggleMetaMode()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    Extra Metadata
+  </button>
+
   <div class="toolbar-sep"></div>
 
   <div class="style-filter-wrap">
@@ -392,6 +403,9 @@ kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(
         <th onclick="sortBy('artist')">Artist</th>
         <th class="col-album" onclick="sortBy('album')">Album</th>
         <th class="col-peakYear" onclick="sortBy('peak_year')">Year</th>
+        <th class="col-bpm hidden" id="thBpm" onclick="sortBy('bpm')" style="cursor:pointer">BPM</th>
+        <th class="col-key hidden" id="thKey">Key</th>
+        <th class="col-energy hidden" id="thEnergy" onclick="sortBy('energy')" style="cursor:pointer">Energy</th>
         <th class="col-styles">Styles</th>
         <th class="col-channels">Ethos Channels</th>
         <th class="col-isrc" style="display:none">ISRC</th>
@@ -791,6 +805,10 @@ let currentRowId = null;
 let bulkActionSelected = null;
 let pendingChanges = [];
 
+// Extra metadata mode state
+let metaModeActive = false;
+let metaAttributes = {}; // keyed by library_song_id
+
 // Style filter state
 let styleFilterId   = null;
 let styleFilterName = '';
@@ -894,6 +912,7 @@ async function loadLibrary(page = 1) {
       } else {
         renderTable(allRows);
       }
+      if (metaModeActive) await fetchMetaForPage();
       updateStatus();
       if (currentPage === 1) updateUnassignedBadge();
     } catch (e) {
@@ -915,6 +934,7 @@ async function loadLibrary(page = 1) {
     } else {
       renderTable(allRows);
     }
+    if (metaModeActive) await fetchMetaForPage();
     updateStatus();
     if (currentPage === 1) updateUnassignedBadge();
   } catch (e) {
@@ -1046,6 +1066,7 @@ function renderTable(rows) {
       ${cell(esc(row.artist),                     'col-artist',  `title="${esc(row.artist)}"`)}
       ${cell(esc(row.album || ''),                `col-album${COLUMNS.album ? '' : ' hidden'}`, `title="${esc(row.album || '')}"`)}
       ${cell(row.peak_year || '',                 `col-year col-peakYear${COLUMNS.peakYear ? '' : ' hidden'}`)}
+      ${metaModeActive ? renderMetaCells(row.id) : ''}
       ${cell(`<div class="tag-list">${stylesList}</div>`,   `col-styles${COLUMNS.styles ? '' : ' hidden'}`)}
       ${cell(`<div class="tag-list">${channelsList}</div>`, `col-channels${COLUMNS.channels ? '' : ' hidden'}`)}
       ${cell(row.isrc || '',                      `col-isrc${COLUMNS.isrc ? '' : ' hidden'}`)}
@@ -2100,6 +2121,64 @@ async function toggleAssignTrack(songId, songTitle, cb) {
     updateAssignCount();
     renderTable(allRows);
   }
+}
+
+// ══════════════════════════════════════════════
+// EXTRA METADATA MODE
+// ══════════════════════════════════════════════
+const KEY_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+
+function keyName(key, mode) {
+  if (key === null || key === undefined || key === '') return null;
+  const k = parseInt(key);
+  if (isNaN(k) || k < 0 || k > 11) return null;
+  return `${KEY_NAMES[k]} ${mode === 'minor' ? 'min' : 'maj'}`;
+}
+
+function renderMetaCells(songId) {
+  const a = metaAttributes[songId];
+  const dash = `<span class="meta-dash">—</span>`;
+  const bpm     = a?.bpm      != null ? Math.round(a.bpm)                         : dash;
+  const key     = a           != null ? (keyName(a.key, a.mode) ?? dash)           : dash;
+  const energy  = a?.energy   != null ? a.energy.toFixed(2)                        : dash;
+  return cell(bpm,    'col-bpm')
+       + cell(key,    'col-key')
+       + cell(energy, 'col-energy');
+}
+
+async function toggleMetaMode() {
+  metaModeActive = !metaModeActive;
+  const btn = document.getElementById('metaModeBtn');
+  const ths = ['thBpm','thKey','thEnergy'];
+
+  if (metaModeActive) {
+    btn.classList.add('meta-active');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Extra Metadata ON`;
+    ths.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+    await fetchMetaForPage();
+  } else {
+    btn.classList.remove('meta-active');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Extra Metadata`;
+    ths.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    metaAttributes = {};
+    renderTable(allRows);
+  }
+}
+
+async function fetchMetaForPage() {
+  if (!allRows.length) return;
+  const ids = allRows.map(r => r.id).join(',');
+  try {
+    const attrs = await api(`/songs/attributes?ids=${ids}`);
+    metaAttributes = {};
+    (Array.isArray(attrs) ? attrs : []).forEach(a => {
+      metaAttributes[a.library_song_id] = a;
+    });
+  } catch(e) {
+    console.warn('Could not load song attributes:', e.message);
+    metaAttributes = {};
+  }
+  renderTable(allRows);
 }
 
 function commitChanges() {
