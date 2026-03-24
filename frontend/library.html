@@ -9,11 +9,17 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
+  /* colours */
   --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
   --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
   --light:#ecf0f1;--border:#bdc3c7;
+  --text-muted:#95a5a6;--text-sub:#7f8c8d;
   --cat-lib:#f39c12;--cat-new:#e74c3c;--cat-ch:#27ae60;
   --cat-t:#9b59b6;--cat-c:#1abc9c;--cat-r:#f9a8d4;
+  /* type scale */
+  --text-xs:10px;--text-sm:11px;--text-base:13px;
+  /* radius */
+  --radius-sm:3px;--radius-md:4px;--radius-lg:6px;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
@@ -105,6 +111,30 @@ td:nth-child(4){width:52px;padding:4px 8px}
 /* Style tags */
 .tag-list{display:flex;gap:3px;flex-wrap:nowrap;overflow:hidden}
 .tag{font-size:11px;padding:2px 6px;border-radius:3px;background:#e8f4f8;border:1px solid #bee3f8;color:#2980b9;white-space:nowrap}
+
+/* ── UTILITIES ── */
+.font-mono{font-family:'DM Mono',monospace}
+.text-xs{font-size:var(--text-xs)}
+.text-sm{font-size:var(--text-sm)}
+.text-muted{color:var(--text-muted)}
+.text-sub{color:var(--text-sub)}
+.text-bold{font-weight:700}
+.text-medium{font-weight:500}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.text-center{text-align:center}
+.hidden{display:none !important}
+.tag-overflow{background:#e2e8f0;color:#64748b}
+.assign-spinner{width:14px;height:14px;border-width:2px}
+.assign-checkbox{width:16px;height:16px;cursor:pointer;accent-color:#27ae60}
+
+/* ── SEMANTIC COLUMN CLASSES ── */
+.col-title{color:var(--primary);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-artist{color:var(--primary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-year{font-family:'DM Mono',monospace;font-size:var(--text-sm);color:var(--text-muted)}
+.col-isrc{font-family:'DM Mono',monospace;font-size:var(--text-xs);color:var(--text-muted)}
+.col-spotifyid{font-family:'DM Mono',monospace;font-size:var(--text-xs);color:var(--text-muted)}
+.col-assign{text-align:center}
+.col-assign.in-style{background:#f0faf4}
 
 /* Row context menu */
 .row-menu{position:fixed;z-index:999;background:#fff;border:1px solid var(--border);border-radius:6px;padding:4px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none}
@@ -839,6 +869,15 @@ async function getSignedUrl(filePath, expiresIn = 3600) {
 }
 
 // ══════════════════════════════════════════════
+// RENDER HELPERS
+// ══════════════════════════════════════════════
+function cell(content, cls = '', attrs = '') {
+  const c = cls  ? ` class="${cls}"`  : '';
+  const a = attrs ? ` ${attrs}` : '';
+  return `<td${c}${a}>${content}</td>`;
+}
+
+// ══════════════════════════════════════════════
 // RENDER TABLE
 // ══════════════════════════════════════════════
 function renderTable(rows) {
@@ -849,56 +888,49 @@ function renderTable(rows) {
   }
 
   tbody.innerHTML = rows.map(row => {
-    const isSelected = selectedIds.has(row.id);
-    const isPlaying = currentTrack?.id === row.id;
-    const catColor = CATEGORIES.find(c => c.code === row.category)?.color || '#5a5a72';
-    const artUrl = row.album_art_file_name
+    const isSelected  = selectedIds.has(row.id);
+    const isPlaying   = currentTrack?.id === row.id;
+    const inStyle     = assignModeActive && assignStyleIds.has(row.id);
+    const catColor    = CATEGORIES.find(c => c.code === row.category)?.color || '#5a5a72';
+    const artUrl      = row.album_art_file_name
       ? `https://albumart.customchannels.rocks/medium/${row.album_art_file_name}`
       : null;
 
-    const allStyles = row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : [];
+    const allStyles  = row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : [];
     const stylesList = allStyles.length
       ? allStyles.slice(0, 4).map(s => `<span class="tag">${esc(s)}</span>`).join('')
-        + (allStyles.length > 4 ? `<span class="tag" style="background:#e2e8f0;color:#64748b">+${allStyles.length - 4}</span>` : '')
+        + (allStyles.length > 4 ? `<span class="tag tag-overflow">+${allStyles.length - 4}</span>` : '')
+      : '';
+    const channelsList = row.ethos_channels
+      ? row.ethos_channels.split('|').slice(0, 2).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('')
       : '';
 
-    const channelsList = row.ethos_channels ? row.ethos_channels.split('|').slice(0,2).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
+    const artCell = artUrl
+      ? `<img class="album-thumb" src="${artUrl}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="album-thumb-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div>`;
 
-    return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''} ${assignModeActive && assignStyleIds.has(row.id) ? 'assign-in-style' : ''}">
+    const assignCell = assignModeActive ? cell(
+      assignSavingId === row.id
+        ? '<span class="spinner assign-spinner"></span>'
+        : `<input type="checkbox" ${inStyle ? 'checked' : ''} onchange="toggleAssignTrack('${row.id}', '${esc(row.title)}', this)" class="assign-checkbox">`,
+      `col-assign${inStyle ? ' in-style' : ''}`
+    ) : '';
+
+    return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''} ${inStyle ? 'assign-in-style' : ''}">
       <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${row.id}', this)"></td>
-      <td>
-        <button class="row-actions-btn" onclick="showRowMenu(event, '${row.id}')" title="Actions">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        </button>
-      </td>
-      <td>
-        <button class="listen-btn ${isPlaying ? 'active' : ''}" onclick="playTrack('${row.id}')" title="Listen">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="${isPlaying ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        </button>
-      </td>
-      <td>
-        ${artUrl
-          ? `<img class="album-thumb" src="${artUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextSibling&&(this.nextSibling.style.display='flex')" loading='lazy'>`
-          : `<div class="album-thumb-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div>`
-        }
-      </td>
-      <td style="color:var(--text); font-weight:500; max-width:200px" title="${esc(row.title)}">${esc(row.title)}</td>
-      <td style="color:var(--text); max-width:160px" title="${esc(row.artist)}">${esc(row.artist)}</td>
-      <td class="col-album" style="${COLUMNS.album ? '' : 'display:none'}" title="${esc(row.album || '')}">${esc(row.album || '')}</td>
-      <td class="col-peakYear" style="${COLUMNS.peakYear ? '' : 'display:none'}; font-family:'DM Mono',monospace; color:var(--text3)">${row.peak_year || ''}</td>
-      <td class="col-styles" style="${COLUMNS.styles ? '' : 'display:none'}"><div class="tag-list">${stylesList}</div></td>
-      <td class="col-channels" style="${COLUMNS.channels ? '' : 'display:none'}"><div class="tag-list">${channelsList}</div></td>
-      <td class="col-isrc" style="${COLUMNS.isrc ? '' : 'display:none'}; font-family:'DM Mono',monospace; font-size:10px; color:var(--text3)">${row.isrc || ''}</td>
-      <td class="col-spotifyId" style="${COLUMNS.spotifyId ? '' : 'display:none'}; font-family:'DM Mono',monospace; font-size:10px; color:var(--text3)">${row.spotify_track_id || ''}</td>
-      <td>
-        <span class="cat-badge" style="background:${catColor}22; color:${catColor};">${row.category || '—'}</span>
-      </td>
-      ${assignModeActive ? `<td style="text-align:center; background:${assignStyleIds.has(row.id) ? '#f0faf4' : 'inherit'}">
-        ${assignSavingId === row.id
-          ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>'
-          : `<input type="checkbox" ${assignStyleIds.has(row.id) ? 'checked' : ''} onchange="toggleAssignTrack('${row.id}', '${esc(row.title)}', this)" style="width:16px;height:16px;cursor:pointer;accent-color:#27ae60;">`
-        }
-      </td>` : ''}
+      <td><button class="row-actions-btn" onclick="showRowMenu(event, '${row.id}')" title="Actions"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y1="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button></td>
+      <td><button class="listen-btn ${isPlaying ? 'active' : ''}" onclick="playTrack('${row.id}')" title="Listen"><svg width="13" height="13" viewBox="0 0 24 24" fill="${isPlaying ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button></td>
+      <td>${artCell}</td>
+      ${cell(esc(row.title),                      'col-title',   `title="${esc(row.title)}"`)}
+      ${cell(esc(row.artist),                     'col-artist',  `title="${esc(row.artist)}"`)}
+      ${cell(esc(row.album || ''),                `col-album${COLUMNS.album ? '' : ' hidden'}`, `title="${esc(row.album || '')}"`)}
+      ${cell(row.peak_year || '',                 `col-year col-peakYear${COLUMNS.peakYear ? '' : ' hidden'}`)}
+      ${cell(`<div class="tag-list">${stylesList}</div>`,   `col-styles${COLUMNS.styles ? '' : ' hidden'}`)}
+      ${cell(`<div class="tag-list">${channelsList}</div>`, `col-channels${COLUMNS.channels ? '' : ' hidden'}`)}
+      ${cell(row.isrc || '',                      `col-isrc${COLUMNS.isrc ? '' : ' hidden'}`)}
+      ${cell(row.spotify_track_id || '',          `col-spotifyid${COLUMNS.spotifyId ? '' : ' hidden'}`)}
+      <td><span class="cat-badge" style="background:${catColor}22;color:${catColor};">${row.category || '—'}</span></td>
+      ${assignCell}
     </tr>`;
   }).join('');
 }
@@ -1169,8 +1201,9 @@ function toggleCol(col, item) {
   const cb = item.querySelector('input[type=checkbox]');
   COLUMNS[col] = !COLUMNS[col];
   cb.checked = COLUMNS[col];
-  const display = COLUMNS[col] ? '' : 'none';
-  document.querySelectorAll(`.col-${col}`).forEach(el => el.style.display = display);
+  // Use .hidden class — keeps inline styles clean
+  const colMap = { album: 'col-album', peakYear: 'col-peakYear', styles: 'col-styles', channels: 'col-channels', isrc: 'col-isrc', spotifyId: 'col-spotifyid' };
+  document.querySelectorAll(`.${colMap[col] || 'col-' + col}`).forEach(el => el.classList.toggle('hidden', !COLUMNS[col]));
 }
 
 // ══════════════════════════════════════════════
