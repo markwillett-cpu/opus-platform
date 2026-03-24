@@ -76,6 +76,8 @@ tbody tr{border-bottom:1px solid var(--light);transition:background .1s}
 tbody tr:hover{background:#f8f9fa}
 tbody tr.selected{background:#e8f4fb}
 tbody tr.playing{background:#eafaf0}
+tbody tr.assign-in-style{background:#f0faf4}
+.toolbar-btn.assign-active{background:#1a6b2e !important; border:1px solid #27ae60; color:#fff;}
 
 td{padding:6px 10px;vertical-align:middle;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;color:#555}
 td:nth-child(5){color:var(--primary);font-weight:700}
@@ -260,6 +262,13 @@ td:nth-child(4){width:52px;padding:4px 8px}
 
   <div class="toolbar-sep"></div>
 
+  <button class="toolbar-btn" id="assignModeBtn" onclick="toggleAssignMode()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="9 17 12 20 17 14"/></svg>
+    Assign Mode
+  </button>
+
+  <div class="toolbar-sep"></div>
+
   <div id="selectedActions" style="display:none; align-items:center; gap:6px;">
     <span class="count-badge" id="selectedCount">0 selected</span>
     <button class="toolbar-btn" onclick="openBulkActions()">Bulk Actions</button>
@@ -274,6 +283,16 @@ td:nth-child(4){width:52px;padding:4px 8px}
       Commit Changes
     </button>
   </div>
+</div>
+
+<!-- ASSIGN BAR -->
+<div id="assignBar" style="display:none; background:#1e3a2a; border-bottom:2px solid #27ae60; padding:0 16px; height:40px; align-items:center; gap:10px;">
+  <span style="font-size:10px; font-weight:800; color:#5DCAA5; text-transform:uppercase; letter-spacing:.08em; flex-shrink:0;">Assigning to</span>
+  <select id="assignStyleSelect" style="background:#2a4a35; border:1px solid #27ae60; color:#9FE1CB; border-radius:4px; padding:4px 8px; font-size:12px; font-weight:700;" onchange="onAssignStyleChange()">
+    <option value="">— choose a style —</option>
+  </select>
+  <span id="assignStyleCount" style="font-size:11px; color:#5DCAA5;"></span>
+  <button onclick="toggleAssignMode()" style="margin-left:auto; background:none; border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); border-radius:4px; padding:3px 10px; font-size:11px; cursor:pointer;">Exit assign mode ✕</button>
 </div>
 
 <!-- PLAYER -->
@@ -319,6 +338,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
         <th class="col-isrc" style="display:none">ISRC</th>
         <th class="col-spotifyId" style="display:none">Spotify ID</th>
         <th>Category</th>
+        <th id="assignColTh" style="display:none; background:#e8f8ef; color:#1a6b2e; text-align:center; font-size:10px; letter-spacing:.05em; border-bottom:2px solid #27ae60; min-width:90px; white-space:nowrap;">In Style</th>
       </tr>
     </thead>
     <tbody id="tableBody">
@@ -679,6 +699,13 @@ let currentRowId = null;
 let bulkActionSelected = null;
 let pendingChanges = [];
 
+// Assign mode state
+let assignModeActive = false;
+let assignStyleId = null;
+let assignStyleName = '';
+let assignStyleIds = new Set(); // library_song IDs currently in the selected style
+let assignSavingId = null;
+
 const CATEGORIES = [
   { code: 'LIB', name: 'Library', color: '#f59e0b' },
   { code: 'NEW', name: 'New Adds', color: '#ef4444' },
@@ -750,7 +777,12 @@ async function loadLibrary(page = 1) {
 
     allRows = rows || [];
     totalCount = count;
-    renderTable(allRows);
+    // If assign mode is active, refresh membership for the new page
+    if (assignModeActive && assignStyleId) {
+      await onAssignStyleChange();
+    } else {
+      renderTable(allRows);
+    }
     updateStatus();
   } catch (e) {
     console.error(e);
@@ -827,7 +859,7 @@ function renderTable(rows) {
 
     const channelsList = row.ethos_channels ? row.ethos_channels.split('|').slice(0,2).map(s => `<span class="tag">${esc(s.trim())}</span>`).join('') : '';
 
-    return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}">
+    return `<tr data-id="${row.id}" class="${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''} ${assignModeActive && assignStyleIds.has(row.id) ? 'assign-in-style' : ''}">
       <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${row.id}', this)"></td>
       <td>
         <button class="row-actions-btn" onclick="showRowMenu(event, '${row.id}')" title="Actions">
@@ -856,6 +888,12 @@ function renderTable(rows) {
       <td>
         <span class="cat-badge" style="background:${catColor}22; color:${catColor};">${row.category || '—'}</span>
       </td>
+      ${assignModeActive ? `<td style="text-align:center; background:${assignStyleIds.has(row.id) ? '#f0faf4' : 'inherit'}">
+        ${assignSavingId === row.id
+          ? '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>'
+          : `<input type="checkbox" ${assignStyleIds.has(row.id) ? 'checked' : ''} onchange="toggleAssignTrack('${row.id}', '${esc(row.title)}', this)" style="width:16px;height:16px;cursor:pointer;accent-color:#27ae60;">`
+        }
+      </td>` : ''}
     </tr>`;
   }).join('');
 }
@@ -1745,6 +1783,133 @@ function toast(msg, type = 'info') {
 // ══════════════════════════════════════════════
 // COMMIT CHANGES
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// ASSIGN MODE
+// ══════════════════════════════════════════════
+async function toggleAssignMode() {
+  assignModeActive = !assignModeActive;
+  const bar = document.getElementById('assignBar');
+  const btn = document.getElementById('assignModeBtn');
+  const colTh = document.getElementById('assignColTh');
+
+  if (assignModeActive) {
+    bar.style.display = 'flex';
+    colTh.style.display = '';
+    btn.classList.add('assign-active');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="9 17 12 20 17 14"/></svg>Assign Mode ON`;
+    await loadAssignStyles();
+  } else {
+    bar.style.display = 'none';
+    colTh.style.display = 'none';
+    btn.classList.remove('assign-active');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-1px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="9 17 12 20 17 14"/></svg>Assign Mode`;
+    assignStyleId = null;
+    assignStyleName = '';
+    assignStyleIds.clear();
+    renderTable(allRows);
+  }
+}
+
+async function loadAssignStyles() {
+  const sel = document.getElementById('assignStyleSelect');
+  sel.innerHTML = '<option value="">Loading styles…</option>';
+  try {
+    const rows = await sb('sim_styles?select=id,name&order=name.asc');
+    sel.innerHTML = '<option value="">— choose a style —</option>' +
+      rows.map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Error loading styles</option>';
+  }
+}
+
+async function onAssignStyleChange() {
+  const sel = document.getElementById('assignStyleSelect');
+  assignStyleId = sel.value || null;
+  assignStyleName = sel.options[sel.selectedIndex]?.text || '';
+  document.getElementById('assignColTh').textContent = assignStyleName || 'In Style';
+  assignStyleIds.clear();
+  document.getElementById('assignStyleCount').textContent = '';
+
+  if (!assignStyleId) { renderTable(allRows); return; }
+
+  try {
+    // Load all song IDs currently in this style (only for visible page rows for speed)
+    const pageIds = allRows.map(r => `"${r.id}"`).join(',');
+    const members = await sb(`sim_style_songs?select=library_song_id&style_id=eq.${assignStyleId}&library_song_id=in.(${pageIds})`);
+    assignStyleIds = new Set(members.map(m => m.library_song_id));
+    updateAssignCount();
+    renderTable(allRows);
+  } catch(e) {
+    toast('Error loading style membership', 'error');
+  }
+}
+
+function updateAssignCount() {
+  const n = assignStyleIds.size;
+  document.getElementById('assignStyleCount').textContent = `${n} track${n !== 1 ? 's' : ''} in this style on this page`;
+}
+
+async function toggleAssignTrack(songId, songTitle, cb) {
+  if (!assignStyleId) { cb.checked = !cb.checked; toast('Choose a style first', 'info'); return; }
+  const adding = cb.checked;
+  assignSavingId = songId;
+  renderTable(allRows);
+
+  try {
+    if (adding) {
+      // Insert into sim_style_songs
+      await sb('sim_style_songs', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ style_id: assignStyleId, library_song_id: songId })
+      });
+      // Update denormalized styles field on library_songs
+      const row = allRows.find(r => r.id === songId);
+      if (row) {
+        const existing = row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : [];
+        if (!existing.includes(assignStyleName)) {
+          const updated = [...existing, assignStyleName].join('|');
+          await sb(`library_songs?id=eq.${songId}`, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ styles: updated })
+          });
+          row.styles = updated;
+        }
+      }
+      assignStyleIds.add(songId);
+      toast(`Added "${songTitle}" to ${assignStyleName}`, 'success');
+    } else {
+      // Remove from sim_style_songs
+      await sb(`sim_style_songs?style_id=eq.${assignStyleId}&library_song_id=eq.${songId}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      // Update denormalized styles field
+      const row = allRows.find(r => r.id === songId);
+      if (row && row.styles) {
+        const updated = row.styles.split('|').map(s => s.trim()).filter(s => s !== assignStyleName).join('|');
+        await sb(`library_songs?id=eq.${songId}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ styles: updated })
+        });
+        row.styles = updated;
+      }
+      assignStyleIds.delete(songId);
+      toast(`Removed "${songTitle}" from ${assignStyleName}`, 'success');
+    }
+  } catch(e) {
+    // Revert checkbox state on error
+    adding ? assignStyleIds.delete(songId) : assignStyleIds.add(songId);
+    toast('Save failed — ' + e.message, 'error');
+  } finally {
+    assignSavingId = null;
+    updateAssignCount();
+    renderTable(allRows);
+  }
+}
+
 function commitChanges() {
   toast('All changes committed', 'success');
   document.getElementById('commitBtn').style.display = 'none';
