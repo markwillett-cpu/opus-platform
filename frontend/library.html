@@ -337,7 +337,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
         <th class="col-channels">Ethos Channels</th>
         <th class="col-isrc" style="display:none">ISRC</th>
         <th class="col-spotifyId" style="display:none">Spotify ID</th>
-        <th>Category</th>
+        <th onclick="sortBy('category')" style="cursor:pointer">Category</th>
         <th id="assignColTh" style="display:none; background:#e8f8ef; color:#1a6b2e; text-align:center; font-size:10px; letter-spacing:.05em; border-bottom:2px solid #27ae60; min-width:90px; white-space:nowrap;">In Style</th>
       </tr>
     </thead>
@@ -689,8 +689,9 @@ let allRows = [];
 let filteredRows = [];
 let selectedIds = new Set();
 let activeQuery = null;
-let sortField = 'artist';
-let sortDir = 'asc';
+let sortField = 'created_at';
+let sortDir = 'desc';
+let sortSecondary = 'artist.asc'; // secondary sort within each category
 let currentTrack = null;
 let audioEl = null;
 let waveformData = null;
@@ -763,7 +764,7 @@ async function loadLibrary(page = 1) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category&order=${sortField}.${sortDir}`;
+  let path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category,created_at&order=${sortField}.${sortDir}${sortField === 'created_at' ? '' : ',created_at.desc'}`;
 
   // Apply active query filters
   if (activeQuery) {
