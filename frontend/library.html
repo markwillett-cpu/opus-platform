@@ -868,12 +868,39 @@ async function loadLibrary(page = 1) {
     if (activeQuery.category) path += `&category=in.(${activeQuery.category})`;
   }
 
-  // Style filter: join through sim_style_songs
+  // Style filter: paginate membership IDs, then fetch matching library_songs
   if (styleFilterId) {
+    const { ids, total } = await fetchStyleMemberPage(styleFilterId, from, to);
+    if (total === 0) {
+      allRows = [];
+      totalCount = 0;
+      renderTable([]);
+      updateStatus();
+      if (currentPage === 1) updateUnassignedBadge();
+      return;
+    }
+    const idList = ids.map(id => `"${id}"`).join(',');
     path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category,created_at`
-      + `&id=in.(select:library_song_id.from:sim_style_songs.where:style_id.eq.${styleFilterId})`
+      + `&id=in.(${idList})`
       + `&order=${sortField}.${sortDir}${sortField === 'created_at' ? '' : ',created_at.desc'}`;
     if (activeQuery?.search) path += `&or=(title.ilike.*${encodeURIComponent(activeQuery.search)}*,artist.ilike.*${encodeURIComponent(activeQuery.search)}*)`;
+
+    try {
+      const rows = await sb(path);
+      allRows = rows || [];
+      totalCount = total;
+      if (assignModeActive && assignStyleId) {
+        await onAssignStyleChange();
+      } else {
+        renderTable(allRows);
+      }
+      updateStatus();
+      if (currentPage === 1) updateUnassignedBadge();
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="15" style="color:var(--danger)">Error loading library: ${e.message}</td></tr>`;
+    }
+    return;
   }
 
   try {
@@ -894,6 +921,25 @@ async function loadLibrary(page = 1) {
     console.error(e);
     tbody.innerHTML = `<tr class="loading-row"><td colspan="15" style="color:var(--danger)">Error loading library: ${e.message}</td></tr>`;
   }
+}
+
+// Fetch one page of membership IDs for a style, with total count
+async function fetchStyleMemberPage(styleId, from, to) {
+  const url = `${SUPABASE_URL}/rest/v1/sim_style_songs?select=library_song_id&style_id=eq.${styleId}`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Range-Unit': 'items',
+      'Range': `${from}-${to}`,
+      'Prefer': 'count=exact'
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase ${res.status}: ${await res.text()}`);
+  const contentRange = res.headers.get('content-range') || '';
+  const total = parseInt(contentRange.split('/')[1]) || 0;
+  const rows = await res.json();
+  return { ids: rows.map(r => r.library_song_id), total };
 }
 
 async function sbWithCount(path, from, to) {
