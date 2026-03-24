@@ -126,6 +126,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
 .tag-overflow{background:#e2e8f0;color:#64748b}
 .assign-spinner{width:14px;height:14px;border-width:2px}
 .assign-checkbox{width:16px;height:16px;cursor:pointer;accent-color:#27ae60}
+.kb-focused{outline:2px solid #27ae60;outline-offset:-2px}
 
 /* ── SEMANTIC COLUMN CLASSES ── */
 .col-title{color:var(--primary);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -227,6 +228,22 @@ td:nth-child(4){width:52px;padding:4px 8px}
 .col-toggle-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:var(--primary);font-weight:600;transition:all .1s}
 .col-toggle-item:hover{background:var(--light)}
 
+/* STYLE FILTER */
+.style-filter-wrap{display:flex;align-items:center;gap:6px}
+.style-filter-select{padding:6px 10px;background:#fff;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--primary);outline:none;max-width:180px}
+.style-filter-select.active{border-color:var(--accent);background:#e8f4fb;color:var(--accent);font-weight:700}
+.style-filter-clear{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+.style-filter-clear:hover{color:var(--danger)}
+/* UNASSIGNED BADGE */
+.unassigned-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:#fff3cd;color:#856404;white-space:nowrap}
+/* KEYBOARD HINT */
+.kbd-hint{font-size:10px;color:#5DCAA5;margin-left:8px;opacity:.8}
+kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:3px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:10px}
+/* MATCH STYLES MODAL */
+.match-style-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.match-style-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;border:1px solid var(--border);cursor:pointer;font-size:13px;transition:all .1s}
+.match-style-item:hover{background:var(--light)}
+.match-style-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent)}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#f5f6fa}
@@ -299,6 +316,17 @@ td:nth-child(4){width:52px;padding:4px 8px}
 
   <div class="toolbar-sep"></div>
 
+  <div class="style-filter-wrap">
+    <select class="style-filter-select" id="styleFilterSelect" onchange="applyStyleFilter(this.value)">
+      <option value="">Filter by style…</option>
+    </select>
+    <button class="style-filter-clear" id="styleFilterClear" onclick="clearStyleFilter()" title="Clear filter" style="display:none">✕</button>
+  </div>
+
+  <span class="unassigned-badge" id="unassignedBadge" style="display:none"></span>
+
+  <div class="toolbar-sep"></div>
+
   <div id="selectedActions" style="display:none; align-items:center; gap:6px;">
     <span class="count-badge" id="selectedCount">0 selected</span>
     <button class="toolbar-btn" onclick="openBulkActions()">Bulk Actions</button>
@@ -322,6 +350,7 @@ td:nth-child(4){width:52px;padding:4px 8px}
     <option value="">— choose a style —</option>
   </select>
   <span id="assignStyleCount" style="font-size:11px; color:#5DCAA5;"></span>
+  <span class="kbd-hint"><kbd>A</kbd> toggle · <kbd>↑↓</kbd> navigate</span>
   <button onclick="toggleAssignMode()" style="margin-left:auto; background:none; border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); border-radius:4px; padding:3px 10px; font-size:11px; cursor:pointer;">Exit assign mode ✕</button>
 </div>
 
@@ -422,6 +451,10 @@ td:nth-child(4){width:52px;padding:4px 8px}
       <div class="bulk-action-item" data-action="remove-channel" onclick="selectBulkAction('remove-channel', this)">
         <div class="bulk-action-icon icon-remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
         Remove from Channel
+      </div>
+      <div class="bulk-action-item" data-action="match-styles" onclick="selectBulkAction('match-styles', this)">
+        <div class="bulk-action-icon" style="background:rgba(52,152,219,.15);color:var(--accent)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l5.1 5.1"/><path d="M4 4l5 5"/></svg></div>
+        Match Styles from Track
       </div>
 
       <div class="bulk-sub-select" id="bulkSubSelect">
@@ -696,6 +729,34 @@ td:nth-child(4){width:52px;padding:4px 8px}
   </div>
 </div>
 
+<!-- MATCH STYLES MODAL -->
+<div class="modal-backdrop" id="matchStylesModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span class="modal-title" id="matchStylesTitle">Match Styles from Track</span>
+      <button class="modal-close" onclick="closeModal('matchStylesModal')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-sub);margin-bottom:12px;" id="matchStylesSubtitle"></p>
+      <div class="field-label" style="margin-bottom:8px">Reference track</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <input type="text" class="field-input" id="matchRefSearch" placeholder="Search for a track…" oninput="searchMatchRef(this.value)" style="flex:1">
+      </div>
+      <div id="matchRefResults" style="margin-bottom:14px;max-height:140px;overflow-y:auto"></div>
+      <div id="matchStylesPicker" style="display:none">
+        <div class="field-label" style="margin-bottom:8px">Styles to copy</div>
+        <div class="match-style-list" id="matchStyleList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="toolbar-btn primary" onclick="executeMatchStyles()" id="matchStylesApply" disabled>Apply</button>
+      <button class="toolbar-btn" onclick="closeModal('matchStylesModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -729,6 +790,11 @@ let animFrame = null;
 let currentRowId = null;
 let bulkActionSelected = null;
 let pendingChanges = [];
+
+// Style filter state
+let styleFilterId   = null;
+let styleFilterName = '';
+let focusedRowIndex = -1;  // keyboard nav in assign mode
 
 // Assign mode state
 let assignModeActive = false;
@@ -802,6 +868,14 @@ async function loadLibrary(page = 1) {
     if (activeQuery.category) path += `&category=in.(${activeQuery.category})`;
   }
 
+  // Style filter: join through sim_style_songs
+  if (styleFilterId) {
+    path = `library_songs?select=id,song_id,title,artist,album,peak_year,isrc,spotify_track_id,album_art_file_name,file_name,styles,ethos_channels,global_sound,role,run_time_seconds,category,created_at`
+      + `&id=in.(select:library_song_id.from:sim_style_songs.where:style_id.eq.${styleFilterId})`
+      + `&order=${sortField}.${sortDir}${sortField === 'created_at' ? '' : ',created_at.desc'}`;
+    if (activeQuery?.search) path += `&or=(title.ilike.*${encodeURIComponent(activeQuery.search)}*,artist.ilike.*${encodeURIComponent(activeQuery.search)}*)`;
+  }
+
   try {
     // Use count=planned for speed — avoids full table scan, gives estimated count
     const { rows, count } = await sbWithCount(path, from, to);
@@ -815,6 +889,7 @@ async function loadLibrary(page = 1) {
       renderTable(allRows);
     }
     updateStatus();
+    if (currentPage === 1) updateUnassignedBadge();
   } catch (e) {
     console.error(e);
     tbody.innerHTML = `<tr class="loading-row"><td colspan="15" style="color:var(--danger)">Error loading library: ${e.message}</td></tr>`;
@@ -1102,7 +1177,7 @@ function playTrack(id) {
   // Update row highlight
   document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('playing'));
   const playingRow = document.querySelector(`tbody tr[data-id="${id}"]`);
-  if (playingRow) playingRow.classList.add('playing');
+  if (playingRow) { playingRow.classList.add('playing'); playingRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   document.querySelectorAll('.listen-btn').forEach(b => b.classList.remove('active'));
   if (playingRow) playingRow.querySelector('.listen-btn')?.classList.add('active');
 }
@@ -1339,7 +1414,12 @@ function selectBulkAction(action, el) {
   const sub = document.getElementById('bulkSubSelect');
   const label = document.getElementById('bulkSubLabel');
 
-  if (action.includes('style')) {
+  if (action === 'match-styles') {
+    sub.classList.remove('visible');
+    // open dedicated modal immediately
+    openMatchStyles();
+    return;
+  } else if (action.includes('style')) {
     label.textContent = 'Select Style';
     sub.classList.add('visible');
   } else if (action.includes('channel')) {
@@ -1870,6 +1950,7 @@ async function toggleAssignMode() {
     assignStyleId = null;
     assignStyleName = '';
     assignStyleIds.clear();
+    saveAssignState();
     renderTable(allRows);
   }
 }
@@ -1891,6 +1972,7 @@ async function onAssignStyleChange() {
   assignStyleId = sel.value || null;
   assignStyleName = sel.options[sel.selectedIndex]?.text || '';
   document.getElementById('assignColTh').textContent = assignStyleName || 'In Style';
+  saveAssignState();
   assignStyleIds.clear();
   document.getElementById('assignStyleCount').textContent = '';
 
@@ -1981,9 +2063,256 @@ function commitChanges() {
 }
 
 // ══════════════════════════════════════════════
+// FEATURE 1 — STYLE MEMBERSHIP FILTER
+// ══════════════════════════════════════════════
+async function loadFilterStyles() {
+  const sel = document.getElementById('styleFilterSelect');
+  try {
+    const rows = await sb('sim_styles?select=id,name&order=name.asc');
+    rows.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id;
+      opt.textContent = r.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) { console.warn('Could not load filter styles:', e.message); }
+}
+
+async function applyStyleFilter(id) {
+  styleFilterId   = id || null;
+  styleFilterName = id ? document.querySelector(`#styleFilterSelect option[value="${id}"]`)?.textContent || '' : '';
+  const sel   = document.getElementById('styleFilterSelect');
+  const clear = document.getElementById('styleFilterClear');
+  sel.classList.toggle('active', !!id);
+  clear.style.display = id ? '' : 'none';
+  await loadLibrary(1);
+  updateUnassignedBadge();
+}
+
+function clearStyleFilter() {
+  document.getElementById('styleFilterSelect').value = '';
+  applyStyleFilter('');
+}
+
+// ══════════════════════════════════════════════
+// FEATURE 2 — UNASSIGNED BADGE
+// ══════════════════════════════════════════════
+async function updateUnassignedBadge() {
+  const badge = document.getElementById('unassignedBadge');
+  // Only show when no style filter is active — shows global unassigned count
+  if (styleFilterId) { badge.style.display = 'none'; return; }
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/library_songs?styles=is.null&select=id&limit=1`,
+      { headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Range': '0-0', 'Range-Unit': 'items', 'Prefer': 'count=estimated'
+      }}
+    );
+    const range = res.headers.get('content-range') || '';
+    const total = parseInt(range.split('/')[1]);
+    if (!isNaN(total) && total > 0) {
+      badge.textContent = `${total.toLocaleString()} unassigned`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) { badge.style.display = 'none'; }
+}
+
+// ══════════════════════════════════════════════
+// FEATURE 3 — LOCALSTORAGE ASSIGN PERSISTENCE
+// ══════════════════════════════════════════════
+function saveAssignState() {
+  if (assignStyleId) {
+    localStorage.setItem('opus_assign_style_id',   assignStyleId);
+    localStorage.setItem('opus_assign_style_name', assignStyleName);
+  } else {
+    localStorage.removeItem('opus_assign_style_id');
+    localStorage.removeItem('opus_assign_style_name');
+  }
+}
+
+async function restoreAssignState() {
+  const savedId   = localStorage.getItem('opus_assign_style_id');
+  const savedName = localStorage.getItem('opus_assign_style_name');
+  if (!savedId) return;
+  // Activate assign mode and restore the saved style
+  await toggleAssignMode();
+  // Wait for styles to load in the select, then set value
+  const sel = document.getElementById('assignStyleSelect');
+  const poll = setInterval(() => {
+    if (sel.querySelector(`option[value="${savedId}"]`)) {
+      clearInterval(poll);
+      sel.value = savedId;
+      onAssignStyleChange();
+    }
+  }, 100);
+  setTimeout(() => clearInterval(poll), 3000); // give up after 3s
+}
+
+// ══════════════════════════════════════════════
+// FEATURE 4 — AUTO-SCROLL PLAYING ROW
+// ══════════════════════════════════════════════
+function scrollToPlayingRow() {
+  const row = document.querySelector('tbody tr.playing');
+  if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════════════
+// FEATURE 5 — KEYBOARD SHORTCUTS (assign mode)
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // Don't fire when typing in an input
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if (!assignModeActive || !assignStyleId) return;
+
+  const rows = [...document.querySelectorAll('tbody tr[data-id]')];
+  if (!rows.length) return;
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusedRowIndex = e.key === 'ArrowDown'
+      ? Math.min(focusedRowIndex + 1, rows.length - 1)
+      : Math.max(focusedRowIndex - 1, 0);
+    rows.forEach((r, i) => r.classList.toggle('kb-focused', i === focusedRowIndex));
+    rows[focusedRowIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  if (e.key === 'a' || e.key === 'A') {
+    e.preventDefault();
+    const targetRow = focusedRowIndex >= 0 ? rows[focusedRowIndex] : null;
+    if (!targetRow) return;
+    const songId = targetRow.dataset.id;
+    const songTitle = targetRow.querySelector('.col-title')?.textContent || '';
+    const cb = targetRow.querySelector('.assign-checkbox');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    toggleAssignTrack(songId, songTitle, cb);
+  }
+});
+
+// ══════════════════════════════════════════════
+// FEATURE 6 — MATCH STYLES FROM TRACK
+// ══════════════════════════════════════════════
+let matchRefTrack  = null;
+let matchRefTimer  = null;
+
+async function openMatchStyles() {
+  const n = selectedIds.size;
+  document.getElementById('matchStylesTitle').textContent   = 'Match Styles from Track';
+  document.getElementById('matchStylesSubtitle').textContent = `Copy styles to ${n} selected track${n !== 1 ? 's' : ''}`;
+  document.getElementById('matchRefSearch').value           = '';
+  document.getElementById('matchRefResults').innerHTML      = '';
+  document.getElementById('matchStylesPicker').style.display = 'none';
+  document.getElementById('matchStylesApply').disabled      = true;
+  matchRefTrack = null;
+  closeModal('bulkModal');
+  document.getElementById('matchStylesModal').classList.add('visible');
+}
+
+function searchMatchRef(val) {
+  clearTimeout(matchRefTimer);
+  if (!val.trim()) { document.getElementById('matchRefResults').innerHTML = ''; return; }
+  matchRefTimer = setTimeout(async () => {
+    const q = encodeURIComponent(val);
+    try {
+      const rows = await sb(`library_songs?or=(title.ilike.*${q}*,artist.ilike.*${q}*)&select=id,title,artist,styles&limit=8`);
+      const container = document.getElementById('matchRefResults');
+      if (!rows.length) { container.innerHTML = '<p style="font-size:12px;color:var(--text-sub)">No tracks found</p>'; return; }
+      container.innerHTML = rows.map(r => `
+        <div style="padding:8px 10px;border-radius:4px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer;font-size:13px;transition:background .1s"
+          onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background=''"
+          onclick="selectMatchRef('${r.id}','${esc(r.title)}','${esc(r.artist)}','${esc(r.styles||'')}')">
+          <strong>${esc(r.title)}</strong> <span style="color:var(--text-sub)">— ${esc(r.artist)}</span>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${r.styles ? r.styles.split('|').join(', ') : 'No styles'}</div>
+        </div>`).join('');
+    } catch(e) { console.error(e); }
+  }, 250);
+}
+
+function selectMatchRef(id, title, artist, stylesRaw) {
+  matchRefTrack = { id, title, artist, styles: stylesRaw ? stylesRaw.split('|').map(s => s.trim()).filter(Boolean) : [] };
+  document.getElementById('matchRefSearch').value = `${title} — ${artist}`;
+  document.getElementById('matchRefResults').innerHTML = '';
+
+  const picker = document.getElementById('matchStylesPicker');
+  const list   = document.getElementById('matchStyleList');
+
+  if (!matchRefTrack.styles.length) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--text-sub)">This track has no styles assigned.</p>';
+    picker.style.display = '';
+    document.getElementById('matchStylesApply').disabled = true;
+    return;
+  }
+
+  list.innerHTML = matchRefTrack.styles.map((s, i) => `
+    <label class="match-style-item">
+      <input type="checkbox" checked data-style="${esc(s)}">
+      ${esc(s)}
+    </label>`).join('');
+  picker.style.display = '';
+  document.getElementById('matchStylesApply').disabled = false;
+}
+
+async function executeMatchStyles() {
+  if (!matchRefTrack) return;
+  const stylesToCopy = [...document.querySelectorAll('#matchStyleList input[type=checkbox]:checked')]
+    .map(cb => cb.dataset.style);
+  if (!stylesToCopy.length) { toast('Select at least one style to copy', 'error'); return; }
+
+  const ids  = [...selectedIds];
+  const rows = allRows.filter(r => ids.includes(r.id));
+
+  closeModal('matchStylesModal');
+  toast(`Copying ${stylesToCopy.length} style${stylesToCopy.length !== 1 ? 's' : ''} to ${ids.length} track${ids.length !== 1 ? 's' : ''}…`, 'info');
+
+  try {
+    // Look up style IDs for each style name
+    const styleRows = await sb(`sim_styles?name=in.(${stylesToCopy.map(s => `"${s}"`).join(',')})&select=id,name`);
+    const styleMap  = Object.fromEntries(styleRows.map(r => [r.name, r.id]));
+
+    for (const row of rows) {
+      for (const styleName of stylesToCopy) {
+        const styleId = styleMap[styleName];
+        if (!styleId) continue;
+
+        // Insert membership
+        await sb('sim_style_songs', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ style_id: styleId, library_song_id: row.id })
+        });
+
+        // Update denormalized field
+        const existing = row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : [];
+        if (!existing.includes(styleName)) {
+          const updated = [...existing, styleName].join('|');
+          await sb(`library_songs?id=eq.${row.id}`, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ styles: updated })
+          });
+          row.styles = updated;
+        }
+      }
+    }
+
+    toast(`Done — styles copied to ${ids.length} track${ids.length !== 1 ? 's' : ''}`, 'success');
+    clearSelection();
+    renderTable(allRows);
+  } catch(e) {
+    toast(`Error: ${e.message}`, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  loadFilterStyles();
+  restoreAssignState();
   loadLibrary(1);
 });
 </script>
