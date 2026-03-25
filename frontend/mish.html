@@ -333,6 +333,13 @@
   <button class="btn-secondary" id="export-btn" onclick="exportCSV()" disabled>↓ Export Full CSV</button>
   <button class="btn-secondary" id="export-sample-btn" onclick="exportSampleCSV()" disabled>↓ Export Sample CSV</button>
   <button class="btn-ghost" onclick="clearResults()">✕ Clear</button>
+  <button class="btn-secondary" id="spotify-auth-btn" onclick="spotifyLogin()" style="margin-left:auto; border-color:#1DB954; color:#1DB954;">⏵ Connect Spotify</button>
+</div>
+
+<div id="spotify-row" style="display:none; margin-bottom:16px; align-items:center; gap:12px; flex-wrap:wrap;" class="controls">
+  <span id="spotify-user" style="font-size:12px; color:var(--muted);"></span>
+  <button class="btn-secondary" id="push-playlist-btn" onclick="pushToSpotify()" disabled style="border-color:#1DB954; color:#1DB954;">⏵ Push to Spotify</button>
+  <span id="spotify-status" style="font-size:12px; color:var(--muted);"></span>
 </div>
 
 <div id="error-area"></div>
@@ -959,6 +966,216 @@ function clearResults() {
 }
 
 
+
+// ── Spotify PKCE OAuth ────────────────────────────────────────────────────────
+const SPOTIFY_CLIENT_ID = '748b211ec0fc407daa88a10da570eb12';
+const SPOTIFY_REDIRECT   = 'https://markwillett-cpu.github.io/opus-platform/mish.html';
+const SPOTIFY_SCOPES     = 'playlist-modify-public playlist-modify-private user-read-private';
+
+let spotifyToken = null;
+
+function base64urlEncode(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function generatePKCE() {
+  const verifier = base64urlEncode(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = base64urlEncode(hash);
+  return { verifier, challenge };
+}
+
+async function spotifyLogin() {
+  const { verifier, challenge } = await generatePKCE();
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const params = new URLSearchParams({
+    client_id:             SPOTIFY_CLIENT_ID,
+    response_type:         'code',
+    redirect_uri:          SPOTIFY_REDIRECT,
+    scope:                 SPOTIFY_SCOPES,
+    code_challenge_method: 'S256',
+    code_challenge:        challenge,
+    state:                 'mish_auth'
+  });
+  window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+
+async function handleSpotifyCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  if (!code || state !== 'mish_auth') return;
+
+  // Clean URL without reloading
+  window.history.replaceState({}, '', window.location.pathname);
+
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  if (!verifier) { showError('PKCE verifier missing — please reconnect Spotify.'); return; }
+
+  const body = new URLSearchParams({
+    grant_type:    'authorization_code',
+    code,
+    redirect_uri:  SPOTIFY_REDIRECT,
+    client_id:     SPOTIFY_CLIENT_ID,
+    code_verifier: verifier
+  });
+
+  const res  = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  });
+  const data = await res.json();
+
+  if (data.access_token) {
+    spotifyToken = data.access_token;
+    sessionStorage.removeItem('pkce_verifier');
+    await onSpotifyConnected();
+  } else {
+    showError('Spotify auth failed: ' + (data.error_description || JSON.stringify(data)));
+  }
+}
+
+async function onSpotifyConnected() {
+  // Fetch user profile
+  const res  = await fetch('https://api.spotify.com/v1/me', {
+    headers: { Authorization: 'Bearer ' + spotifyToken }
+  });
+  const user = await res.json();
+  sessionStorage.setItem('spotify_user_id', user.id);
+
+  document.getElementById('spotify-auth-btn').textContent  = '✓ Spotify Connected';
+  document.getElementById('spotify-auth-btn').style.opacity = '0.5';
+  document.getElementById('spotify-auth-btn').onclick       = null;
+  document.getElementById('spotify-row').style.display      = 'flex';
+  document.getElementById('spotify-user').textContent       = 'Signed in as ' + (user.display_name || user.id);
+
+  if (samplePlaylist.length) document.getElementById('push-playlist-btn').disabled = false;
+}
+
+// ── Spotify track lookup + playlist push ─────────────────────────────────────
+
+async function spotifyFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      Authorization: 'Bearer ' + spotifyToken,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+}
+
+async function resolveTrackId(track) {
+  // 1. Try ISRC first — most reliable
+  if (track.isrc) {
+    const res  = await spotifyFetch(
+      `https://api.spotify.com/v1/search?type=track&q=isrc:${track.isrc}&limit=1`
+    );
+    const data = await res.json();
+    const item = data?.tracks?.items?.[0];
+    if (item) return item.uri;
+  }
+
+  // 2. Fallback: title + artist search
+  const q   = encodeURIComponent(`track:${track.title} artist:${track.mish_artist}`);
+  const res = await spotifyFetch(
+    `https://api.spotify.com/v1/search?type=track&q=${q}&limit=1`
+  );
+  const data = await res.json();
+  const item = data?.tracks?.items?.[0];
+  return item ? item.uri : null;
+}
+
+function setSpotifyStatus(msg) {
+  document.getElementById('spotify-status').textContent = msg;
+}
+
+async function pushToSpotify() {
+  if (!spotifyToken)        { showError('Connect Spotify first.'); return; }
+  if (!samplePlaylist.length) { showError('Build the 500 sample first.'); return; }
+
+  const btn    = document.getElementById('push-playlist-btn');
+  btn.disabled = true;
+  btn.textContent = '⏺ Working…';
+
+  const userId = sessionStorage.getItem('spotify_user_id');
+
+  // 1. Create playlist
+  setSpotifyStatus('Creating playlist…');
+  const createRes  = await spotifyFetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name:        'MISH × Opus Sample — ' + new Date().toLocaleDateString(),
+      description: 'Auto-generated 500-track sample playlist. 250 hits + 250 album cuts. Curated by Garth Trinidad.',
+      public:      false
+    })
+  });
+  const playlist = await createRes.json();
+  if (!playlist.id) {
+    showError('Failed to create playlist: ' + JSON.stringify(playlist));
+    btn.disabled = false;
+    btn.textContent = '⏵ Push to Spotify';
+    return;
+  }
+
+  // 2. Resolve track URIs (with progress)
+  const uris     = [];
+  const notFound = [];
+  const total    = samplePlaylist.length;
+
+  setSpotifyStatus(`Resolving tracks 0 / ${total}…`);
+  setProgress(0);
+
+  for (let i = 0; i < samplePlaylist.length; i++) {
+    const uri = await resolveTrackId(samplePlaylist[i]);
+    if (uri) uris.push(uri);
+    else notFound.push(samplePlaylist[i].title + ' — ' + samplePlaylist[i].mish_artist);
+
+    if (i % 10 === 0) {
+      setSpotifyStatus(`Resolving tracks ${i + 1} / ${total}…`);
+      setProgress(Math.round((i / total) * 80));
+      await sleep(50); // keep UI responsive
+    }
+  }
+
+  // 3. Add tracks in batches of 100
+  setSpotifyStatus(`Adding ${uris.length} tracks to playlist…`);
+  for (let i = 0; i < uris.length; i += 100) {
+    const batch = uris.slice(i, i + 100);
+    await spotifyFetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+      method: 'POST',
+      body: JSON.stringify({ uris: batch })
+    });
+    setProgress(80 + Math.round(((i + 100) / uris.length) * 20));
+    await sleep(100);
+  }
+
+  setProgress(100);
+
+  const msg = `✓ Playlist created: ${uris.length} tracks added${notFound.length ? `, ${notFound.length} not found on Spotify` : ''}.`;
+  setSpotifyStatus(msg);
+  setStatus(msg);
+
+  // Link to playlist
+  document.getElementById('spotify-row').insertAdjacentHTML('beforeend',
+    `<a href="https://open.spotify.com/playlist/${playlist.id}" target="_blank"
+        style="font-size:12px; color:#1DB954; text-decoration:none; border-bottom:1px solid #1DB954;">
+      Open in Spotify ↗
+    </a>`
+  );
+
+  btn.textContent = '✓ Done';
+  if (notFound.length) {
+    console.warn('Tracks not found on Spotify:', notFound);
+    setSpotifyStatus(msg + ' (Check console for not-found list)');
+  }
+}
+
+// Run on page load — handle OAuth callback if returning from Spotify
+handleSpotifyCallback();
+
 // ── Sample state ─────────────────────────────────────────────────────────────
 let samplePlaylist = [];
 
@@ -1101,6 +1318,7 @@ function buildSample() {
   document.getElementById('sample-panel').style.display = 'block';
   document.getElementById('export-sample-btn').disabled = false;
   document.getElementById('filter-sample-btn').style.display = 'inline-block';
+  if (spotifyToken) document.getElementById('push-playlist-btn').disabled = false;
 
   setStatus(`Sample built: ${hits.length} hits + ${cuts.length} album cuts = ${hits.length + cuts.length} tracks.`);
   renderTable();
