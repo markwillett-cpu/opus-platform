@@ -245,6 +245,26 @@ th.col-bpm,th.col-key,th.col-energy{background:#2d1f4e;color:#c4b5fd;text-align:
 /* KEYBOARD HINT */
 .kbd-hint{font-size:10px;color:#5DCAA5;margin-left:8px;opacity:.8}
 kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:3px;padding:1px 5px;font-family:'DM Mono',monospace;font-size:10px}
+/* QUICK ASSIGN PANEL */
+.qa-panel{position:fixed;z-index:1000;background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;width:280px;box-shadow:0 6px 24px rgba(0,0,0,.14);display:none}
+.qa-panel.visible{display:block}
+.qa-header{font-size:10px;font-weight:800;color:var(--text-sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.qa-track-info{background:var(--light);border-radius:5px;padding:8px 10px;margin-bottom:10px}
+.qa-track-title{font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qa-track-artist{font-size:11px;color:var(--text-muted);margin-top:2px}
+.qa-search{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;outline:none;margin-bottom:8px;font-family:inherit}
+.qa-search:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(52,152,219,.12)}
+.qa-list{max-height:200px;overflow-y:auto}
+.qa-style{display:flex;align-items:center;justify-content:space-between;padding:7px 8px;border-radius:4px;cursor:pointer;font-size:13px;border:1px solid transparent;transition:all .1s;gap:8px}
+.qa-style:hover{background:#e8f4fb;border-color:#bee3f8}
+.qa-style.in{background:#e8f8ef;border-color:#9FE1CB;color:#1a6b2e;font-weight:700}
+.qa-style-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qa-check{color:var(--success);font-size:13px;flex-shrink:0;display:none}
+.qa-style.in .qa-check{display:block}
+.qa-add-lbl{font-size:10px;font-weight:800;color:var(--accent);opacity:0;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}
+.qa-style:not(.in):hover .qa-add-lbl{opacity:1}
+.qa-footer{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);min-height:20px}
+
 /* MATCH STYLES MODAL */
 .match-style-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
 .match-style-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;border:1px solid var(--border);cursor:pointer;font-size:13px;transition:all .1s}
@@ -725,6 +745,11 @@ kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(
 
 <!-- ROW CONTEXT MENU -->
 <div class="row-menu" id="rowMenu">
+  <div class="row-menu-item" onclick="rowAction('quickAssign')" style="color:var(--accent)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="9 17 12 20 17 14"/></svg>
+    Quick Assign…
+  </div>
+  <div style="height:1px;background:var(--border);margin:3px 0"></div>
   <div class="row-menu-item" onclick="rowAction('listen')">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
     Listen
@@ -771,6 +796,18 @@ kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(
   </div>
 </div>
 
+<!-- QUICK ASSIGN PANEL -->
+<div class="qa-panel" id="qaPanel">
+  <div class="qa-header">Quick Assign</div>
+  <div class="qa-track-info">
+    <div class="qa-track-title" id="qaTrackTitle"></div>
+    <div class="qa-track-artist" id="qaTrackArtist"></div>
+  </div>
+  <input class="qa-search" id="qaSearch" placeholder="Filter styles…" oninput="qaFilter(this.value)" autocomplete="off">
+  <div class="qa-list" id="qaList"></div>
+  <div class="qa-footer" id="qaFooter">Click a style to assign instantly</div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -804,6 +841,11 @@ let animFrame = null;
 let currentRowId = null;
 let bulkActionSelected = null;
 let pendingChanges = [];
+
+// Quick assign state
+let qaStyles      = [];   // [{id, name}] — loaded once
+let qaTrackId     = null;
+let qaTrackStyles = new Set(); // style names currently on the track
 
 // Extra metadata mode state
 let metaModeActive = false;
@@ -1157,9 +1199,12 @@ function updateSelectionUI() {
 // ══════════════════════════════════════════════
 // ROW MENU
 // ══════════════════════════════════════════════
+let lastMenuEvent = null;
 function showRowMenu(e, id) {
   e.stopPropagation();
   currentRowId = id;
+  lastMenuEvent = e;
+  closeQuickAssign();
   const menu = document.getElementById('rowMenu');
   menu.classList.add('visible');
   const rect = e.currentTarget.getBoundingClientRect();
@@ -1167,8 +1212,13 @@ function showRowMenu(e, id) {
   menu.style.left = `${rect.left}px`;
 }
 
-document.addEventListener('click', () => {
-  document.getElementById('rowMenu').classList.remove('visible');
+document.addEventListener('click', e => {
+  if (!e.target.closest('#rowMenu') && !e.target.closest('.row-actions-btn')) {
+    document.getElementById('rowMenu').classList.remove('visible');
+  }
+  if (!e.target.closest('#qaPanel') && !e.target.closest('#rowMenu')) {
+    closeQuickAssign();
+  }
   document.querySelectorAll('.col-toggle-menu').forEach(m => m.classList.remove('visible'));
 });
 
@@ -1183,6 +1233,9 @@ function rowAction(action) {
     selectedIds.add(row.id);
     updateSelectionUI();
     openBulkActions('add-style');
+  }
+  if (action === 'quickAssign') {
+    openQuickAssign(row, e);
   }
   document.getElementById('rowMenu').classList.remove('visible');
 }
@@ -2120,6 +2173,149 @@ async function toggleAssignTrack(songId, songTitle, cb) {
     assignSavingId = null;
     updateAssignCount();
     renderTable(allRows);
+  }
+}
+
+// ══════════════════════════════════════════════
+// QUICK ASSIGN
+// ══════════════════════════════════════════════
+async function ensureQaStyles() {
+  if (qaStyles.length) return;
+  try {
+    const rows = await sb('sim_styles?select=id,name&order=name.asc');
+    qaStyles = rows || [];
+  } catch(e) { console.warn('Could not load styles for quick assign:', e.message); }
+}
+
+async function openQuickAssign(row, e) {
+  await ensureQaStyles();
+
+  qaTrackId     = row.id;
+  qaTrackStyles = new Set(row.styles ? row.styles.split('|').map(s => s.trim()).filter(Boolean) : []);
+
+  document.getElementById('qaTrackTitle').textContent  = row.title;
+  document.getElementById('qaTrackArtist').textContent = row.artist;
+  document.getElementById('qaSearch').value            = '';
+  document.getElementById('qaFooter').textContent      = 'Click a style to assign instantly';
+  qaRender('');
+
+  const panel = document.getElementById('qaPanel');
+  panel.classList.add('visible');
+
+  // Position: prefer right of the row menu, fall back to below the ≡ button
+  const btnRect = lastMenuEvent?.currentTarget?.getBoundingClientRect?.()
+    || { bottom: 100, left: 100, right: 100 };
+  const pw = 280;
+  const vw = window.innerWidth;
+  const left = btnRect.right + 8 + pw > vw ? btnRect.left - pw - 4 : btnRect.right + 8;
+  panel.style.top  = `${Math.min(btnRect.top, window.innerHeight - 440)}px`;
+  panel.style.left = `${Math.max(4, left)}px`;
+
+  setTimeout(() => document.getElementById('qaSearch').focus(), 50);
+}
+
+function closeQuickAssign() {
+  document.getElementById('qaPanel').classList.remove('visible');
+  qaTrackId = null;
+}
+
+function qaFilter(val) { qaRender(val); }
+
+function qaRender(filter) {
+  const list = document.getElementById('qaList');
+  const q    = filter.toLowerCase();
+  const filtered = qaStyles.filter(s => s.name.toLowerCase().includes(q));
+  if (!filtered.length) {
+    list.innerHTML = `<div style="padding:8px;font-size:12px;color:var(--text-muted)">No styles match</div>`;
+    return;
+  }
+  // Sort: assigned first, then alpha
+  const sorted = [...filtered].sort((a, b) => {
+    const aIn = qaTrackStyles.has(a.name);
+    const bIn = qaTrackStyles.has(b.name);
+    if (aIn !== bIn) return aIn ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  list.innerHTML = sorted.map(s => {
+    const isIn = qaTrackStyles.has(s.name);
+    return `<div class="qa-style ${isIn ? 'in' : ''}" onclick="qaToggle('${s.id}','${esc(s.name)}',this)">
+      <span class="qa-style-name">${esc(s.name)}</span>
+      <span class="qa-check">✓</span>
+      <span class="qa-add-lbl">Add</span>
+    </div>`;
+  }).join('');
+}
+
+async function qaToggle(styleId, styleName, el) {
+  if (!qaTrackId) return;
+  const adding = !el.classList.contains('in');
+  const footer = document.getElementById('qaFooter');
+
+  // Optimistic UI update
+  el.classList.toggle('in', adding);
+  el.querySelector('.qa-check').style.display = adding ? 'block' : 'none';
+
+  if (adding) {
+    qaTrackStyles.add(styleName);
+    footer.innerHTML = `<span style="color:var(--success);font-weight:700">✓ Added to ${esc(styleName)}</span>`;
+  } else {
+    qaTrackStyles.delete(styleName);
+    footer.innerHTML = `Removed from <strong>${esc(styleName)}</strong>`;
+  }
+
+  // Update style tags on the row immediately
+  const rowEl = document.querySelector(`tbody tr[data-id="${qaTrackId}"]`);
+  const tagCell = rowEl?.querySelector('.col-styles .tag-list');
+  if (tagCell) {
+    const allStyles = [...qaTrackStyles];
+    tagCell.innerHTML = allStyles.length
+      ? allStyles.slice(0, 4).map(s => `<span class="tag">${esc(s)}</span>`).join('')
+        + (allStyles.length > 4 ? `<span class="tag tag-overflow">+${allStyles.length - 4}</span>` : '')
+      : '';
+  }
+
+  // Update allRows in memory
+  const row = allRows.find(r => r.id === qaTrackId);
+  if (row) row.styles = [...qaTrackStyles].join('|') || null;
+
+  try {
+    if (adding) {
+      await sb('sim_style_songs', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({ style_id: styleId, library_song_id: qaTrackId })
+      });
+      // Update denormalized styles field
+      if (row) {
+        await sb(`library_songs?id=eq.${qaTrackId}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ styles: row.styles })
+        });
+      }
+    } else {
+      await sb(`sim_style_songs?style_id=eq.${styleId}&library_song_id=eq.${qaTrackId}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      await sb(`sim_style_song_classes?style_id=eq.${styleId}&library_song_id=eq.${qaTrackId}`, {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' }
+      });
+      if (row) {
+        await sb(`library_songs?id=eq.${qaTrackId}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ styles: row.styles || null })
+        });
+      }
+    }
+  } catch(err) {
+    // Revert on failure
+    if (adding) { qaTrackStyles.delete(styleName); el.classList.remove('in'); }
+    else         { qaTrackStyles.add(styleName);    el.classList.add('in'); }
+    if (row) row.styles = [...qaTrackStyles].join('|') || null;
+    footer.innerHTML = `<span style="color:var(--danger)">Save failed — ${esc(err.message)}</span>`;
   }
 }
 
