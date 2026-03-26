@@ -2023,6 +2023,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-backdrop.visible').forEach(m => m.classList.remove('visible'));
     document.getElementById('rowMenu').classList.remove('visible');
+    closeQuickAssign();
+  }
+  if (e.key === ' ' && document.getElementById('qaPanel').classList.contains('visible')) {
+    // Only dismiss if focus is not inside the search input
+    if (document.activeElement?.id !== 'qaSearch') {
+      e.preventDefault();
+      closeQuickAssign();
+    }
   }
 });
 
