@@ -745,7 +745,7 @@ kbd{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(
 
 <!-- ROW CONTEXT MENU -->
 <div class="row-menu" id="rowMenu">
-  <div class="row-menu-item" onclick="rowAction('quickAssign')" style="color:var(--accent)">
+  <div class="row-menu-item" onclick="rowAction('quickAssign', event)" style="color:var(--accent)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="9 17 12 20 17 14"/></svg>
     Quick Assign…
   </div>
@@ -1222,7 +1222,7 @@ document.addEventListener('click', e => {
   document.querySelectorAll('.col-toggle-menu').forEach(m => m.classList.remove('visible'));
 });
 
-function rowAction(action) {
+function rowAction(action, e) {
   const row = allRows.find(r => r.id === currentRowId);
   if (!row) return;
   if (action === 'listen') playTrack(row.id);
