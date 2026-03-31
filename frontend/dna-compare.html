@@ -1,607 +1,619 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Opus – DNA Comparison</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --primary:#2c3e50;--secondary:#34495e;--accent:#3498db;
-      --success:#27ae60;--warning:#f39c12;--danger:#e74c3c;
-      --light:#ecf0f1;--border:#bdc3c7;
-      --sc:#3498db;--ss:#9b59b6;
-    }
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f6fa;color:var(--primary);line-height:1.4}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Opus — Soundcharts vs MusiMap</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f6fa;--primary:#2c3e50;--secondary:#34495e;
+  --border:#bdc3c7;--light:#ecf0f1;
+  --sc:#3498db;--mm:#e67e22;
+  --success:#27ae60;--danger:#e74c3c;--warn:#f39c12;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--primary);line-height:1.4;font-size:13px}
 
-    .opus-header{background:var(--secondary);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-    .opus-title{font-weight:800;font-size:16px}
-    .opus-nav{display:flex;gap:14px}
-    .nav-item{color:#bdc3c7;text-decoration:none;font-size:13px;font-weight:700;padding:8px 10px;border-radius:4px;transition:.2s}
-    .nav-item:hover{color:#fff;background:rgba(255,255,255,.08)}
-    .nav-item.active{color:#fff;background:var(--accent)}
-    .opus-toolbar{background:#3d4f5e;padding:10px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #2c3e50}
-    .toolbar-label{color:#9fb3c8;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+/* HEADER */
+.hdr{background:var(--secondary);color:#fff;padding:13px 24px;display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-weight:900;font-size:15px}
+.toolbar{background:#3d4f5e;padding:9px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2c3e50}
+.tl{color:#9fb3c8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+.tv{color:#fff;font-size:13px;font-weight:700}
 
-    .container{max-width:1500px;margin:0 auto;padding:20px}
+/* LAYOUT */
+.container{max-width:1400px;margin:0 auto;padding:18px}
 
-    /* INPUT */
-    .input-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:18px 24px;margin-bottom:18px}
-    .input-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .input-group{display:flex;flex-direction:column;gap:4px}
-    .input-group label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#7f8c8d}
-    .isrc-input{padding:9px 13px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-family:monospace;width:210px;text-transform:uppercase;transition:.2s}
-    .isrc-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,152,219,.1)}
-    .isrc-input::placeholder{font-family:-apple-system,sans-serif;text-transform:none;color:#bdc3c7}
-    .lookup-btn{padding:9px 22px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:8px;height:40px;align-self:flex-end;transition:.2s}
-    .lookup-btn:hover{background:#2980b9}
-    .lookup-btn:disabled{opacity:.5;cursor:not-allowed}
-    .spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-    .lookup-btn.loading .spinner{display:block}
-    .lookup-btn.loading .btn-label{display:none}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .track-meta{display:flex;flex-direction:column;gap:2px}
-    .track-meta .t-title{font-size:15px;font-weight:900}
-    .track-meta .t-artist{font-size:13px;color:#7f8c8d}
-    .track-meta .t-isrc{font-size:11px;font-family:monospace;color:#bdc3c7}
-    .err{color:var(--danger);font-size:12px;font-weight:700}
+/* TRACK CARD */
+.track-card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:16px 22px;margin-bottom:18px;display:flex;align-items:center;gap:20px}
+.track-art{width:56px;height:56px;border-radius:6px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.track-title{font-size:18px;font-weight:900;margin-bottom:2px}
+.track-artist{font-size:13px;color:#7f8c8d;margin-bottom:4px}
+.track-isrc{font-size:11px;font-family:monospace;color:#bdc3c7}
+.track-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:800}
+.chip-sc{background:#ebf5fb;color:var(--sc);border:1px solid #aed6f1}
+.chip-mm{background:#fef5ec;color:var(--mm);border:1px solid #f9c98c}
+.chip-neutral{background:var(--light);color:#555;border:1px solid var(--border)}
 
-    /* VERDICTS */
-    .verdict-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
-    .vcard{border-radius:8px;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid transparent;transition:.3s}
-    .vcard.pass{background:#d4edda;border-color:#c3e6cb}
-    .vcard.fail{background:#f8d7da;border-color:#f5c6cb}
-    .vcard.borderline{background:#fff3cd;border-color:#ffeeba}
-    .vcard.empty{background:#fff;border-color:var(--border);box-shadow:0 2px 8px rgba(0,0,0,.08)}
-    .vleft{display:flex;align-items:center;gap:12px}
-    .vicon{font-size:24px}
-    .vsource{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
-    .vtitle{font-size:15px;font-weight:900}
-    .vsub{font-size:12px;opacity:.75;margin-top:2px}
-    .vscore{font-size:30px;font-weight:1000;opacity:.85}
+/* VERDICT ROW */
+.verdict-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.vcard{border-radius:8px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid transparent}
+.vcard.agree{background:#d4edda;border-color:#c3e6cb}
+.vcard.disagree{background:#f8d7da;border-color:#f5c6cb}
+.vcard.partial{background:#fff3cd;border-color:#ffeeba}
+.vleft{display:flex;align-items:center;gap:12px}
+.vicon{font-size:26px}
+.vsource{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:2px}
+.vtitle{font-size:15px;font-weight:900}
+.vsub{font-size:12px;opacity:.75;margin-top:2px}
+.vscore{font-size:32px;font-weight:1000}
 
-    /* MAIN GRID */
-    .main-grid{display:grid;grid-template-columns:1fr 1fr 280px;gap:18px;margin-bottom:18px}
+/* MAIN 3-COL GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
 
-    /* FEATURE PANEL */
-    .fpanel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
-    .ph{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;color:#fff}
-    .ph.sc{background:#2471a3}
-    .ph.ss{background:#7d3c98}
-    .ph h3{font-size:14px;font-weight:900}
-    .ph-badge{font-size:11px;font-weight:900;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.2)}
-    .pbody{padding:14px}
+/* PANELS */
+.panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:12px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.ph.sc{background:#2471a3}
+.ph.mm{background:#ca6f1e}
+.ph.excl{background:#6c3483}
+.ph h3{font-size:13px;font-weight:900}
+.ph-badge{font-size:11px;font-weight:900;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.2)}
+.pbody{padding:14px;flex:1}
 
-    .frow{display:grid;grid-template-columns:108px 1fr 56px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--light)}
-    .frow:last-child{border-bottom:none}
-    .fl{font-size:12px;font-weight:900;color:#555}
-    .fbw{position:relative;height:14px;background:var(--light);border-radius:7px;overflow:visible}
-    .fb{height:100%;border-radius:7px;transition:width .3s ease;min-width:2px}
-    .fb.sc-col{background:var(--sc)}
-    .fb.ss-col{background:var(--ss)}
-    .fb.pass{background:var(--success)}
-    .fb.fail{background:var(--danger)}
-    .ftgt{position:absolute;top:0;height:100%;background:rgba(52,152,219,.12);border:1px solid rgba(52,152,219,.3);border-radius:7px;pointer-events:none}
-    .fv{font-size:12px;font-variant-numeric:tabular-nums;font-weight:900;text-align:right}
-    .fv.pass{color:var(--success)}
-    .fv.fail{color:var(--danger)}
-    .fv.warn{color:var(--warning)}
-    .fv.neutral{color:#7f8c8d}
+/* FEATURE ROWS */
+.frow{display:grid;grid-template-columns:110px 1fr 58px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--light)}
+.frow:last-child{border-bottom:none}
+.fl{font-size:12px;font-weight:800;color:#555}
+.fbw{position:relative;height:14px;background:var(--light);border-radius:7px;overflow:visible}
+.fb{height:100%;border-radius:7px;min-width:2px;transition:width .4s}
+.fb.sc{background:var(--sc)}
+.fb.mm{background:var(--mm)}
+.fb.agree{background:var(--success)}
+.fb.disagree{background:var(--danger)}
+.fv{font-size:12px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
+.fv.pass{color:var(--success)}
+.fv.fail{color:var(--danger)}
+.fv.warn{color:var(--warn)}
+.fv.neutral{color:#7f8c8d}
 
-    /* DNA EDITOR */
-    .dna-panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
-    .dna-body{display:flex;flex-direction:column;gap:10px;padding:14px}
-    .dna-field .dlabel{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:#7f8c8d;display:flex;justify-content:space-between;margin-bottom:4px}
-    .dna-field .dlabel .dcur{font-size:11px;font-weight:900}
-    .rrow{display:flex;gap:6px;align-items:center}
-    .ri{flex:1;padding:5px 7px;border:1px solid var(--border);border-radius:4px;font-size:12px;min-width:0}
-    .ri:focus{outline:none;border-color:var(--accent)}
-    .rsep{font-size:11px;color:#bdc3c7;font-weight:700;flex-shrink:0}
+/* EXCLUSIVE PANEL */
+.excl-section{margin-bottom:14px}
+.excl-section:last-child{margin-bottom:0}
+.excl-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#9b59b6;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #f0e6f6}
+.mood-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.mood-name{font-size:12px;font-weight:700;color:#2c3e50;width:140px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mood-bar-wrap{flex:1;height:8px;background:#f0e6f6;border-radius:4px;overflow:hidden}
+.mood-bar{height:100%;border-radius:4px;background:#9b59b6}
+.mood-score{font-size:11px;font-weight:900;color:#6c3483;width:28px;text-align:right;flex-shrink:0}
+.sit-chip{display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:800;margin:2px 3px 2px 0;background:#fef9e7;color:#b7770d;border:1px solid #f9e79f}
+.sit-chip.hi{background:#fef5e7;border-color:#f9c98c;color:#ca6f1e}
+.voice-chip{display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:800;background:#ebf5fb;color:#2471a3;border:1px solid #aed6f1;margin:2px 3px 2px 0}
+.stability-bar{height:8px;background:var(--light);border-radius:4px;overflow:hidden;margin-top:4px}
+.stability-fill{height:100%;border-radius:4px}
+.key-seg{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:var(--light);color:#555;margin:2px 2px 0 0}
 
-    /* SECTION HEADER */
-    .sh{background:var(--secondary);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-    .sh h3{font-size:14px;font-weight:900}
-    .shbtn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:900;cursor:pointer}
-    .shbtn:hover{background:rgba(255,255,255,.25)}
+/* DELTA TABLE */
+.delta-wrap{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;margin-bottom:18px}
+.dtable{width:100%;border-collapse:collapse}
+.dtable thead{background:var(--secondary);color:#fff}
+.dtable th,.dtable td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
+.dtable th{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.3px}
+.dtable td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:900}
+.dtable tbody tr:hover{background:#f8f9fa}
+.pill{display:inline-block;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:900}
+.pp{background:#d4edda;color:#155724}
+.pf{background:#f8d7da;color:#721c24}
+.pw{background:#fff3cd;color:#856404}
+.pn{background:var(--light);color:#7f8c8d}
+.agree-txt{color:var(--success);font-weight:900}
+.disagree-txt{color:var(--danger);font-weight:900}
+.warn-txt{color:var(--warn);font-weight:900}
 
-    /* DELTA TABLE */
-    .dsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;margin-bottom:18px}
-    .dtable{width:100%;border-collapse:collapse;font-size:12px}
-    .dtable thead{background:var(--secondary);color:#fff}
-    .dtable th,.dtable td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--light);white-space:nowrap}
-    .dtable td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:900}
-    .dtable tbody tr:hover{background:#f8f9fa}
-    .agree{color:var(--success);font-weight:900}
-    .disagree{color:var(--danger);font-weight:900}
-    .pill{display:inline-block;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:900}
-    .pp{background:#d4edda;color:#155724}
-    .pf{background:#f8d7da;color:#721c24}
-    .pw{background:#fff3cd;color:#856404}
-    .pn{background:var(--light);color:#7f8c8d}
-
-    /* RADAR */
-    .rsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;margin-bottom:18px}
-    .rwrap{display:flex;justify-content:center;padding:10px 0 4px}
-    .rlegend{display:flex;gap:14px;justify-content:center;padding:0 0 12px;font-size:11px;font-weight:900}
-    .rlegend span{display:flex;align-items:center;gap:5px}
-    .ldot{width:10px;height:10px;border-radius:2px;display:inline-block}
-
-    /* HISTORY */
-    .hsect{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
-    .hlist{max-height:250px;overflow-y:auto;padding:6px}
-    .hitem{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:5px;cursor:pointer;transition:.15s;gap:8px}
-    .hitem:hover{background:var(--light)}
-    .hinfo{flex:1;min-width:0}
-    .htitle{font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .hisrc{font-size:11px;color:#7f8c8d;font-family:monospace}
-    .hpills{display:flex;gap:4px;flex-shrink:0}
-    .hpill{font-size:10px;font-weight:900;padding:2px 6px;border-radius:6px}
-    .hpill.pass{background:#d4edda;color:#155724}
-    .hpill.fail{background:#f8d7da;color:#721c24}
-    .hpill.borderline{background:#fff3cd;color:#856404}
-    .hpill.empty{background:var(--light);color:#7f8c8d}
-
-    .empty-state{text-align:center;padding:30px 16px;color:#95a5a6}
-    .empty-state .icon{font-size:28px;margin-bottom:8px}
-    .empty-state p{font-size:13px;font-weight:700}
-
-    .bottom-grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
-    .right-col{display:flex;flex-direction:column;gap:18px}
-  </style>
+/* BOTTOM ROW */
+.bottom-grid{display:grid;grid-template-columns:1fr 300px;gap:18px}
+.radar-panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+.rlegend{display:flex;gap:14px;justify-content:center;padding:6px 0 12px;font-size:11px;font-weight:800}
+.rlegend span{display:flex;align-items:center;gap:5px}
+.ldot{width:10px;height:10px;border-radius:2px}
+.insight-panel{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden}
+.insight-body{padding:14px;display:flex;flex-direction:column;gap:10px}
+.insight-item{padding:10px 12px;border-radius:6px;font-size:12px;font-weight:700;line-height:1.5}
+.insight-item.warn{background:#fff3cd;color:#856404;border-left:3px solid var(--warn)}
+.insight-item.agree{background:#d4edda;color:#155724;border-left:3px solid var(--success)}
+.insight-item.info{background:#ebf5fb;color:#1a5276;border-left:3px solid var(--sc)}
+.insight-item.excl{background:#f5eef8;color:#6c3483;border-left:3px solid #9b59b6}
+</style>
 </head>
 <body>
 
-<header class="opus-header">
-  <div class="opus-title">🎵 Opus Platform</div>
-  <div id="nav-root"></div>
-</header>
-<script src="./nav.js"></script>
-
-<div class="opus-toolbar">
-  <span class="toolbar-label">DNA Compare</span>
-  <span style="color:#5a7288;font-size:12px">Soundcharts vs Songstats — side-by-side audio feature validation against playlist DNA targets</span>
+<div class="hdr">
+  <div class="hdr-title">🎵 Opus Platform</div>
+  <span style="font-size:12px;color:#bdc3c7;font-weight:700">Soundcharts vs MusiMap — Feature Comparison</span>
+</div>
+<div class="toolbar">
+  <span class="tl">Track</span>
+  <span class="tv">Birds Of A Feather — Billie Eilish</span>
+  <span style="color:#5a7288;margin:0 6px">·</span>
+  <span class="tl">ISRC</span>
+  <span class="tv" style="font-family:monospace">USUM72401994</span>
+  <span style="color:#5a7288;margin:0 6px">·</span>
+  <span class="tl">Source</span>
+  <span class="tv">Soundcharts (live library) · MusiMap (sample data)</span>
 </div>
 
 <div class="container">
 
-  <!-- INPUT -->
-  <div class="input-card">
-    <div class="input-row">
-      <div class="input-group">
-        <label>ISRC</label>
-        <input id="isrc-input" class="isrc-input" placeholder="e.g. USUM72403305" maxlength="12" />
+  <!-- TRACK CARD -->
+  <div class="track-card">
+    <div class="track-art">🎵</div>
+    <div>
+      <div class="track-title">Birds Of A Feather</div>
+      <div class="track-artist">Billie Eilish</div>
+      <div class="track-isrc">USUM72401994 · 2024 · Alternative</div>
+      <div class="track-chips">
+        <span class="chip chip-sc">Soundcharts enriched</span>
+        <span class="chip chip-mm">MusiMap sample</span>
+        <span class="chip chip-neutral">3:30 duration</span>
+        <span class="chip chip-neutral">Album: HIT ME HARD AND SOFT</span>
       </div>
-      <button id="lookup-btn" class="lookup-btn" onclick="doLookup()">
-        <div class="spinner"></div>
-        <span class="btn-label">Compare</span>
-      </button>
-      <div id="track-meta" style="display:none" class="track-meta"></div>
-      <div id="err-msg" class="err"></div>
     </div>
   </div>
 
   <!-- VERDICTS -->
   <div class="verdict-row">
-    <div id="vsc" class="vcard empty">
-      <div class="vleft"><div class="vicon">📡</div>
-        <div><div class="vsource">Soundcharts</div><div class="vtitle">Awaiting lookup</div><div class="vsub">Enter an ISRC above</div></div>
-      </div>
-      <div class="vscore" id="score-sc">—</div>
-    </div>
-    <div id="vss" class="vcard empty">
-      <div class="vleft"><div class="vicon">📡</div>
-        <div><div class="vsource">Songstats</div><div class="vtitle">Awaiting lookup</div><div class="vsub">Mock server active</div></div>
-      </div>
-      <div class="vscore" id="score-ss">—</div>
-    </div>
-  </div>
-
-  <!-- MAIN: SC | SS | DNA -->
-  <div class="main-grid">
-
-    <div class="fpanel">
-      <div class="ph sc"><h3>Soundcharts</h3><span class="ph-badge" id="sc-badge">No data</span></div>
-      <div class="pbody" id="sc-bars"><div class="empty-state"><div class="icon">📡</div><p>No data</p></div></div>
-    </div>
-
-    <div class="fpanel">
-      <div class="ph ss"><h3>Songstats</h3><span class="ph-badge" id="ss-badge">Mock</span></div>
-      <div class="pbody" id="ss-bars"><div class="empty-state"><div class="icon">📡</div><p>No data</p></div></div>
-    </div>
-
-    <div class="dna-panel">
-      <div class="sh"><h3>DNA Targets</h3><button class="shbtn" onclick="resetDNA()">Reset</button></div>
-      <div class="dna-body" id="dna-editor"></div>
-    </div>
-
-  </div>
-
-  <!-- BOTTOM: Agreement Table | Radar + History -->
-  <div class="bottom-grid">
-
-    <div class="dsect">
-      <div class="sh"><h3>Source Agreement</h3></div>
-      <table class="dtable">
-        <thead><tr><th>Feature</th><th>Soundcharts</th><th>Songstats</th><th>Δ Delta</th><th>SC</th><th>SS</th><th>Agree?</th></tr></thead>
-        <tbody id="delta-body"><tr><td colspan="7" style="text-align:center;color:#95a5a6;padding:28px;font-size:13px">No track loaded</td></tr></tbody>
-      </table>
-    </div>
-
-    <div class="right-col">
-      <div class="rsect">
-        <div class="sh"><h3>Radar</h3></div>
-        <div class="rwrap"><canvas id="radar" width="290" height="250"></canvas></div>
-        <div class="rlegend">
-          <span><span class="ldot" style="background:rgba(39,174,96,.4);border:1px solid #27ae60"></span>Target</span>
-          <span><span class="ldot" style="background:var(--sc)"></span>Soundcharts</span>
-          <span><span class="ldot" style="background:var(--ss)"></span>Songstats</span>
+    <div class="vcard partial">
+      <div class="vleft">
+        <div class="vicon">⚠️</div>
+        <div>
+          <div class="vsource">Soundcharts vs MusiMap</div>
+          <div class="vtitle">Partial Agreement</div>
+          <div class="vsub">BPM &amp; key agree · Energy &amp; danceability diverge significantly</div>
         </div>
       </div>
-      <div class="hsect">
-        <div class="sh"><h3>History</h3><button class="shbtn" onclick="clearHistory()">Clear</button></div>
-        <div id="hlist" class="hlist"><div class="empty-state"><div class="icon">🕐</div><p>No lookups yet</p></div></div>
+      <div class="vscore" style="color:#856404">2/4</div>
+    </div>
+    <div class="vcard agree">
+      <div class="vleft">
+        <div class="vicon">✅</div>
+        <div>
+          <div class="vsource">MusiMap Exclusive</div>
+          <div class="vtitle">Rich Contextual Data</div>
+          <div class="vsub">40+ moods · 10 situations · voice family · key stability</div>
+        </div>
       </div>
+      <div class="vscore" style="color:#155724">+</div>
+    </div>
+  </div>
+
+  <!-- MAIN 3-COL -->
+  <div class="main-grid">
+
+    <!-- SOUNDCHARTS -->
+    <div class="panel">
+      <div class="ph sc"><h3>Soundcharts</h3><span class="ph-badge">Live library data</span></div>
+      <div class="pbody" id="sc-bars"></div>
+    </div>
+
+    <!-- MUSIMAP -->
+    <div class="panel">
+      <div class="ph mm"><h3>MusiMap</h3><span class="ph-badge">Sample data</span></div>
+      <div class="pbody" id="mm-bars"></div>
+    </div>
+
+    <!-- MUSIMAP EXCLUSIVE -->
+    <div class="panel">
+      <div class="ph excl"><h3>MusiMap Exclusive</h3><span class="ph-badge">Not in Soundcharts</span></div>
+      <div class="pbody" id="excl-panel"></div>
     </div>
 
   </div>
+
+  <!-- DELTA TABLE -->
+  <div class="delta-wrap">
+    <div class="ph" style="background:var(--secondary)"><h3 style="color:#fff">Source Agreement — Overlapping Fields</h3></div>
+    <table class="dtable">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Soundcharts</th>
+          <th>MusiMap</th>
+          <th>Δ Delta</th>
+          <th>Agreement</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="delta-body"></tbody>
+    </table>
+  </div>
+
+  <!-- BOTTOM: RADAR + INSIGHTS -->
+  <div class="bottom-grid">
+    <div class="radar-panel">
+      <div class="ph" style="background:var(--secondary)"><h3 style="color:#fff">Radar — Overlapping Features</h3></div>
+      <div style="display:flex;justify-content:center;padding:12px 0 4px">
+        <canvas id="radar" width="400" height="300"></canvas>
+      </div>
+      <div class="rlegend">
+        <span><span class="ldot" style="background:var(--sc)"></span>Soundcharts</span>
+        <span><span class="ldot" style="background:var(--mm)"></span>MusiMap</span>
+      </div>
+    </div>
+    <div class="insight-panel">
+      <div class="ph" style="background:var(--secondary)"><h3 style="color:#fff">Key Insights</h3></div>
+      <div class="insight-body" id="insights"></div>
+    </div>
+  </div>
+
 </div>
 
-<script src="./config.js"></script>
-<script src="./api-client.js"></script>
 <script>
+// ── DATA ─────────────────────────────────────────────────────────
 
-// ── DNA CONFIG ──
-const SCORED = [
-  {key:'energy',       label:'Energy',       min:0.60, max:0.85},
-  {key:'valence',      label:'Valence',       min:0.50, max:0.80},
-  {key:'danceability', label:'Danceability',  min:0.55, max:0.80},
-  {key:'acousticness', label:'Acousticness',  min:0.00, max:0.25},
-  {key:'tempo',        label:'BPM',           min:95,   max:145, scale:200},
+const SC = {
+  bpm:             104.98,
+  key:             2,       // D
+  mode:            'major',
+  energy:          0.51,
+  danceability:    0.75,
+  valence:         0.44,
+  acousticness:    0.20,
+  instrumentalness:0.06,
+  speechiness:     0.04,
+  loudness:        -10.17,
+  liveness:        0.12,
+  timeSignature:   4,
+  genre:           'alternative',
+};
+
+const MM = {
+  // Overlapping (musical)
+  bpm:             103,
+  bpm_raw:         103.359,
+  bpm_confidence:  0.988,
+  key:             'D',
+  key_scale:       'major',
+  key_confidence:  0.666,
+  energy:          0.824,   // perception.energy
+  danceability:    0.505,   // perception.danceability
+  loudness_lufs:   -12.58,  // integrated LUFS
+  beat_regularity: 0.975,
+  beat_confidence: 0.541,
+  key_stability:   0.238,
+  key_modulations: 11,
+  key_primary:     'B minor',
+
+  // Exclusive
+  moods: [
+    {name:'Sensual',score:94},{name:'Love',score:86},{name:'Passionate',score:81},
+    {name:'Sentimental',score:79},{name:'Glamourous',score:77},{name:'Friendly',score:73},
+    {name:'Good Vibrations',score:68},{name:'Sensibility',score:63},{name:'Warm-hearted',score:55},
+    {name:'Melodramatic',score:48},
+  ],
+  situations: [
+    {name:'Candle Light Dinner',score:100},{name:'Chill',score:100},
+    {name:'Homecoming',score:100},{name:'Summer',score:100},
+    {name:'Falling in love',score:93},{name:'Sunday morning',score:90},
+    {name:'Goodbyes',score:86},{name:'Romance / Making Love',score:83},
+    {name:'Winter holiday season',score:82},{name:'Cocktails',score:70},
+  ],
+  rhythmic_moods: [{name:'Staccato',score:53},{name:'Chaotic',score:15},{name:'Flowing',score:13}],
+  voice_families: [{name:'High Pitched Vocal',score:99}],
+  genres_scored:  [
+    {name:'Pop',score:70},{name:'Indie rock',score:64},
+    {name:'Electro pop / Synthpop',score:55},{name:'Contemporary R&B',score:32},{name:'Pop rock',score:21},
+  ],
+  instrumental: {value:true, confidence:0.286, probability:0.621},
+};
+
+// ── SHARED FEATURES FOR BARS ─────────────────────────────────────
+
+const SHARED = [
+  {key:'bpm',         label:'BPM',           scv: SC.bpm,              mmv: MM.bpm,         scale:200},
+  {key:'energy',      label:'Energy',        scv: SC.energy,           mmv: MM.energy},
+  {key:'danceability',label:'Danceability',  scv: SC.danceability,     mmv: MM.danceability},
+  {key:'valence',     label:'Valence',       scv: SC.valence,          mmv: null},   // MM has no direct valence
+  {key:'acousticness',label:'Acousticness',  scv: SC.acousticness,     mmv: null},   // MM no direct acousticness
+  {key:'instrumentalness',label:'Instrumental',scv:SC.instrumentalness,mmv: MM.instrumental.probability},
+  {key:'speechiness', label:'Speechiness',   scv: SC.speechiness,      mmv: null},
+  {key:'liveness',    label:'Liveness',      scv: SC.liveness,         mmv: null},
 ];
-const ALL_F = [
-  ...SCORED,
-  {key:'loudness',         label:'Loudness (dB)'},
-  {key:'speechiness',      label:'Speechiness'},
-  {key:'liveness',         label:'Liveness'},
-  {key:'instrumentalness', label:'Instrumental'},
+
+const SC_ONLY = [
+  {key:'valence',     label:'Valence',       v: SC.valence},
+  {key:'acousticness',label:'Acousticness',  v: SC.acousticness},
+  {key:'speechiness', label:'Speechiness',   v: SC.speechiness},
+  {key:'liveness',    label:'Liveness',      v: SC.liveness},
 ];
-let dna = {};
-function initDNA(){
-  SCORED.forEach(f=>{ dna[f.key]={min:f.min,max:f.max}; });
-  document.getElementById('dna-editor').innerHTML = SCORED.map(f=>`
-    <div class="dna-field">
-      <div class="dlabel"><span>${f.label}</span><span class="dcur" id="dcur-${f.key}" style="color:#bdc3c7">—</span></div>
-      <div class="rrow">
-        <input class="ri" id="dmin-${f.key}" type="number" step="${f.scale?1:0.01}" value="${f.min}" oninput="onDNA('${f.key}')"/>
-        <span class="rsep">–</span>
-        <input class="ri" id="dmax-${f.key}" type="number" step="${f.scale?1:0.01}" value="${f.max}" oninput="onDNA('${f.key}')"/>
-      </div>
-    </div>`).join('');
+
+// ── RENDER BARS ───────────────────────────────────────────────────
+
+function pct(v, scale) {
+  if (v == null) return 0;
+  return scale ? Math.min((v / scale) * 100, 100) : Math.min(v * 100, 100);
 }
-function resetDNA(){
-  SCORED.forEach(f=>{
-    dna[f.key]={min:f.min,max:f.max};
-    document.getElementById(`dmin-${f.key}`).value=f.min;
-    document.getElementById(`dmax-${f.key}`).value=f.max;
+
+function fmtV(v, scale) {
+  if (v == null) return '—';
+  return scale ? v.toFixed(1) : v.toFixed(3);
+}
+
+function barRow(label, v, cls, scale) {
+  if (v == null) return `
+    <div class="frow">
+      <div class="fl">${label}</div>
+      <div style="font-size:11px;color:#bdc3c7;font-style:italic">Not available</div>
+      <div class="fv neutral">—</div>
+    </div>`;
+  const p = pct(v, scale);
+  return `
+    <div class="frow">
+      <div class="fl">${label}</div>
+      <div class="fbw"><div class="fb ${cls}" style="width:${p.toFixed(1)}%"></div></div>
+      <div class="fv neutral">${fmtV(v, scale)}</div>
+    </div>`;
+}
+
+// SC panel
+document.getElementById('sc-bars').innerHTML = `
+  ${barRow('BPM',             SC.bpm,             'sc', 200)}
+  ${barRow('Energy',          SC.energy,           'sc')}
+  ${barRow('Danceability',    SC.danceability,     'sc')}
+  ${barRow('Valence',         SC.valence,          'sc')}
+  ${barRow('Acousticness',    SC.acousticness,     'sc')}
+  ${barRow('Instrumentalness',SC.instrumentalness, 'sc')}
+  ${barRow('Speechiness',     SC.speechiness,      'sc')}
+  ${barRow('Liveness',        SC.liveness,         'sc')}
+  ${barRow('Loudness (dB)',   Math.min(Math.max((SC.loudness+30)/30,0),1), 'sc')}
+  <div class="frow"><div class="fl" style="color:#7f8c8d;font-size:11px">Loudness raw</div><div></div><div class="fv neutral">${SC.loudness} dB</div></div>
+  <div class="frow"><div class="fl">Key</div><div></div><div class="fv neutral">D major</div></div>
+  <div class="frow"><div class="fl">Genre</div><div></div><div class="fv neutral" style="font-size:11px">alternative</div></div>
+`;
+
+// MM panel
+document.getElementById('mm-bars').innerHTML = `
+  ${barRow('BPM',             MM.bpm,              'mm', 200)}
+  ${barRow('Energy',          MM.energy,           'mm')}
+  ${barRow('Danceability',    MM.danceability,     'mm')}
+  <div class="frow"><div class="fl" style="color:#bdc3c7;font-size:11px">Valence</div><div style="font-size:11px;color:#bdc3c7;font-style:italic">Not in MusiMap</div><div class="fv neutral">—</div></div>
+  <div class="frow"><div class="fl" style="color:#bdc3c7;font-size:11px">Acousticness</div><div style="font-size:11px;color:#bdc3c7;font-style:italic">Not in MusiMap</div><div class="fv neutral">—</div></div>
+  ${barRow('Instrumental prob.',MM.instrumental.probability,'mm')}
+  <div class="frow"><div class="fl" style="color:#bdc3c7;font-size:11px">Speechiness</div><div style="font-size:11px;color:#bdc3c7;font-style:italic">Not in MusiMap</div><div class="fv neutral">—</div></div>
+  <div class="frow"><div class="fl" style="color:#bdc3c7;font-size:11px">Liveness</div><div style="font-size:11px;color:#bdc3c7;font-style:italic">Not in MusiMap</div><div class="fv neutral">—</div></div>
+  ${barRow('Loudness (LUFS)',  Math.min(Math.max((MM.loudness_lufs+30)/30,0),1), 'mm')}
+  <div class="frow"><div class="fl" style="color:#7f8c8d;font-size:11px">Loudness raw</div><div></div><div class="fv neutral">${MM.loudness_lufs} LUFS</div></div>
+  <div class="frow"><div class="fl">Key</div><div></div><div class="fv neutral">D major <span style="font-size:10px;color:#bdc3c7">(conf. ${MM.key_confidence})</span></div></div>
+  <div class="frow"><div class="fl">Beat regularity</div><div class="fbw"><div class="fb mm" style="width:${(MM.beat_regularity*100).toFixed(1)}%"></div></div><div class="fv neutral">${MM.beat_regularity}</div></div>
+  <div class="frow"><div class="fl">Key stability</div><div class="fbw"><div class="fb mm" style="width:${(MM.key_stability*100).toFixed(1)}%;background:#e74c3c"></div></div><div class="fv fail">${MM.key_stability} ⚠</div></div>
+`;
+
+// ── EXCLUSIVE PANEL ───────────────────────────────────────────────
+
+(function() {
+  let html = '';
+
+  // Moods
+  html += `<div class="excl-section"><div class="excl-label">Moods (top 10 of 40+)</div>`;
+  MM.moods.forEach(m => {
+    html += `<div class="mood-row">
+      <div class="mood-name">${m.name}</div>
+      <div class="mood-bar-wrap"><div class="mood-bar" style="width:${m.score}%"></div></div>
+      <div class="mood-score">${m.score}</div>
+    </div>`;
   });
-  rerender();
-}
-function onDNA(k){
-  const mn=parseFloat(document.getElementById(`dmin-${k}`)?.value);
-  const mx=parseFloat(document.getElementById(`dmax-${k}`)?.value);
-  dna[k]={min:isNaN(mn)?null:mn,max:isNaN(mx)?null:mx};
-  rerender();
-}
+  html += `</div>`;
 
-// ── STATE ──
-let track=null, hist=[];
-const API_BASE = (window.OPUS_CONFIG||{}).API_BASE_URL || 'https://opus-platform.onrender.com/v1';
-const API_KEY  = (window.OPUS_CONFIG||{}).API_KEY || '';
-
-async function apiGet(path) {
-  const r = await fetch(`${API_BASE}${path}`, {
-    headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' }
+  // Situations
+  html += `<div class="excl-section"><div class="excl-label">Situations</div><div>`;
+  MM.situations.slice(0,6).forEach(s => {
+    const hi = s.score >= 90;
+    html += `<span class="sit-chip ${hi?'hi':''}">${s.name} <strong>${s.score}</strong></span>`;
   });
-  if (!r.ok) { const e = await r.json().catch(()=>({error:{message:r.statusText}})); throw new Error(e?.error?.message || r.statusText); }
-  return r.json();
-}
+  html += `</div></div>`;
 
-// ── LOOKUP ──
-async function doLookup(){
-  const isrc=document.getElementById('isrc-input').value.trim().toUpperCase();
-  if(!isrc)return;
-  const btn=document.getElementById('lookup-btn');
-  document.getElementById('err-msg').textContent='';
-  document.getElementById('track-meta').style.display='none';
-  btn.classList.add('loading'); btn.disabled=true;
-  try{
-    const [scR,ssR]=await Promise.allSettled([fetchSC(isrc),fetchSS(isrc)]);
-    const sc=scR.status==='fulfilled'?scR.value:null;
-    const ssErr=ssR.status==='rejected'?ssR.reason?.message:null;
-    const ss=ssR.status==='fulfilled'?ssR.value:null;
-    if(!sc&&!ss){
-      const msg = ssErr==='NO_KEY'
-        ? 'Soundcharts: track not found or not enriched. (Songstats: API key not configured)'
-        : 'Not found in either source. Ensure ISRC is in your library and has been enriched.';
-      document.getElementById('err-msg').textContent=msg;
-      track=null; rerender(); return;
-    }
-    // Store pending key state for SS panel
-    if(!ss && ssErr==='NO_KEY') window._ssPendingKey=true;
-    else window._ssPendingKey=false;
-    const title=sc?.title||ss?.title||'Unknown';
-    const artist=sc?.artist||ss?.artist||'Unknown';
-    track={title,artist,isrc,sc,ss};
-    document.getElementById('track-meta').style.display='flex';
-    document.getElementById('track-meta').innerHTML=`
-      <div class="t-title">${title}</div>
-      <div class="t-artist">${artist}</div>
-      <div class="t-isrc">${isrc}</div>`;
-    addHist(track); rerender();
-  }catch(e){
-    document.getElementById('err-msg').textContent=e.message||'Lookup failed';
-    track=null; rerender();
-  }finally{ btn.classList.remove('loading'); btn.disabled=false; }
-}
+  // Voice
+  html += `<div class="excl-section"><div class="excl-label">Voice Family</div><div>`;
+  MM.voice_families.forEach(v => {
+    html += `<span class="voice-chip">${v.name} ${v.score}</span>`;
+  });
+  html += `</div></div>`;
 
-// ── SOUNDCHARTS (via Opus API → /songs/by-isrc/:isrc) ──
-async function fetchSC(isrc){
-  const data = await apiGet(`/songs/by-isrc/${encodeURIComponent(isrc)}`);
-  return {
-    title:    data.title  || '',
-    artist:   data.artist || '',
-    isrc:     data.isrc   || isrc,
-    features: data.features || {}
+  // Rhythmic moods
+  html += `<div class="excl-section"><div class="excl-label">Rhythmic Mood</div><div>`;
+  MM.rhythmic_moods.forEach(r => {
+    html += `<span class="chip chip-neutral" style="margin:2px 3px 2px 0">${r.name} ${r.score}</span>`;
+  });
+  html += `</div></div>`;
+
+  // Genres scored
+  html += `<div class="excl-section"><div class="excl-label">Genres (scored)</div>`;
+  MM.genres_scored.forEach(g => {
+    html += `<div class="mood-row">
+      <div class="mood-name" style="color:#ca6f1e">${g.name}</div>
+      <div class="mood-bar-wrap"><div class="mood-bar" style="width:${g.score}%;background:var(--mm)"></div></div>
+      <div class="mood-score" style="color:var(--mm)">${g.score}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Key stability detail
+  html += `<div class="excl-section"><div class="excl-label">Key Stability — ${MM.key_stability} (low · ${MM.key_modulations} modulations)</div>`;
+  html += `<div style="font-size:11px;color:#7f8c8d;margin-bottom:4px">Primary key: <strong>${MM.key_primary}</strong> · Detected key (SC): D major</div>`;
+  html += `<div style="font-size:11px;color:#7f8c8d">Top segments: `;
+  [['D','major'],['B','minor'],['A','major'],['F♯','minor'],['E','minor']].forEach(([k,s]) => {
+    html += `<span class="key-seg">${k} ${s}</span>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById('excl-panel').innerHTML = html;
+})();
+
+// ── DELTA TABLE ───────────────────────────────────────────────────
+
+(function() {
+  const rows = [
+    {
+      label:'BPM', scv: SC.bpm, mmv: MM.bpm,
+      fmt: v => v != null ? v.toFixed(1) : '—',
+      delta: Math.abs(SC.bpm - MM.bpm),
+      agree: 'agree', note:'Within 2 BPM — strong agreement'
+    },
+    {
+      label:'Key', scv:'D major', mmv:`D major (conf. ${MM.key_confidence})`,
+      fmt: v => v, delta: null,
+      agree: 'agree', note:'Both detect D major; MM flags low confidence'
+    },
+    {
+      label:'Energy', scv: SC.energy, mmv: MM.energy,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: Math.abs(SC.energy - MM.energy),
+      agree: 'disagree', note:'SC: 0.510 vs MM: 0.824 — large divergence (Δ0.314)'
+    },
+    {
+      label:'Danceability', scv: SC.danceability, mmv: MM.danceability,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: Math.abs(SC.danceability - MM.danceability),
+      agree: 'disagree', note:'SC: 0.750 vs MM: 0.505 — large divergence (Δ0.245)'
+    },
+    {
+      label:'Instrumentalness', scv: SC.instrumentalness, mmv: MM.instrumental.probability,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: Math.abs(SC.instrumentalness - MM.instrumental.probability),
+      agree: 'partial', note:`SC: 0.060 (low vocal), MM: ${MM.instrumental.probability.toFixed(3)} (conf. ${MM.instrumental.confidence}) — broadly agree`
+    },
+    {
+      label:'Loudness', scv:`${SC.loudness} dB`, mmv:`${MM.loudness_lufs} LUFS`,
+      fmt: v => v, delta: null,
+      agree: 'partial', note:'Different scales (dBFS vs LUFS) — not directly comparable'
+    },
+    {
+      label:'Valence', scv: SC.valence, mmv: null,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: null, agree: 'na', note:'MusiMap does not provide valence'
+    },
+    {
+      label:'Acousticness', scv: SC.acousticness, mmv: null,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: null, agree: 'na', note:'MusiMap does not provide acousticness'
+    },
+    {
+      label:'Speechiness', scv: SC.speechiness, mmv: null,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: null, agree: 'na', note:'MusiMap does not provide speechiness'
+    },
+    {
+      label:'Liveness', scv: SC.liveness, mmv: null,
+      fmt: v => v != null ? v.toFixed(3) : '—',
+      delta: null, agree: 'na', note:'MusiMap does not provide liveness'
+    },
+  ];
+
+  const pills = {
+    agree:    `<span class="pill pp">✓ Agree</span>`,
+    disagree: `<span class="pill pf">✗ Disagree</span>`,
+    partial:  `<span class="pill pw">~ Partial</span>`,
+    na:       `<span class="pill pn">— SC only</span>`,
   };
-}
+  const deltaCls = {agree:'agree-txt', disagree:'disagree-txt', partial:'warn-txt', na:'neutral'};
 
-// ── SONGSTATS (proxied via Opus API to avoid CORS restriction) ──
-async function fetchSS(isrc){
+  document.getElementById('delta-body').innerHTML = rows.map(r => `
+    <tr>
+      <td><strong>${r.label}</strong></td>
+      <td class="num" style="color:var(--sc)">${r.fmt(r.scv)}</td>
+      <td class="num" style="color:var(--mm)">${r.mmv != null ? r.fmt(r.mmv) : '<span style="color:#bdc3c7">—</span>'}</td>
+      <td class="num ${deltaCls[r.agree]}">${r.delta != null ? r.delta.toFixed(3) : '—'}</td>
+      <td>${pills[r.agree]}</td>
+      <td style="color:#7f8c8d;font-size:12px">${r.note}</td>
+    </tr>
+  `).join('');
+})();
 
-  // Call via Opus proxy — Songstats blocks direct browser requests (CORS)
-  const r = await fetch(`${API_BASE}/songs/songstats/${encodeURIComponent(isrc)}`, {
-    headers: { 'x-api-key': API_KEY }
-  });
-  if(!r.ok) throw new Error(`Songstats ${r.status}`);
-  const d = await r.json();
-  if(d.result !== 'success') throw new Error(d.message || 'Songstats error');
+// ── RADAR ─────────────────────────────────────────────────────────
 
-  const audio = {};
-  (d.audio_analysis || []).forEach(x => { audio[x.key] = parseFloat(x.value); });
-  const t = d.track_info || {};
-  const KEY_MAP = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
-  return {
-    title: t.title || '',
-    artist: (t.artists||[]).map(a=>a.name).join(', '),
-    isrc,
-    features: {
-      energy: audio.energy, valence: audio.valence, danceability: audio.danceability,
-      acousticness: audio.acousticness, tempo: audio.tempo, loudness: audio.loudness,
-      speechiness: audio.speechiness, liveness: audio.liveness, instrumentalness: audio.instrumentalness,
-      key: KEY_MAP[String(audio.key||'')] ?? -1,
-      mode: audio.mode != null ? Math.round(audio.mode) : null
-    }
-  };
-}
+(function() {
+  const canvas = document.getElementById('radar');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, R = Math.min(W,H)/2 - 42;
+  const KEYS  = ['bpm_norm','energy','danceability','instrumentalness'];
+  const LABELS = ['BPM (norm)','Energy','Danceability','Instrumental'];
+  const SC_VALS = [SC.bpm/200, SC.energy, SC.danceability, SC.instrumentalness];
+  const MM_VALS = [MM.bpm/200, MM.energy, MM.danceability, MM.instrumental.probability];
+  const N = KEYS.length;
+  const ang = i => -Math.PI/2 + i*(Math.PI*2/N);
+  const pt  = (i,r) => ({x: cx+Math.cos(ang(i))*r, y: cy+Math.sin(ang(i))*r});
 
-// ── SCORING ──
-function score(features){
-  let p=0,t=0;
-  SCORED.forEach(f=>{
-    const v=features?.[f.key],d=dna[f.key];
-    if(v==null||d?.min==null)return;
-    t++; if(v>=d.min&&v<=d.max)p++;
-  });
-  return{passed:p,total:t};
-}
-function vc(p,t){
-  if(!t)return'empty'; if(p===t)return'pass'; if(p>=t-1)return'borderline'; return'fail';
-}
-function fmt(k,v){
-  if(v==null)return'—';
-  return k==='tempo'?v.toFixed(1):k==='loudness'?v.toFixed(2)+' dB':v.toFixed(3);
-}
-
-// ── RENDER ──
-function rerender(){
-  renderVerdicts(); renderBars('sc'); renderBars('ss');
-  renderDelta(); renderRadar(); updateDNACur();
-}
-function updateDNACur(){
-  SCORED.forEach(f=>{
-    const el=document.getElementById(`dcur-${f.key}`); if(!el)return;
-    const v=track?.sc?.features?.[f.key]??track?.ss?.features?.[f.key];
-    if(v==null){el.textContent='—';el.style.color='#bdc3c7';return;}
-    const d=dna[f.key]; const pass=d?.min!=null&&v>=d.min&&v<=d.max;
-    el.textContent=f.scale?v.toFixed(1):v.toFixed(2);
-    el.style.color=pass?'var(--success)':'var(--danger)';
-  });
-}
-function renderVerdicts(){
-  ['sc','ss'].forEach(src=>{
-    const card=document.getElementById(`v${src}`),scoreEl=document.getElementById(`score-${src}`);
-    const f=track?.[src]?.features;
-    const label=src==='sc'?'Soundcharts':'Songstats';
-    if(!track||!f){
-      card.className='vcard empty';
-      card.querySelector('.vsource').textContent=label;
-      const noKey=src==='ss'&&window._ssPendingKey;
-      card.querySelector('.vtitle').textContent=noKey?'API Key Required':'No data';
-      card.querySelector('.vsub').textContent=noKey
-        ?'Add your RapidAPI key to SS_KEY in the page source'
-        :src==='ss'?'Will populate once SS_KEY is set':'Track not enriched or not in library';
-      card.querySelector('.vicon').textContent=noKey?'🔑':'📡';
-      scoreEl.textContent='—'; return;
-    }
-    const{passed,total}=score(f); const v=vc(passed,total);
-    const icons={pass:'✅',fail:'❌',borderline:'⚠️',empty:'📊'};
-    const titles={pass:'DNA Match',fail:'DNA Mismatch',borderline:'Borderline',empty:'No targets'};
-    const subs={pass:`Passes all ${total} targets`,fail:`Fails ${total-passed}/${total} targets`,borderline:'Misses 1 target — review',empty:'Set targets'};
-    card.className=`vcard ${v}`;
-    card.querySelector('.vsource').textContent=label;
-    card.querySelector('.vicon').textContent=icons[v];
-    card.querySelector('.vtitle').textContent=titles[v];
-    card.querySelector('.vsub').textContent=subs[v];
-    scoreEl.textContent=`${passed}/${total}`;
-  });
-}
-function renderBars(src){
-  const el=document.getElementById(`${src}-bars`),badge=document.getElementById(`${src}-badge`);
-  const f=track?.[src]?.features;
-  if(!f){
-    const noKey=src==='ss'&&window._ssPendingKey;
-    el.innerHTML=noKey
-      ?'<div class="empty-state"><div class="icon">🔑</div><p>Add RapidAPI key to SS_KEY to enable Songstats</p></div>'
-      :'<div class="empty-state"><div class="icon">📡</div><p>No data from this source</p></div>';
-    badge.textContent=noKey?'Key needed':src==='ss'?'No data':'No data'; return;
-  }
-  const{passed,total}=score(f); badge.textContent=`${passed}/${total} targets`;
-  const col=src==='sc'?'sc-col':'ss-col';
-  el.innerHTML=ALL_F.map(fd=>{
-    const v=f[fd.key]; if(v==null)return'';
-    let pct;
-    if(fd.key==='tempo') pct=Math.min((v/(fd.scale||200))*100,100);
-    else if(fd.key==='loudness') pct=Math.min(Math.max(((v+30)/30)*100,0),100);
-    else pct=Math.min(v*100,100);
-    const d=dna[fd.key];
-    let tgt='';
-    if(d?.min!=null){
-      const L=fd.scale?(d.min/(fd.scale||200))*100:d.min*100;
-      const W=fd.scale?((d.max-d.min)/(fd.scale||200))*100:(d.max-d.min)*100;
-      tgt=`<div class="ftgt" style="left:${L.toFixed(1)}%;width:${W.toFixed(1)}%"></div>`;
-    }
-    const pass=d?.min!=null&&v>=d.min&&v<=d.max;
-    const fail=d?.min!=null&&!pass;
-    const bc=fail?'fail':col;
-    const vclass=d?.min==null?'neutral':pass?'pass':Math.abs(v<d.min?d.min-v:v-d.max)<0.05?'warn':'fail';
-    const disp=fd.key==='tempo'?v.toFixed(1):fd.key==='loudness'?v.toFixed(2)+' dB':v.toFixed(3);
-    return`<div class="frow"><div class="fl">${fd.label}</div>
-      <div class="fbw"><div class="fb ${bc}" style="width:${pct.toFixed(1)}%"></div>${tgt}</div>
-      <div class="fv ${vclass}">${disp}</div></div>`;
-  }).join('');
-}
-function renderDelta(){
-  const tbody=document.getElementById('delta-body');
-  if(!track||(!track.sc&&!track.ss)){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#95a5a6;padding:28px;font-size:13px">No track loaded</td></tr>';
-    return;
-  }
-  tbody.innerHTML=ALL_F.map(fd=>{
-    const sv=track.sc?.features?.[fd.key];
-    const ssv=track.ss?.features?.[fd.key];
-    const ss_str=fmt(fd.key,ssv), sc_str=fmt(fd.key,sv);
-    let dStr='—',dCls='';
-    if(sv!=null&&ssv!=null&&!['key','mode'].includes(fd.key)){
-      const d=Math.abs(sv-ssv); dStr=d.toFixed(3);
-      dCls=d<0.02?'agree':d<0.08?'':'disagree';
-    } else if(['key','mode'].includes(fd.key)&&sv!=null&&ssv!=null){
-      dStr=sv===ssv?'✓':'≠'; dCls=sv===ssv?'agree':'disagree';
-    }
-    const d=dna[fd.key];
-    const mkPill=(v)=>d?.min==null||v==null?'<span class="pill pn">—</span>':
-      v>=d.min&&v<=d.max?'<span class="pill pp">✓</span>':'<span class="pill pf">✗</span>';
-    let agree='<span class="pill pn">—</span>';
-    if(d?.min!=null&&sv!=null&&ssv!=null){
-      const sa=(sv>=d.min&&sv<=d.max),ssa=(ssv>=d.min&&ssv<=d.max);
-      agree=sa===ssa?'<span class="pill pp">✓ Agree</span>':'<span class="pill pf">≠ Split</span>';
-    }
-    return`<tr>
-      <td><strong>${fd.label}</strong></td>
-      <td class="num" style="color:var(--sc)">${sc_str}</td>
-      <td class="num" style="color:var(--ss)">${ss_str}</td>
-      <td class="num ${dCls}">${dStr}</td>
-      <td>${mkPill(sv)}</td><td>${mkPill(ssv)}</td><td>${agree}</td>
-    </tr>`;
-  }).join('');
-}
-function renderRadar(){
-  const canvas=document.getElementById('radar');
-  const ctx=canvas.getContext('2d');
-  const W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  const KEYS=['energy','valence','danceability','acousticness'];
-  const LABS=['Energy','Valence','Danceability','Acousticness'];
-  const N=KEYS.length,cx=W/2,cy=H/2,R=Math.min(W,H)/2-36;
-  const ang=i=>-Math.PI/2+i*(Math.PI*2/N);
-  const pt=(i,r)=>({x:cx+Math.cos(ang(i))*r,y:cy+Math.sin(ang(i))*r});
-  // Grid
-  [0.25,0.5,0.75,1].forEach(s=>{
-    ctx.strokeStyle=s===1?'#ccc':'#ebebeb'; ctx.lineWidth=1;
+  // Grid rings
+  [0.25,0.5,0.75,1].forEach(s => {
+    ctx.strokeStyle = s===1?'#ccc':'#ebebeb'; ctx.lineWidth=1;
     ctx.beginPath();
     for(let i=0;i<=N;i++){const p=pt(i%N,R*s);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
     ctx.closePath(); ctx.stroke();
   });
+  // Spokes
   ctx.strokeStyle='#ddd';
-  for(let i=0;i<N;i++){ctx.beginPath();ctx.moveTo(cx,cy);const p=pt(i,R);ctx.lineTo(p.x,p.y);ctx.stroke();}
-  // Target zone
-  const mins=KEYS.map(k=>dna[k]?.min??0), maxs=KEYS.map(k=>dna[k]?.max??1);
-  ctx.beginPath();
-  for(let i=0;i<=N;i++){const p=pt(i%N,R*maxs[i%N]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-  ctx.closePath(); ctx.fillStyle='rgba(39,174,96,.15)'; ctx.fill();
-  ctx.strokeStyle='rgba(39,174,96,.65)'; ctx.lineWidth=1.5; ctx.stroke();
-  ctx.beginPath();
-  for(let i=0;i<=N;i++){const p=pt(i%N,R*mins[i%N]);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-  ctx.closePath(); ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fill();
-  // Polygon
+  for(let i=0;i<N;i++){
+    ctx.beginPath();ctx.moveTo(cx,cy);const p=pt(i,R);ctx.lineTo(p.x,p.y);ctx.stroke();
+  }
+
+  // Polygons
   const poly=(vals,fill,stroke)=>{
     ctx.beginPath();
     for(let i=0;i<=N;i++){const v=Math.min(Math.max(vals[i%N]??0,0),1);const p=pt(i%N,R*v);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);}
-    ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle=fill;ctx.fill();
+    ctx.strokeStyle=stroke;ctx.lineWidth=2.5;ctx.stroke();
     vals.forEach((v,i)=>{
       if(v==null)return;
       const p=pt(i,R*Math.min(Math.max(v,0),1));
-      ctx.beginPath(); ctx.arc(p.x,p.y,4.5,0,Math.PI*2);
-      const d=dna[KEYS[i]];
-      ctx.fillStyle=(d?.min!=null&&v>=d.min&&v<=d.max)?'#27ae60':'#e74c3c';
-      ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);
+      ctx.fillStyle=stroke;ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
     });
   };
-  if(track?.sc?.features) poly(KEYS.map(k=>track.sc.features[k]),'rgba(52,152,219,.22)','#3498db');
-  if(track?.ss?.features) poly(KEYS.map(k=>track.ss.features[k]),'rgba(155,89,182,.18)','#9b59b6');
+  poly(SC_VALS,'rgba(52,152,219,.2)','#3498db');
+  poly(MM_VALS,'rgba(230,126,34,.2)','#e67e22');
+
   // Labels
-  ctx.fillStyle='#34495e'; ctx.font='bold 11px -apple-system,sans-serif';
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  LABS.forEach((l,i)=>{const p=pt(i,R+22);ctx.fillText(l,p.x,p.y);});
-  ctx.fillStyle='#bbb'; ctx.font='9px -apple-system,sans-serif';
+  ctx.fillStyle='#34495e';ctx.font='bold 11px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  LABELS.forEach((l,i)=>{const p=pt(i,R+26);ctx.fillText(l,p.x,p.y);});
+  ctx.fillStyle='#bbb';ctx.font='9px -apple-system,sans-serif';
   [0.25,0.5,0.75,1].forEach(s=>ctx.fillText(s.toFixed(2),cx+4,cy-R*s+4));
-}
+})();
 
-// ── HISTORY ──
-function addHist(t){
-  hist=hist.filter(h=>h.isrc!==t.isrc);
-  const sc=score(t.sc?.features),ss=score(t.ss?.features);
-  hist.unshift({...t,sc_score:sc,ss_score:ss});
-  hist=hist.slice(0,20); renderHist();
-}
-function clearHistory(){hist=[];renderHist();}
-function renderHist(){
-  const el=document.getElementById('hlist');
-  if(!hist.length){el.innerHTML='<div class="empty-state"><div class="icon">🕐</div><p>No lookups yet</p></div>';return;}
-  el.innerHTML=hist.map((h,i)=>{
-    const scv=vc(h.sc_score?.passed,h.sc_score?.total);
-    const ssv=vc(h.ss_score?.passed,h.ss_score?.total);
-    const ic={pass:'✓',fail:'✗',borderline:'⚠',empty:'—'};
-    return`<div class="hitem" onclick="loadHist(${i})">
-      <div class="hinfo"><div class="htitle">${h.title}</div><div class="hisrc">${h.isrc}</div></div>
-      <div class="hpills">
-        <span class="hpill ${scv}">SC ${ic[scv]} ${h.sc_score?.passed??'?'}/${h.sc_score?.total??'?'}</span>
-        <span class="hpill ${ssv}">SS ${ic[ssv]} ${h.ss_score?.passed??'?'}/${h.ss_score?.total??'?'}</span>
-      </div></div>`;
-  }).join('');
-}
-function loadHist(i){
-  const h=hist[i]; track=h;
-  document.getElementById('isrc-input').value=h.isrc;
-  document.getElementById('track-meta').style.display='flex';
-  document.getElementById('track-meta').innerHTML=`
-    <div class="t-title">${h.title}</div><div class="t-artist">${h.artist}</div><div class="t-isrc">${h.isrc}</div>`;
-  document.getElementById('err-msg').textContent='';
-  rerender();
-}
+// ── INSIGHTS ─────────────────────────────────────────────────────
 
-document.getElementById('isrc-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLookup();});
-
-initDNA(); renderRadar();
+document.getElementById('insights').innerHTML = `
+  <div class="insight-item agree">
+    <strong>BPM agrees closely</strong><br>
+    SC: 104.98 · MM: 103.0 (Δ1.98) — both sources reliable for tempo-based sequencing.
+  </div>
+  <div class="insight-item agree">
+    <strong>Key &amp; mode agree</strong><br>
+    Both detect D major. MM flags low confidence (0.666) and notes high modulation (11 segments, primary B minor) — worth watching for harmonic-sensitive matching.
+  </div>
+  <div class="insight-item warn">
+    <strong>Energy diverges significantly</strong><br>
+    SC: 0.510 vs MM: 0.824 (Δ0.314). Different methodologies. Style Builder sliders calibrated on SC data will behave differently if MusiMap energy is used.
+  </div>
+  <div class="insight-item warn">
+    <strong>Danceability diverges significantly</strong><br>
+    SC: 0.750 vs MM: 0.505 (Δ0.245). SC skews this track more danceable than MM does. Cross-source filtering would be unreliable.
+  </div>
+  <div class="insight-item info">
+    <strong>SC has 4 fields MM doesn't</strong><br>
+    Valence, acousticness, speechiness, and liveness are SC-only. These are used by the SimLogs scoring algorithm.
+  </div>
+  <div class="insight-item excl">
+    <strong>Situations are the MusiMap differentiator</strong><br>
+    "Candle Light Dinner", "Falling in love", "Sunday morning" — these are not derivable from SC data and are highly relevant for channel/venue curation.
+  </div>
+  <div class="insight-item excl">
+    <strong>Moods add track-level context</strong><br>
+    40+ scored mood tags vs your current style-level mood tagging. Could complement rather than replace.
+  </div>
+`;
 </script>
 </body>
 </html>
