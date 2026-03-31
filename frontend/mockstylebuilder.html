@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Style Builder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1923;--panel:#131c24;--surface:#1a2633;--surface2:#1e2d3a;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.13);
+  --text:#e2eaf0;--muted:#6b8499;--accent:#3498db;
+  --success:#27ae60;--danger:#e74c3c;--warn:#f39c12;
+  --mood:#9b59b6;--sit:#e67e22;--rhythm:#1abc9c;--voice:#e91e8c;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.4}
+
+/* HEADER */
+.hdr{background:#0d1520;border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;height:44px}
+.hdr-logo{font-weight:900;font-size:14px;color:#fff;letter-spacing:.2px}
+.hdr-sep{width:1px;height:18px;background:var(--border2)}
+.hdr-sub{font-size:12px;color:var(--muted);font-weight:600}
+.hdr-badge{margin-left:auto;background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.3);color:#e67e22;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 44px);overflow:hidden}
+
+/* LEFT PANEL */
+.left{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.left-head{padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.left-title{font-size:14px;font-weight:900;color:#fff;margin-bottom:2px}
+.left-sub{font-size:11px;color:var(--muted);font-weight:600}
+.left-body{overflow-y:auto;flex:1;padding:14px 16px 20px}
+.left-body::-webkit-scrollbar{width:4px}
+.left-body::-webkit-scrollbar-track{background:transparent}
+.left-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* FILTER SECTIONS */
+.fsec{margin-bottom:20px}
+.fsec-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.fsec-label .reset{font-size:10px;text-transform:none;letter-spacing:0;color:var(--accent);cursor:pointer;font-weight:700;opacity:.8}
+.fsec-label .reset:hover{opacity:1}
+
+/* DUAL RANGE */
+.range-wrap{position:relative;height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin:8px 0 4px}
+.range-fill{position:absolute;height:100%;border-radius:2px;pointer-events:none}
+.range-wrap input[type=range]{position:absolute;width:100%;height:4px;top:0;left:0;background:transparent;pointer-events:none;-webkit-appearance:none;appearance:none}
+.range-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);pointer-events:all;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.range-inputs{display:flex;gap:6px;margin-bottom:8px}
+.range-inputs input{flex:1;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:5px;padding:5px 8px;color:#fff;font-size:12px;font-weight:700;text-align:center;outline:none}
+.range-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+
+/* SLIDERS */
+.slider-group{margin-bottom:13px}
+.slider-lbl{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.slider-lbl span:first-child{font-size:12px;color:var(--text);font-weight:700}
+.slider-lbl span:last-child{font-size:11px;color:var(--muted);font-weight:600}
+
+/* MODE BUTTONS */
+.mode-btns{display:flex;gap:5px}
+.mode-btn{flex:1;padding:7px 4px;border-radius:5px;border:1px solid var(--border2);background:rgba(255,255,255,.05);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;text-align:center;transition:.15s}
+.mode-btn.active{border-color:var(--accent);background:rgba(52,152,219,.18);color:#7ec8f0}
+
+/* TAG PILLS */
+.tag-cloud{display:flex;flex-wrap:wrap;gap:5px}
+.tag{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;border:1px solid transparent;user-select:none}
+.tag.neutral{background:rgba(255,255,255,.06);color:var(--muted);border-color:rgba(255,255,255,.08)}
+.tag.neutral:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.tag.include{background:rgba(52,152,219,.2);color:#7ec8f0;border-color:rgba(52,152,219,.4)}
+.tag.exclude{background:rgba(231,76,60,.12);color:#f0937f;border-color:rgba(231,76,60,.3);text-decoration:line-through}
+
+.tag.mood.include{background:rgba(155,89,182,.2);color:#c39bd3;border-color:rgba(155,89,182,.4)}
+.tag.sit.include{background:rgba(230,126,34,.2);color:#f0a26f;border-color:rgba(230,126,34,.4)}
+.tag.rhythm.include{background:rgba(26,188,156,.15);color:#76d7c4;border-color:rgba(26,188,156,.35)}
+.tag.voice.include{background:rgba(233,30,140,.12);color:#f48cb6;border-color:rgba(233,30,140,.3)}
+.tag.genre.include{background:rgba(52,152,219,.2);color:#7ec8f0;border-color:rgba(52,152,219,.4)}
+
+.tag-hint{font-size:10px;color:var(--muted);margin-top:5px}
+
+/* THRESHOLD */
+.threshold-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.threshold-row label{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}
+.threshold-row input{width:52px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;padding:4px 6px;color:#fff;font-size:12px;font-weight:700;text-align:center;outline:none}
+
+/* RIGHT PANEL */
+.right{display:flex;flex-direction:column;overflow:hidden;background:#0f1923}
+
+/* SAVE BAR */
+.save-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.save-bar input[type=text]{flex:1;max-width:300px;padding:9px 12px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:6px;color:#fff;font-size:14px;font-weight:700;outline:none}
+.save-bar input[type=text]:focus{border-color:var(--accent)}
+.save-bar input[type=text]::placeholder{color:var(--muted)}
+.count-box{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:6px;padding:7px 12px}
+.count-box label{font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+.count-box input{width:65px;background:transparent;border:none;color:#fff;font-size:13px;font-weight:900;text-align:right;outline:none}
+.save-btn{background:var(--success);color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;transition:.2s}
+.save-btn:disabled{background:#2c3e50;color:var(--muted);cursor:not-allowed}
+.save-btn:not(:disabled):hover{background:#229954}
+
+/* RESULTS HEADER */
+.results-hdr{padding:12px 20px 8px;display:flex;align-items:baseline;justify-content:space-between;flex-shrink:0}
+.results-count{font-size:22px;font-weight:1000;color:#fff}
+.results-label{font-size:13px;color:var(--muted);font-weight:600;margin-left:6px}
+.results-note{font-size:11px;color:var(--muted)}
+
+.hint-bar{padding:0 20px 8px;font-size:11px;color:var(--muted)}
+.hint-bar kbd{background:rgba(255,255,255,.1);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:10px;color:var(--text)}
+
+/* TRACK LIST */
+.track-list{flex:1;overflow-y:auto;padding:0 20px 20px}
+.track-list::-webkit-scrollbar{width:4px}
+.track-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+.track-item{background:var(--surface);border-radius:7px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;border:1px solid transparent;cursor:pointer;transition:.12s}
+.track-item:hover,.track-item.focused{border-color:var(--border2);background:var(--surface2)}
+.track-num{font-size:11px;color:var(--muted);font-weight:700;width:22px;text-align:right;flex-shrink:0}
+.track-info{flex:1;min-width:0}
+.track-title{font-size:13px;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-artist{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.track-chips{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:340px}
+.chip{padding:2px 8px;border-radius:8px;font-size:10px;font-weight:800;white-space:nowrap}
+.chip-bpm{background:rgba(52,152,219,.15);color:#7ec8f0;border:1px solid rgba(52,152,219,.2)}
+.chip-energy{background:rgba(231,76,60,.12);color:#f0937f;border:1px solid rgba(231,76,60,.2)}
+.chip-key{background:rgba(39,174,96,.12);color:#76d198;border:1px solid rgba(39,174,96,.2)}
+.chip-mood{background:rgba(155,89,182,.15);color:#c39bd3;border:1px solid rgba(155,89,182,.2)}
+.chip-sit{background:rgba(230,126,34,.12);color:#f0a26f;border:1px solid rgba(230,126,34,.2)}
+.chip-voice{background:rgba(233,30,140,.1);color:#f48cb6;border:1px solid rgba(233,30,140,.2)}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:280px;gap:10px;color:var(--muted)}
+.empty-icon{font-size:42px;opacity:.3}
+.empty-msg{font-size:14px;font-weight:700}
+.empty-sub{font-size:12px;opacity:.7;text-align:center;max-width:260px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#1a2633;border:1px solid var(--border2);border-radius:10px;width:500px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.modal-hdr{background:#0d1520;padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+.modal-title{font-size:16px;font-weight:900;color:#fff}
+.modal-artist{font-size:12px;color:var(--muted);margin-top:3px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;flex-shrink:0;padding:0}
+.modal-close:hover{color:#fff}
+.modal-body{overflow-y:auto;padding:18px 20px;flex:1}
+.modal-section{margin-bottom:18px}
+.modal-section-title{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px}
+.stat-box{background:rgba(255,255,255,.05);border-radius:6px;padding:10px 12px}
+.stat-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px}
+.stat-val{font-size:19px;font-weight:1000;color:#fff}
+.bar-row{margin-bottom:9px}
+.bar-row-lbl{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.bar-outer{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.bar-inner{height:100%;border-radius:3px}
+.tag-cloud-modal{display:flex;flex-wrap:wrap;gap:5px}
+.m-tag{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:800}
+.m-tag-mood{background:rgba(155,89,182,.2);color:#c39bd3}
+.m-tag-sit{background:rgba(230,126,34,.18);color:#f0a26f}
+.m-tag-genre{background:rgba(52,152,219,.15);color:#7ec8f0}
+.m-tag-voice{background:rgba(233,30,140,.12);color:#f48cb6}
+.m-tag-rhythm{background:rgba(26,188,156,.12);color:#76d7c4}
+.modal-footer{padding:10px 20px;border-top:1px solid var(--border);background:rgba(0,0,0,.2);font-size:11px;color:var(--muted);text-align:center;flex-shrink:0}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--success);color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:999;pointer-events:none}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">🎵 Opus</div>
+  <div class="hdr-sep"></div>
+  <div class="hdr-sub">Style Builder</div>
+  <div class="hdr-badge">MusiMap Preview</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: FILTERS -->
+  <div class="left">
+    <div class="left-head">
+      <div class="left-title">Build a Style</div>
+      <div class="left-sub" id="lib-sub">Loading library…</div>
+    </div>
+    <div class="left-body">
+
+      <!-- BPM -->
+      <div class="fsec">
+        <div class="fsec-label">Tempo (BPM) <span class="reset" onclick="resetBpm()">Reset</span></div>
+        <div class="range-inputs">
+          <input type="number" id="bpm-lo" min="40" max="220" value="40" oninput="onBpmInput()"/>
+          <input type="number" id="bpm-hi" min="40" max="220" value="220" oninput="onBpmInput()"/>
+        </div>
+        <div class="range-wrap" id="bpm-range">
+          <div class="range-fill" id="bpm-fill" style="background:var(--accent)"></div>
+          <input type="range" id="bpm-lo-r" min="40" max="220" value="40" oninput="syncBpm('lo')"/>
+          <input type="range" id="bpm-hi-r" min="40" max="220" value="220" oninput="syncBpm('hi')"/>
+        </div>
+        <div class="range-row"><span>40</span><span>220</span></div>
+      </div>
+
+      <!-- ENERGY -->
+      <div class="fsec">
+        <div class="fsec-label">Energy &amp; Danceability <span class="reset" onclick="resetFeel()">Reset</span></div>
+        <div class="slider-group">
+          <div class="slider-lbl"><span>Energy</span><span id="energy-lbl">0 – 100%</span></div>
+          <div class="range-wrap">
+            <div class="range-fill" id="energy-fill" style="background:#e74c3c"></div>
+            <input type="range" id="energy-lo" min="0" max="100" value="0" oninput="onFeel()"/>
+            <input type="range" id="energy-hi" min="0" max="100" value="100" oninput="onFeel()"/>
+          </div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-lbl"><span>Danceability</span><span id="dance-lbl">0 – 100%</span></div>
+          <div class="range-wrap">
+            <div class="range-fill" id="dance-fill" style="background:#3498db"></div>
+            <input type="range" id="dance-lo" min="0" max="100" value="0" oninput="onFeel()"/>
+            <input type="range" id="dance-hi" min="0" max="100" value="100" oninput="onFeel()"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- KEY MODE -->
+      <div class="fsec">
+        <div class="fsec-label">Mode</div>
+        <div class="mode-btns">
+          <div class="mode-btn active" data-mode="any"    onclick="setMode('any')">Any</div>
+          <div class="mode-btn"        data-mode="major"  onclick="setMode('major')">Major only</div>
+          <div class="mode-btn"        data-mode="minor"  onclick="setMode('minor')">Minor only</div>
+        </div>
+      </div>
+
+      <!-- SITUATIONS -->
+      <div class="fsec">
+        <div class="fsec-label" style="color:var(--sit)">Situations <span class="reset" style="color:var(--sit);opacity:.7" onclick="resetTags('sit')">Reset</span></div>
+        <div class="tag-cloud" id="sit-cloud"></div>
+        <div class="threshold-row">
+          <label>Min score</label>
+          <input type="number" id="sit-thresh" min="1" max="100" value="50" oninput="filter()"/>
+          <span style="font-size:11px;color:var(--muted)">/ 100</span>
+        </div>
+        <div class="tag-hint">Click to require · click again to exclude · click again to clear</div>
+      </div>
+
+      <!-- MOODS -->
+      <div class="fsec">
+        <div class="fsec-label" style="color:var(--mood)">Moods <span class="reset" style="color:var(--mood);opacity:.7" onclick="resetTags('mood')">Reset</span></div>
+        <div class="tag-cloud" id="mood-cloud"></div>
+        <div class="threshold-row">
+          <label>Min score</label>
+          <input type="number" id="mood-thresh" min="1" max="100" value="50" oninput="filter()"/>
+          <span style="font-size:11px;color:var(--muted)">/ 100</span>
+        </div>
+      </div>
+
+      <!-- GENRES -->
+      <div class="fsec">
+        <div class="fsec-label">Genres <span class="reset" onclick="resetTags('genre')">Reset</span></div>
+        <div class="tag-cloud" id="genre-cloud"></div>
+      </div>
+
+      <!-- VOICE -->
+      <div class="fsec">
+        <div class="fsec-label" style="color:var(--voice)">Voice Family</div>
+        <div class="tag-cloud" id="voice-cloud"></div>
+      </div>
+
+      <!-- RHYTHMIC MOOD -->
+      <div class="fsec">
+        <div class="fsec-label" style="color:var(--rhythm)">Rhythmic Mood</div>
+        <div class="tag-cloud" id="rhythm-cloud"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="right">
+    <div class="save-bar">
+      <input type="text" id="style-name" placeholder="Style name…"/>
+      <div class="count-box">
+        <label>Add top</label>
+        <input type="number" id="target-count" min="1" max="5000" value="500"/>
+        <label>songs</label>
+      </div>
+      <button class="save-btn" id="save-btn" disabled onclick="doSave()">Create Style</button>
+    </div>
+
+    <div class="results-hdr">
+      <div>
+        <span class="results-count" id="match-count">0</span>
+        <span class="results-label" id="match-label">songs match your filters</span>
+      </div>
+      <div class="results-note" id="results-note"></div>
+    </div>
+
+    <div class="hint-bar">Click a track or hover and press <kbd>Space</kbd> to view full MusiMap analysis</div>
+
+    <div class="track-list" id="track-list"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="m-title"></div>
+        <div class="modal-artist" id="m-artist"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-footer">Press <kbd style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:10px">Esc</kbd> or <kbd style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:10px">Space</kbd> to close</div>
+  </div>
+</div>
+
+<script>
+// ── LIBRARY DATA ──────────────────────────────────────────────────
+// 2 real tracks from MusiMap showcase + 18 synthetic tracks with realistic MusiMap-schema data
+
+const LIBRARY = [
+  {
+    id:'mm-001', title:'Birds Of A Feather', artist:'Billie Eilish',
+    isrc:'USUM72401994', year:2024, duration:210, real:true,
+    bpm:103, energy:0.824, danceability:0.505, key:'D', scale:'major', key_stability:0.238,
+    loudness_lufs:-12.58, beat_regularity:0.975, instrumental:false,
+    genres:['Pop','Indie rock','Electro pop / Synthpop','Contemporary R&B','Pop rock'],
+    moods:[{n:'Sensual',s:94},{n:'Love',s:86},{n:'Passionate',s:81},{n:'Sentimental',s:79},{n:'Glamourous',s:77},{n:'Friendly',s:73},{n:'Good Vibrations',s:68},{n:'Sensibility',s:63},{n:'Warm-hearted',s:55},{n:'Melodramatic',s:48},{n:'Cool',s:39},{n:'Lively',s:39},{n:'Energetic',s:33}],
+    situations:[{n:'Candle Light Dinner',s:100},{n:'Chill',s:100},{n:'Homecoming',s:100},{n:'Summer',s:100},{n:'Falling in love',s:93},{n:'Sunday morning',s:90},{n:'Goodbyes',s:86},{n:'Romance / Making Love',s:83},{n:'Winter holiday season',s:82},{n:'Cocktails',s:70}],
+    rhythmic_moods:[{n:'Staccato',s:53},{n:'Chaotic',s:15},{n:'Flowing',s:13}],
+    voice_families:[{n:'High Pitched Vocal',s:99}],
+    language:'English',
+  },
+  {
+    id:'mm-002', title:'Ordinary', artist:'Alex Warren',
+    isrc:'USAT22500463', year:2025, duration:187, real:true,
+    bpm:112, energy:0.83, danceability:0.604, key:'D', scale:'major', key_stability:0.351,
+    loudness_lufs:-11.28, beat_regularity:0.97, instrumental:false,
+    genres:['Pop','Pop rock','Contemporary R&B','Rock'],
+    moods:[{n:'Friendly',s:78},{n:'Sentimental',s:78},{n:'Good Vibrations',s:72},{n:'Passionate',s:67},{n:'Sensibility',s:64},{n:'Love',s:57},{n:'Warm-hearted',s:56},{n:'Melodramatic',s:55},{n:'Sad',s:53},{n:'Glamourous',s:50},{n:'Lively',s:43},{n:'Cool',s:41},{n:'Energetic',s:34}],
+    situations:[{n:'Appeal',s:100},{n:'Beers and friends',s:100},{n:'Candle Light Dinner',s:100},{n:'Chill',s:100},{n:'Cocooning',s:100},{n:'Commute',s:100},{n:'Falling in love',s:100},{n:'Homecoming',s:100},{n:'Hope & promises',s:100},{n:'Sunday morning',s:100},{n:'Goodbyes',s:86},{n:'Winter holiday season',s:82},{n:'Cocktails',s:80}],
+    rhythmic_moods:[{n:'Flowing',s:49},{n:'Staccato',s:31},{n:'Chaotic',s:11}],
+    voice_families:[{n:'Low Pitched Vocal',s:99}],
+    language:'English',
+  },
+
+  // Synthetic tracks — diverse across genres/moods/situations
+  {
+    id:'mm-003', title:'Golden Hour', artist:'JVKE',
+    isrc:'USQX92200145', year:2022, duration:209,
+    bpm:97, energy:0.61, danceability:0.72, key:'G', scale:'major', key_stability:0.62,
+    loudness_lufs:-9.8, beat_regularity:0.96, instrumental:false,
+    genres:['Pop','Dance pop','Electro pop / Synthpop'],
+    moods:[{n:'Love',s:96},{n:'Sensual',s:88},{n:'Happiness',s:82},{n:'Good Vibrations',s:79},{n:'Warm-hearted',s:74},{n:'Friendly',s:68},{n:'Passionate',s:65},{n:'Glamourous',s:55}],
+    situations:[{n:'Falling in love',s:100},{n:'Candle Light Dinner',s:98},{n:'Summer',s:95},{n:'Sunday morning',s:90},{n:'Romance / Making Love',s:87},{n:'Homecoming',s:82},{n:'Cocktails',s:75},{n:'Chill',s:70}],
+    rhythmic_moods:[{n:'Flowing',s:62},{n:'Lyrical',s:38}],
+    voice_families:[{n:'High Pitched Vocal',s:94}],
+    language:'English',
+  },
+  {
+    id:'mm-004', title:'As It Was', artist:'Harry Styles',
+    isrc:'GBUM72200289', year:2022, duration:167,
+    bpm:174, energy:0.73, danceability:0.82, key:'A', scale:'minor', key_stability:0.71,
+    loudness_lufs:-8.4, beat_regularity:0.98, instrumental:false,
+    genres:['Pop','Indie rock','Pop rock'],
+    moods:[{n:'Energetic',s:85},{n:'Impulsive',s:80},{n:'Good Vibrations',s:77},{n:'Dynamism',s:74},{n:'Lively',s:72},{n:'Fun',s:68},{n:'Performing',s:62},{n:'Friendly',s:58}],
+    situations:[{n:'Party time',s:98},{n:'Beers and friends',s:95},{n:'Commute',s:92},{n:'Summer',s:90},{n:'Friday night',s:88},{n:'Appeal',s:82},{n:'Pregaming',s:75}],
+    rhythmic_moods:[{n:'Staccato',s:71},{n:'Chaotic',s:29}],
+    voice_families:[{n:'High Pitched Vocal',s:88}],
+    language:'English',
+  },
+  {
+    id:'mm-005', title:'Watermelon Sugar', artist:'Harry Styles',
+    isrc:'GBUM71904407', year:2019, duration:174,
+    bpm:95, energy:0.82, danceability:0.83, key:'F', scale:'major', key_stability:0.78,
+    loudness_lufs:-7.1, beat_regularity:0.99, instrumental:false,
+    genres:['Pop','Funk','Pop rock'],
+    moods:[{n:'Fun',s:92},{n:'Happiness',s:89},{n:'Lively',s:86},{n:'Good Vibrations',s:83},{n:'Sensual',s:74},{n:'Playfulness',s:70},{n:'Energetic',s:68},{n:'Friendly',s:62}],
+    situations:[{n:'Summer',s:100},{n:'Beers and friends',s:97},{n:'Party time',s:94},{n:'Beach',s:92},{n:'Friday night',s:88},{n:'Appeal',s:84},{n:'Candle Light Dinner',s:65}],
+    rhythmic_moods:[{n:'Staccato',s:65},{n:'Flowing',s:35}],
+    voice_families:[{n:'High Pitched Vocal',s:91}],
+    language:'English',
+  },
+  {
+    id:'mm-006', title:'Blinding Lights', artist:'The Weeknd',
+    isrc:'USUG11904962', year:2019, duration:200,
+    bpm:171, energy:0.85, danceability:0.81, key:'F', scale:'minor', key_stability:0.82,
+    loudness_lufs:-5.8, beat_regularity:0.99, instrumental:false,
+    genres:['Pop','Electro pop / Synthpop','New wave'],
+    moods:[{n:'Energetic',s:94},{n:'Dynamism',s:90},{n:'Performing',s:86},{n:'Impulsive',s:82},{n:'Powerful',s:78},{n:'Cool',s:74},{n:'Sensual',s:68},{n:'Extroversion',s:65}],
+    situations:[{n:'Party time',s:100},{n:'Adrenaline (sports & action)',s:97},{n:'Friday night',s:95},{n:'Pregaming',s:92},{n:'Commute',s:88},{n:'Night run',s:85},{n:'City life',s:80},{n:'Fast car & racing',s:75}],
+    rhythmic_moods:[{n:'Staccato',s:88},{n:'Chaotic',s:12}],
+    voice_families:[{n:'High Pitched Vocal',s:96}],
+    language:'English',
+  },
+  {
+    id:'mm-007', title:'Levitating', artist:'Dua Lipa',
+    isrc:'GBBKS2000419', year:2020, duration:203,
+    bpm:103, energy:0.83, danceability:0.92, key:'B', scale:'minor', key_stability:0.85,
+    loudness_lufs:-6.4, beat_regularity:1.0, instrumental:false,
+    genres:['Dance pop','Disco','Pop'],
+    moods:[{n:'Fun',s:95},{n:'Energetic',s:91},{n:'Dynamism',s:87},{n:'Lively',s:85},{n:'Good Vibrations',s:82},{n:'Extroversion',s:78},{n:'Happiness',s:74},{n:'Sensual',s:66}],
+    situations:[{n:'Party time',s:100},{n:'Pregaming',s:98},{n:'Friday night',s:96},{n:'Workout',s:88},{n:'Summer',s:86},{n:'Beers and friends',s:82},{n:'Appeal',s:78},{n:'Adrenaline (sports & action)',s:72}],
+    rhythmic_moods:[{n:'Staccato',s:82},{n:'Flowing',s:18}],
+    voice_families:[{n:'High Pitched Vocal',s:99}],
+    language:'English',
+  },
+  {
+    id:'mm-008', title:'Someone Like You', artist:'Adele',
+    isrc:'GBBKS1100063', year:2011, duration:285,
+    bpm:67, energy:0.28, danceability:0.33, key:'A', scale:'major', key_stability:0.88,
+    loudness_lufs:-14.2, beat_regularity:0.91, instrumental:false,
+    genres:['Soul','Pop','Easy listening'],
+    moods:[{n:'Sad',s:96},{n:'Sentimental',s:94},{n:'Melodramatic',s:90},{n:'Love',s:86},{n:'Bitter',s:74},{n:'Sensibility',s:70},{n:'Atmospheric',s:62},{n:'Dreaming',s:55}],
+    situations:[{n:'Heartbreak / sorrow',s:100},{n:'Alone & reflective',s:98},{n:'Goodbyes',s:95},{n:'Nostalgia / reminiscing',s:92},{n:'Cocooning',s:80},{n:'Late at night',s:76},{n:'Autumn',s:70}],
+    rhythmic_moods:[{n:'Lyrical',s:78},{n:'Flowing',s:22}],
+    voice_families:[{n:'High Pitched Vocal',s:99}],
+    language:'English',
+  },
+  {
+    id:'mm-009', title:'Stay With Me', artist:'Sam Smith',
+    isrc:'GBUM71400450', year:2014, duration:172,
+    bpm:84, energy:0.34, danceability:0.45, key:'C', scale:'major', key_stability:0.92,
+    loudness_lufs:-12.8, beat_regularity:0.93, instrumental:false,
+    genres:['Soul','Pop','Gospel'],
+    moods:[{n:'Sad',s:88},{n:'Sentimental',s:85},{n:'Love',s:82},{n:'Melodramatic',s:79},{n:'Passionate',s:73},{n:'Sensibility',s:68},{n:'Warm-hearted',s:60},{n:'Spiritual',s:55}],
+    situations:[{n:'Heartbreak / sorrow',s:97},{n:'Goodbyes',s:94},{n:'Alone & reflective',s:91},{n:'Late at night',s:83},{n:'Cocooning',s:78},{n:'Nostalgia / reminiscing',s:74},{n:'Sunday morning',s:60}],
+    rhythmic_moods:[{n:'Lyrical',s:84},{n:'Flowing',s:16}],
+    voice_families:[{n:'High Pitched Vocal',s:97}],
+    language:'English',
+  },
+  {
+    id:'mm-010', title:'Uptown Funk', artist:'Mark Ronson ft. Bruno Mars',
+    isrc:'GBBKS1400099', year:2014, duration:270,
+    bpm:115, energy:0.93, danceability:0.96, key:'D', scale:'minor', key_stability:0.94,
+    loudness_lufs:-4.2, beat_regularity:1.0, instrumental:false,
+    genres:['Funk','Pop','Soul'],
+    moods:[{n:'Fun',s:98},{n:'Energetic',s:95},{n:'Happiness',s:91},{n:'Lively',s:89},{n:'Performing',s:87},{n:'Playfulness',s:85},{n:'Extroversion',s:80},{n:'Dynamism',s:76}],
+    situations:[{n:'Party time',s:100},{n:'Pregaming',s:100},{n:'Beers and friends',s:98},{n:'Friday night',s:97},{n:'Appeal',s:94},{n:'Workout',s:84},{n:'Summer',s:80},{n:'Tailgate',s:76}],
+    rhythmic_moods:[{n:'Staccato',s:91},{n:'Chaotic',s:9}],
+    voice_families:[{n:'High Pitched Vocal',s:88}],
+    language:'English',
+  },
+  {
+    id:'mm-011', title:'Sunset Lover', artist:'Petit Biscuit',
+    isrc:'FR6V81502468', year:2015, duration:210,
+    bpm:81, energy:0.44, danceability:0.63, key:'E', scale:'minor', key_stability:0.55,
+    loudness_lufs:-13.4, beat_regularity:0.94, instrumental:true,
+    genres:['Chill Out / Lounge','Electro pop / Synthpop','IDM / Electronica'],
+    moods:[{n:'Dreaming',s:92},{n:'Atmospheric',s:88},{n:'Soothing',s:85},{n:'Meditative',s:76},{n:'Imagination',s:72},{n:'Love',s:64},{n:'Sensual',s:58},{n:'Cool',s:52}],
+    situations:[{n:'Chill',s:100},{n:'Sunday morning',s:97},{n:'Alone & reflective',s:94},{n:'Cocooning',s:92},{n:'Study & focus',s:88},{n:'Candle Light Dinner',s:80},{n:'Dawn',s:78},{n:'Late at night',s:70}],
+    rhythmic_moods:[{n:'Flowing',s:79},{n:'Lyrical',s:21}],
+    voice_families:[{n:'Instrumental',s:99}],
+    language:'English',
+  },
+  {
+    id:'mm-012', title:'Peaches', artist:'Justin Bieber',
+    isrc:'USUM72104469', year:2021, duration:198,
+    bpm:90, energy:0.54, danceability:0.82, key:'E', scale:'major', key_stability:0.76,
+    loudness_lufs:-10.2, beat_regularity:0.97, instrumental:false,
+    genres:['Pop','Contemporary R&B','Soul'],
+    moods:[{n:'Sensual',s:88},{n:'Love',s:84},{n:'Warm-hearted',s:78},{n:'Good Vibrations',s:74},{n:'Happiness',s:70},{n:'Soothing',s:64},{n:'Friendly',s:60},{n:'Cool',s:54}],
+    situations:[{n:'Summer',s:100},{n:'Candle Light Dinner',s:96},{n:'Chill',s:94},{n:'Sunday morning',s:90},{n:'Falling in love',s:87},{n:'Cocooning',s:82},{n:'Romance / Making Love',s:78},{n:'Cocktails',s:72}],
+    rhythmic_moods:[{n:'Flowing',s:68},{n:'Staccato',s:32}],
+    voice_families:[{n:'High Pitched Vocal',s:91}],
+    language:'English',
+  },
+  {
+    id:'mm-013', title:'Lose Yourself', artist:'Eminem',
+    isrc:'USUM70230177', year:2002, duration:326,
+    bpm:86, energy:0.96, danceability:0.74, key:'D', scale:'minor', key_stability:0.88,
+    loudness_lufs:-4.8, beat_regularity:0.97, instrumental:false,
+    genres:['Hip Hop / Rap','Hard Rock'],
+    moods:[{n:'Determined',s:98},{n:'Powerful',s:96},{n:'Warrior',s:92},{n:'Heroic',s:89},{n:'Aggressive',s:86},{n:'Energetic',s:84},{n:'Rebellious',s:80},{n:'Impulsive',s:74}],
+    situations:[{n:'Adrenaline (sports & action)',s:100},{n:'Workout',s:99},{n:'Seize the day',s:96},{n:'Running',s:94},{n:'Fight',s:88},{n:'Uplift / motivate',s:86},{n:'Road trip',s:72}],
+    rhythmic_moods:[{n:'Staccato',s:94},{n:'Chaotic',s:6}],
+    voice_families:[{n:'Low Pitched Vocal',s:99}],
+    language:'English',
+  },
+  {
+    id:'mm-014', title:'Shallow', artist:'Lady Gaga & Bradley Cooper',
+    isrc:'USUM71808406', year:2018, duration:216,
+    bpm:96, energy:0.52, danceability:0.42, key:'G', scale:'minor', key_stability:0.71,
+    loudness_lufs:-11.9, beat_regularity:0.92, instrumental:false,
+    genres:['Pop','Country rock','Soul'],
+    moods:[{n:'Passionate',s:94},{n:'Sentimental',s:92},{n:'Love',s:88},{n:'Melodramatic',s:84},{n:'Heroic',s:78},{n:'Powerful',s:74},{n:'Sensibility',s:68},{n:'Inspired',s:62}],
+    situations:[{n:'Falling in love',s:96},{n:'Goodbyes',s:94},{n:'Heartbreak / sorrow',s:90},{n:'Homecoming',s:86},{n:'Nostalgia / reminiscing',s:82},{n:'Hope & promises',s:78},{n:'Wedding Party',s:72},{n:'Candle Light Dinner',s:68}],
+    rhythmic_moods:[{n:'Lyrical',s:72},{n:'Flowing',s:28}],
+    voice_families:[{n:'High Pitched Vocal',s:88},{n:'Low Pitched Vocal',s:82}],
+    language:'English',
+  },
+  {
+    id:'mm-015', title:'Shape of You', artist:'Ed Sheeran',
+    isrc:'GBAHS1700015', year:2017, duration:234,
+    bpm:96, energy:0.65, danceability:0.83, key:'C', scale:'minor', key_stability:0.87,
+    loudness_lufs:-7.6, beat_regularity:0.98, instrumental:false,
+    genres:['Pop','Contemporary R&B','Dance pop'],
+    moods:[{n:'Sensual',s:90},{n:'Fun',s:86},{n:'Love',s:82},{n:'Good Vibrations',s:79},{n:'Playfulness',s:75},{n:'Lively',s:70},{n:'Happiness',s:66},{n:'Cool',s:60}],
+    situations:[{n:'Summer',s:97},{n:'Beers and friends',s:94},{n:'Party time',s:90},{n:'Appeal',s:88},{n:'Candle Light Dinner',s:82},{n:'Falling in love',s:78},{n:'Beach',s:76},{n:'Friday night',s:70}],
+    rhythmic_moods:[{n:'Staccato',s:75},{n:'Flowing',s:25}],
+    voice_families:[{n:'High Pitched Vocal',s:90}],
+    language:'English',
+  },
+  {
+    id:'mm-016', title:'Night Changes', artist:'One Direction',
+    isrc:'GBUM71404190', year:2014, duration:239,
+    bpm:120, energy:0.42, danceability:0.56, key:'E', scale:'major', key_stability:0.81,
+    loudness_lufs:-12.4, beat_regularity:0.95, instrumental:false,
+    genres:['Pop','Pop rock'],
+    moods:[{n:'Sentimental',s:90},{n:'Love',s:87},{n:'Warm-hearted',s:83},{n:'Nostalgic',s:79},{n:'Friendly',s:74},{n:'Good Vibrations',s:68},{n:'Dreaming',s:60},{n:'Innocent',s:56}],
+    situations:[{n:'Sunday morning',s:98},{n:'Cocooning',s:95},{n:'Homecoming',s:92},{n:'Nostalgia / reminiscing',s:90},{n:'Winter holiday season',s:87},{n:'Candle Light Dinner',s:82},{n:'Goodbyes',s:76},{n:'Falling in love',s:70}],
+    rhythmic_moods:[{n:'Flowing',s:70},{n:'Lyrical',s:30}],
+    voice_families:[{n:'High Pitched Vocal',s:95}],
+    language:'English',
+  },
+  {
+    id:'mm-017', title:'Mr. Brightside', artist:'The Killers',
+    isrc:'USIR20300372', year:2003, duration:222,
+    bpm:148, energy:0.88, danceability:0.70, key:'B', scale:'major', key_stability:0.79,
+    loudness_lufs:-6.2, beat_regularity:0.98, instrumental:false,
+    genres:['Indie rock','Post punk - New wave rock','Rock'],
+    moods:[{n:'Energetic',s:92},{n:'Impulsive',s:88},{n:'Rebellious',s:84},{n:'Bitter',s:80},{n:'Passionate',s:76},{n:'Aggressive',s:68},{n:'Melodramatic',s:64},{n:'Dynamism',s:60}],
+    situations:[{n:'Party time',s:94},{n:'Beers and friends',s:92},{n:'Friday night',s:90},{n:'Commute',s:84},{n:'Road trip',s:80},{n:'Heartbreak / sorrow',s:74},{n:'Pregaming',s:70}],
+    rhythmic_moods:[{n:'Staccato',s:80},{n:'Chaotic',s:20}],
+    voice_families:[{n:'High Pitched Vocal',s:88}],
+    language:'English',
+  },
+  {
+    id:'mm-018', title:'Bohemian Rhapsody', artist:'Queen',
+    isrc:'GBUM71029432', year:1975, duration:354,
+    bpm:72, energy:0.40, danceability:0.39, key:'Bb', scale:'major', key_stability:0.24,
+    loudness_lufs:-13.8, beat_regularity:0.71, instrumental:false,
+    genres:['Rock','Hard Rock','Pop rock'],
+    moods:[{n:'Melodramatic',s:95},{n:'Theatrical',s:92},{n:'Passionate',s:88},{n:'Heroic',s:84},{n:'Powerful',s:80},{n:'Sad',s:72},{n:'Imagination',s:68},{n:'Extroversion',s:62}],
+    situations:[{n:'Life cycle',s:94},{n:'Alone & reflective',s:88},{n:'Nostalgia / reminiscing',s:86},{n:'Party time',s:82},{n:'Road trip',s:80},{n:'Heartbreak / sorrow',s:74},{n:'Beers and friends',s:70}],
+    rhythmic_moods:[{n:'Chaotic',s:60},{n:'Flowing',s:25},{n:'Staccato',s:15}],
+    voice_families:[{n:'High Pitched Vocal',s:96}],
+    language:'English',
+  },
+  {
+    id:'mm-019', title:'Flowers', artist:'Miley Cyrus',
+    isrc:'USRC12300613', year:2023, duration:200,
+    bpm:118, energy:0.72, danceability:0.87, key:'C', scale:'minor', key_stability:0.83,
+    loudness_lufs:-7.8, beat_regularity:0.99, instrumental:false,
+    genres:['Pop','Disco','Dance pop'],
+    moods:[{n:'Determined',s:92},{n:'Powerful',s:88},{n:'Extroversion',s:85},{n:'Self Control',s:82},{n:'Revitalizing',s:78},{n:'Energetic',s:74},{n:'Fun',s:68},{n:'Good Vibrations',s:62}],
+    situations:[{n:'Seize the day',s:98},{n:'Uplift / motivate',s:95},{n:'Party time',s:90},{n:'Appeal',s:88},{n:'Morning',s:84},{n:'Running',s:80},{n:'Summer',s:76},{n:'Workout',s:72}],
+    rhythmic_moods:[{n:'Staccato',s:77},{n:'Flowing',s:23}],
+    voice_families:[{n:'High Pitched Vocal',s:97}],
+    language:'English',
+  },
+  {
+    id:'mm-020', title:'Easy On Me', artist:'Adele',
+    isrc:'GBBKS2100649', year:2021, duration:224,
+    bpm:64, energy:0.25, danceability:0.31, key:'F', scale:'major', key_stability:0.91,
+    loudness_lufs:-16.1, beat_regularity:0.89, instrumental:false,
+    genres:['Pop','Soul','Easy listening'],
+    moods:[{n:'Sad',s:98},{n:'Sentimental',s:96},{n:'Melodramatic',s:90},{n:'Love',s:85},{n:'Bitter',s:78},{n:'Sensibility',s:74},{n:'Warm-hearted',s:65},{n:'Innocent',s:58}],
+    situations:[{n:'Heartbreak / sorrow',s:100},{n:'Alone & reflective',s:98},{n:'Goodbyes',s:96},{n:'Nostalgia / reminiscing',s:92},{n:'Cocooning',s:85},{n:'Late at night',s:80},{n:'Autumn',s:75},{n:'Sunday morning',s:60}],
+    rhythmic_moods:[{n:'Lyrical',s:88},{n:'Flowing',s:12}],
+    voice_families:[{n:'High Pitched Vocal',s:99}],
+    language:'English',
+  },
+];
+
+// ── TAXONOMY ─────────────────────────────────────────────────────
+
+const ALL_SITUATIONS = [...new Set(LIBRARY.flatMap(t=>t.situations.map(s=>s.n)))].sort();
+const ALL_MOODS      = [...new Set(LIBRARY.flatMap(t=>t.moods.map(m=>m.n)))].sort();
+const ALL_GENRES     = [...new Set(LIBRARY.flatMap(t=>t.genres))].sort();
+const ALL_VOICE      = [...new Set(LIBRARY.flatMap(t=>t.voice_families.map(v=>v.n)))].sort();
+const ALL_RHYTHM     = [...new Set(LIBRARY.flatMap(t=>t.rhythmic_moods.map(r=>r.n)))].sort();
+
+// ── STATE ─────────────────────────────────────────────────────────
+const state = {
+  bpmLo:40, bpmHi:220,
+  energyLo:0, energyHi:100,
+  danceLo:0,  danceHi:100,
+  mode:'any',
+  sitTags:{}, moodTags:{}, genreTags:{}, voiceTags:{}, rhythmTags:{},
+  sitThresh:50, moodThresh:50,
+};
+
+let focusedIdx = null;
+let filtered   = [];
+let modalSong  = null;
+
+// ── INIT ──────────────────────────────────────────────────────────
+function init() {
+  buildCloud('sit-cloud',   ALL_SITUATIONS, 'sit');
+  buildCloud('mood-cloud',  ALL_MOODS,      'mood');
+  buildCloud('genre-cloud', ALL_GENRES,     'genre');
+  buildCloud('voice-cloud', ALL_VOICE,      'voice');
+  buildCloud('rhythm-cloud',ALL_RHYTHM,     'rhythm');
+  updateBpmFill();
+  updateFeel();
+  document.getElementById('lib-sub').textContent = `${LIBRARY.length} tracks · MusiMap analysis`;
+  filter();
+}
+
+function buildCloud(id, tags, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = tags.map(t =>
+    `<div class="tag neutral ${type}" data-tag="${t}" data-type="${type}" onclick="cycleTag('${type}','${t}')">${t}</div>`
+  ).join('');
+}
+
+// ── BPM ───────────────────────────────────────────────────────────
+function syncBpm(side) {
+  const lo = +document.getElementById('bpm-lo-r').value;
+  const hi = +document.getElementById('bpm-hi-r').value;
+  if (side==='lo' && lo > hi) { document.getElementById('bpm-lo-r').value = hi; return; }
+  if (side==='hi' && hi < lo) { document.getElementById('bpm-hi-r').value = lo; return; }
+  document.getElementById('bpm-lo').value = lo;
+  document.getElementById('bpm-hi').value = hi;
+  state.bpmLo = lo; state.bpmHi = hi;
+  updateBpmFill(); filter();
+}
+function onBpmInput() {
+  state.bpmLo = +document.getElementById('bpm-lo').value;
+  state.bpmHi = +document.getElementById('bpm-hi').value;
+  document.getElementById('bpm-lo-r').value = state.bpmLo;
+  document.getElementById('bpm-hi-r').value = state.bpmHi;
+  updateBpmFill(); filter();
+}
+function updateBpmFill() {
+  const lo = ((state.bpmLo-40)/180)*100;
+  const hi = ((state.bpmHi-40)/180)*100;
+  document.getElementById('bpm-fill').style.left  = lo+'%';
+  document.getElementById('bpm-fill').style.width = (hi-lo)+'%';
+}
+function resetBpm() {
+  state.bpmLo=40; state.bpmHi=220;
+  ['bpm-lo','bpm-hi','bpm-lo-r','bpm-hi-r'].forEach((id,i)=>document.getElementById(id).value=i<2?[40,220][i]:[40,220][i]);
+  updateBpmFill(); filter();
+}
+
+// ── FEEL ──────────────────────────────────────────────────────────
+function onFeel() {
+  state.energyLo = +document.getElementById('energy-lo').value;
+  state.energyHi = +document.getElementById('energy-hi').value;
+  state.danceLo  = +document.getElementById('dance-lo').value;
+  state.danceHi  = +document.getElementById('dance-hi').value;
+  updateFeel(); filter();
+}
+function updateFeel() {
+  const elo=(state.energyLo)+'%', ehi=(state.energyHi-state.energyLo)+'%';
+  document.getElementById('energy-fill').style.left=elo;
+  document.getElementById('energy-fill').style.width=ehi;
+  document.getElementById('energy-lbl').textContent=`${state.energyLo} – ${state.energyHi}%`;
+  const dlo=(state.danceLo)+'%', dhi=(state.danceHi-state.danceLo)+'%';
+  document.getElementById('dance-fill').style.left=dlo;
+  document.getElementById('dance-fill').style.width=dhi;
+  document.getElementById('dance-lbl').textContent=`${state.danceLo} – ${state.danceHi}%`;
+}
+function resetFeel() {
+  ['energy-lo','energy-hi','dance-lo','dance-hi'].forEach((id,i)=>document.getElementById(id).value=[0,100,0,100][i]);
+  state.energyLo=0;state.energyHi=100;state.danceLo=0;state.danceHi=100;
+  updateFeel(); filter();
+}
+
+// ── MODE ──────────────────────────────────────────────────────────
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  filter();
+}
+
+// ── TAGS ─────────────────────────────────────────────────────────
+function cycleTag(type, tag) {
+  const map = state[type+'Tags'];
+  if (!map[tag])           map[tag] = 'include';
+  else if (map[tag]==='include') map[tag] = 'exclude';
+  else delete map[tag];
+  const el = document.querySelector(`[data-type="${type}"][data-tag="${tag}"]`);
+  if (el) {
+    el.className = `tag ${type} ` + (map[tag] || 'neutral');
+  }
+  filter();
+}
+function resetTags(type) {
+  state[type+'Tags'] = {};
+  document.querySelectorAll(`[data-type="${type}"]`).forEach(el=>el.className=`tag ${type} neutral`);
+  filter();
+}
+
+// ── FILTER ────────────────────────────────────────────────────────
+function filter() {
+  state.sitThresh  = +document.getElementById('sit-thresh').value  || 50;
+  state.moodThresh = +document.getElementById('mood-thresh').value || 50;
+
+  filtered = LIBRARY.filter(t => {
+    if (t.bpm < state.bpmLo || t.bpm > state.bpmHi) return false;
+    const e = Math.round(t.energy*100), d = Math.round(t.danceability*100);
+    if (e < state.energyLo || e > state.energyHi) return false;
+    if (d < state.danceLo  || d > state.danceHi)  return false;
+    if (state.mode==='major' && t.scale!=='major') return false;
+    if (state.mode==='minor' && t.scale!=='minor') return false;
+
+    // Situation tags
+    const sitInc = Object.entries(state.sitTags).filter(([,v])=>v==='include').map(([k])=>k);
+    const sitExc = Object.entries(state.sitTags).filter(([,v])=>v==='exclude').map(([k])=>k);
+    if (sitInc.length) {
+      const sitMap = {}; t.situations.forEach(s=>sitMap[s.n]=s.s);
+      if (!sitInc.every(tag => (sitMap[tag]||0) >= state.sitThresh)) return false;
+    }
+    if (sitExc.length) {
+      const sitMap = {}; t.situations.forEach(s=>sitMap[s.n]=s.s);
+      if (sitExc.some(tag => (sitMap[tag]||0) >= state.sitThresh)) return false;
+    }
+
+    // Mood tags
+    const moodInc = Object.entries(state.moodTags).filter(([,v])=>v==='include').map(([k])=>k);
+    const moodExc = Object.entries(state.moodTags).filter(([,v])=>v==='exclude').map(([k])=>k);
+    if (moodInc.length) {
+      const moodMap = {}; t.moods.forEach(m=>moodMap[m.n]=m.s);
+      if (!moodInc.every(tag => (moodMap[tag]||0) >= state.moodThresh)) return false;
+    }
+    if (moodExc.length) {
+      const moodMap = {}; t.moods.forEach(m=>moodMap[m.n]=m.s);
+      if (moodExc.some(tag => (moodMap[tag]||0) >= state.moodThresh)) return false;
+    }
+
+    // Genre tags
+    const genInc = Object.entries(state.genreTags).filter(([,v])=>v==='include').map(([k])=>k);
+    const genExc = Object.entries(state.genreTags).filter(([,v])=>v==='exclude').map(([k])=>k);
+    if (genInc.length && !genInc.some(g=>t.genres.includes(g))) return false;
+    if (genExc.length &&  genExc.some(g=>t.genres.includes(g))) return false;
+
+    // Voice
+    const voiceInc = Object.entries(state.voiceTags).filter(([,v])=>v==='include').map(([k])=>k);
+    if (voiceInc.length && !voiceInc.some(v=>t.voice_families.some(vf=>vf.n===v))) return false;
+
+    // Rhythmic mood
+    const rhythmInc = Object.entries(state.rhythmTags).filter(([,v])=>v==='include').map(([k])=>k);
+    if (rhythmInc.length && !rhythmInc.some(r=>t.rhythmic_moods.some(rm=>rm.n===r))) return false;
+
+    return true;
+  });
+
+  renderResults();
+  document.getElementById('save-btn').disabled = filtered.length === 0 || !document.getElementById('style-name').value.trim();
+}
+
+// ── RENDER RESULTS ────────────────────────────────────────────────
+function renderResults() {
+  const count = filtered.length;
+  document.getElementById('match-count').textContent = count.toLocaleString();
+  document.getElementById('match-label').textContent = count===1?'song matches your filters':'songs match your filters';
+  document.getElementById('results-note').textContent = count>20?`Showing first 20 · ${Math.min(+document.getElementById('target-count').value||500,count)} will be saved`:'';
+
+  const list = document.getElementById('track-list');
+  if (count===0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎚️</div><div class="empty-msg">No songs match</div><div class="empty-sub">Try widening your filters or lowering the mood/situation threshold</div></div>`;
+    return;
+  }
+
+  const preview = filtered.slice(0,20);
+  list.innerHTML = preview.map((t,i) => {
+    const topMood = t.moods[0];
+    const topSit  = t.situations[0];
+    const realBadge = t.real ? `<span class="chip" style="background:rgba(230,126,34,.15);color:#e67e22;border-color:rgba(230,126,34,.3);font-size:9px">REAL DATA</span>` : '';
+    return `<div class="track-item" data-idx="${i}" onclick="openModal(${i})" onmouseenter="setFocus(${i})" onmouseleave="clearFocus()">
+      <div class="track-num">${i+1}</div>
+      <div class="track-info">
+        <div class="track-title">${t.title}</div>
+        <div class="track-artist">${t.artist}</div>
+      </div>
+      <div class="track-chips">
+        ${realBadge}
+        <span class="chip chip-bpm">${t.bpm} BPM</span>
+        <span class="chip chip-energy">E:${Math.round(t.energy*100)}%</span>
+        <span class="chip chip-key">${t.key} ${t.scale==='major'?'maj':'min'}</span>
+        ${topMood?`<span class="chip chip-mood">${topMood.n}</span>`:''}
+        ${topSit?`<span class="chip chip-sit">${topSit.n}</span>`:''}
+        ${t.voice_families[0]?`<span class="chip chip-voice">${t.voice_families[0].n.replace(' Vocal','')}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFocus(i)  { focusedIdx=i; }
+function clearFocus() { focusedIdx=null; }
+
+// ── MODAL ─────────────────────────────────────────────────────────
+function openModal(idx) {
+  const t = filtered[idx];
+  if (!t) return;
+  modalSong = t;
+  document.getElementById('m-title').textContent  = t.title;
+  document.getElementById('m-artist').textContent = `${t.artist} · ${t.year} · ${t.duration_formatted||fmtDur(t.duration)}`;
+
+  function barRow(label, val, color) {
+    const pct = Math.round(val*100);
+    return `<div class="bar-row"><div class="bar-row-lbl"><span>${label}</span><span>${pct}%</span></div><div class="bar-outer"><div class="bar-inner" style="width:${pct}%;background:${color}"></div></div></div>`;
+  }
+
+  const body = document.getElementById('m-body');
+  body.innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Tempo &amp; Key</div>
+      <div class="modal-grid">
+        <div class="stat-box"><div class="stat-label">BPM</div><div class="stat-val">${t.bpm}</div></div>
+        <div class="stat-box"><div class="stat-label">Key</div><div class="stat-val">${t.key} ${t.scale==='major'?'maj':'min'}</div></div>
+        <div class="stat-box"><div class="stat-label">Key Stability</div><div class="stat-val" style="font-size:15px;color:${t.key_stability>0.6?'#27ae60':t.key_stability>0.35?'#f39c12':'#e74c3c'}">${t.key_stability.toFixed(2)}</div></div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Feel</div>
+      ${barRow('Energy',t.energy,'#e74c3c')}
+      ${barRow('Danceability',t.danceability,'#3498db')}
+      <div class="bar-row"><div class="bar-row-lbl"><span>Loudness (LUFS)</span><span>${t.loudness_lufs} LUFS</span></div><div class="bar-outer"><div class="bar-inner" style="width:${Math.min(Math.max(((t.loudness_lufs+20)/16)*100,0),100).toFixed(0)}%;background:#9b59b6"></div></div></div>
+      <div class="bar-row"><div class="bar-row-lbl"><span>Beat Regularity</span><span>${Math.round(t.beat_regularity*100)}%</span></div><div class="bar-outer"><div class="bar-inner" style="width:${Math.round(t.beat_regularity*100)}%;background:#1abc9c"></div></div></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Moods</div>
+      <div class="tag-cloud-modal">${t.moods.map(m=>`<span class="m-tag m-tag-mood" title="${m.s}/100">${m.n} <span style="opacity:.6">${m.s}</span></span>`).join('')}</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Situations</div>
+      <div class="tag-cloud-modal">${t.situations.map(s=>`<span class="m-tag m-tag-sit" title="${s.s}/100">${s.n} <span style="opacity:.6">${s.s}</span></span>`).join('')}</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">Genres</div>
+      <div class="tag-cloud-modal">${t.genres.map(g=>`<span class="m-tag m-tag-genre">${g}</span>`).join('')}</div>
+    </div>
+
+    <div class="modal-section" style="margin-bottom:0">
+      <div class="modal-section-title">Voice &amp; Rhythm</div>
+      <div class="tag-cloud-modal">
+        ${t.voice_families.map(v=>`<span class="m-tag m-tag-voice">${v.n} <span style="opacity:.6">${v.s}</span></span>`).join('')}
+        ${t.rhythmic_moods.map(r=>`<span class="m-tag m-tag-rhythm">${r.n} <span style="opacity:.6">${r.s}</span></span>`).join('')}
+        ${t.real?`<span class="m-tag" style="background:rgba(230,126,34,.15);color:#e67e22">✓ Real MusiMap data</span>`:'<span class="m-tag" style="background:rgba(255,255,255,.07);color:var(--muted)">Synthetic</span>'}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display='none';
+  modalSong=null;
+}
+
+// ── KEYBOARD ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (document.getElementById('modal-overlay').style.display!=='none') {
+    if (e.key==='Escape'||e.key===' ') { e.preventDefault(); closeModal(); }
+    return;
+  }
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if (e.key===' ' && focusedIdx!==null) { e.preventDefault(); openModal(focusedIdx); }
+});
+
+document.getElementById('style-name').addEventListener('input', () => {
+  document.getElementById('save-btn').disabled = !document.getElementById('style-name').value.trim() || filtered.length===0;
+});
+
+// ── SAVE ─────────────────────────────────────────────────────────
+function doSave() {
+  const name = document.getElementById('style-name').value.trim();
+  const target = Math.min(+document.getElementById('target-count').value||500, filtered.length);
+  if (!name || !filtered.length) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = `✓ "${name}" created with ${target} song${target!==1?'s':''} (mock — no data saved)`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 3200);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function fmtDur(s) {
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+init();
+</script>
+</body>
+</html>
